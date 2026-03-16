@@ -1,0 +1,69 @@
+import '../api/api_client.dart';
+import '../models/book_model.dart';
+import '../models/category_model.dart';
+import '../models/paragraph_model.dart';
+
+class BookService {
+  final ApiClient _client = ApiClient.instance;
+
+  Future<List<BookModel>> getBooks({
+    String? category,
+    String? sort,
+    int page = 1,
+  }) async {
+    final res = await _client.get('/books', params: {
+      if (category != null) 'category': category,
+      if (sort != null) 'sort': sort,
+      'page': page,
+      'per_page': 20,
+    });
+    final data = res.data['data'] as List<dynamic>;
+    return data
+        .map((e) => BookModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<BookModel>> getFeatured() async {
+    final res = await _client.get('/books/featured');
+    final data = res.data['data'] as List<dynamic>;
+    return data
+        .map((e) => BookModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<BookModel> getBook(String slug) async {
+    final res = await _client.get('/books/$slug');
+    return BookModel.fromJson(res.data['data'] as Map<String, dynamic>);
+  }
+
+  Future<List<CategoryModel>> getCategories() async {
+    final res = await _client.get('/categories');
+    final data = res.data['data'] as List<dynamic>;
+    return data
+        .map((e) => CategoryModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<BookModel>> search(String query) async {
+    final res = await _client.get('/search', params: {'q': query});
+    final data = res.data['data'] as List<dynamic>;
+    return data
+        .map((e) => BookModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<ParagraphModel>> getParagraphs(
+    int bookId, {
+    int fromOrder = 0,
+    int limit = 50,
+  }) async {
+    final res = await _client.get('/books/$bookId/paragraphs', params: {
+      'from_order': fromOrder,
+      'limit': limit,
+    });
+    final data = res.data['data'] as List<dynamic>;
+    return data
+        .map((e) => ParagraphModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+}
