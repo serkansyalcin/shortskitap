@@ -12,8 +12,8 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 }
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  final _controller = PageController();
-  int _page = 0;
+  final _scrollController = ScrollController();
+  double _scrollOffset = 0;
   int _selectedGoal = 10;
   final List<String> _selectedCategories = [];
 
@@ -30,10 +30,28 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      if (mounted) setState(() => _scrollOffset = _scrollController.offset);
+    });
+  }
+
+  @override
   void dispose() {
-    _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
+
+  double _visibility(double sectionTop, double viewportHeight) {
+    final visibleStart = sectionTop - viewportHeight * 0.6;
+    final visibleEnd = sectionTop - viewportHeight * 0.2;
+    if (_scrollOffset < visibleStart) return 0;
+    if (_scrollOffset > visibleEnd) return 1;
+    return ((_scrollOffset - visibleStart) / (visibleEnd - visibleStart)).clamp(0.0, 1.0);
+  }
+
+  double _slideOffset(double visibility) => 30 * (1 - visibility);
 
   Future<void> _finish() async {
     await ref.read(settingsProvider.notifier).setDailyGoal(_selectedGoal);
@@ -41,66 +59,247 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (mounted) context.go('/login');
   }
 
-  void _next() {
-    if (_page < 2) {
-      _controller.nextPage(
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeInOut,
-      );
-    } else {
-      _finish();
-    }
-  }
-
-  bool get _canNext {
-    if (_page == 2) return _selectedCategories.length >= 2;
-    return true;
-  }
+  bool get _canFinish => _selectedCategories.length >= 2;
 
   @override
   Widget build(BuildContext context) {
+    final viewportHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Progress dots
-            Padding(
-              padding: const EdgeInsets.only(top: 24, bottom: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(3, (i) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: i == _page ? 24 : 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: i == _page ? AppColors.primary : Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(4),
+        child: CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            // --- KitapLig Header ---
+            SliverToBoxAdapter(
+              child: _AnimatedSection(
+                visibility: _visibility(0, viewportHeight),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          gradient: AppColors.brandGradient,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withOpacity(0.35),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: const Center(child: Text('📖', style: TextStyle(fontSize: 36))),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'KitapLig',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.8,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Kitap okumayı yeniden keşfet',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: AppColors.lightTextSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                )),
+                ),
               ),
             ),
 
-            Expanded(
-              child: PageView(
-                controller: _controller,
-                onPageChanged: (p) => setState(() => _page = p),
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  _buildStep1(),
-                  _buildStep2(),
-                  _buildStep3(),
-                ],
+            // --- Shorts Format Card (Sol hizalı) ---
+            SliverToBoxAdapter(
+              child: _AnimatedSection(
+                visibility: _visibility(320, viewportHeight),
+                alignLeft: true,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 36, 12),
+                  child: _FeatureCard(
+                    icon: '📱',
+                    title: 'Shorts Formatı',
+                    description: 'Her ekranda bir paragraf. Parmağınla yukarı kaydır, kitapları Reels gibi oku. Kısa ve odaklı.',
+                    gradient: [AppColors.primary, AppColors.primaryLight],
+                    isLeft: true,
+                  ),
+                ),
               ),
             ),
 
-            // Next button
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: ElevatedButton(
-                onPressed: _canNext ? _next : null,
-                child: Text(_page == 2 ? 'Başla 🚀' : 'Devam'),
+            // --- League Card (Sağ hizalı) ---
+            SliverToBoxAdapter(
+              child: _AnimatedSection(
+                visibility: _visibility(520, viewportHeight),
+                alignLeft: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(36, 12, 20, 12),
+                  child: _FeatureCard(
+                    icon: '🏆',
+                    title: 'Lig Sistemi',
+                    description: 'Arkadaşlarınla yarış, sezonluk liglerde terfi et. Okuduğun her paragraf XP kazandırır!',
+                    gradient: [const Color(0xFF6A1B9A), const Color(0xFF8E24AA)],
+                    isLeft: false,
+                  ),
+                ),
+              ),
+            ),
+
+            // --- Günlük Hedef ---
+            SliverToBoxAdapter(
+              child: _AnimatedSection(
+                visibility: _visibility(720, viewportHeight),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('🎯', style: TextStyle(fontSize: 40)),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Günlük hedefini belirle',
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Her gün kaç paragraf okumak istiyorsun?',
+                        style: TextStyle(fontSize: 14, color: AppColors.lightTextSecondary),
+                      ),
+                      const SizedBox(height: 20),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: _goals.map((goal) => _GoalChip(
+                          goal: goal,
+                          selected: _selectedGoal == goal,
+                          onTap: () => setState(() => _selectedGoal = goal),
+                        )).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // --- İlgi Alanları ---
+            SliverToBoxAdapter(
+              child: _AnimatedSection(
+                visibility: _visibility(950, viewportHeight),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('❤️', style: TextStyle(fontSize: 36)),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'İlgi alanlarını seç',
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'En az 2 kategori seç',
+                        style: TextStyle(fontSize: 14, color: AppColors.lightTextSecondary),
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: _categories.map((cat) {
+                          final selected = _selectedCategories.contains(cat['name']);
+                          return GestureDetector(
+                            onTap: () => setState(() {
+                              if (selected) {
+                                _selectedCategories.remove(cat['name']);
+                              } else {
+                                _selectedCategories.add(cat['name']!);
+                              }
+                            }),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: selected ? AppColors.primary : Colors.white,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  color: selected ? AppColors.primary : Colors.grey.shade200,
+                                  width: 1.5,
+                                ),
+                                boxShadow: selected ? [
+                                  BoxShadow(
+                                    color: AppColors.primary.withOpacity(0.25),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ] : [],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(cat['icon']!, style: const TextStyle(fontSize: 18)),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    cat['name']!,
+                                    style: TextStyle(
+                                      color: selected ? Colors.white : AppColors.lightText,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // --- Başla Butonu ---
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _canFinish ? _finish : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.grey.shade300,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: _canFinish ? 4 : 0,
+                      shadowColor: AppColors.primary.withOpacity(0.4),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(_canFinish ? 'Başla' : 'En az 2 kategori seç'),
+                        if (_canFinish) ...[
+                          const SizedBox(width: 8),
+                          const Icon(Icons.arrow_forward_rounded, size: 20),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -108,186 +307,167 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ),
     );
   }
+}
 
-  Widget _buildStep1() {
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+class _AnimatedSection extends StatelessWidget {
+  final double visibility;
+  final Widget child;
+  final bool? alignLeft;
+
+  const _AnimatedSection({
+    required this.visibility,
+    required this.child,
+    this.alignLeft,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final slide = 40 * (1 - visibility);
+    final opacity = visibility.clamp(0.0, 1.0);
+    final dx = alignLeft == true ? -slide : (alignLeft == false ? slide : 0);
+
+    return AnimatedOpacity(
+      opacity: opacity,
+      duration: const Duration(milliseconds: 100),
+      child: Transform.translate(
+        offset: Offset(dx, 0),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _FeatureCard extends StatelessWidget {
+  final String icon;
+  final String title;
+  final String description;
+  final List<Color> gradient;
+  final bool isLeft;
+
+  const _FeatureCard({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.gradient,
+    required this.isLeft,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: isLeft ? Alignment.topLeft : Alignment.topRight,
+          end: isLeft ? Alignment.bottomRight : Alignment.bottomLeft,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: gradient.first.withOpacity(0.35),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
         children: [
-          const Text('📱', style: TextStyle(fontSize: 80)),
-          const SizedBox(height: 32),
-          const Text(
-            'Kitapları farklı gör',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Her ekranda bir paragraf. Parmağınla yukarı kaydır, kitapları Instagram Reels gibi oku.',
-            style: TextStyle(fontSize: 16, color: AppColors.lightTextSecondary, height: 1.6),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 40),
-          // Mock phone animation
+          if (!isLeft) const Spacer(flex: 1),
           Container(
-            width: 140,
-            height: 220,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
-              color: AppColors.darkBackground,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.grey.shade300, width: 3),
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: const Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Center(child: Text(icon, style: const TextStyle(fontSize: 28))),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '"Kitaplar insanların zihinlerinde gezindiği bahçelerdir."',
-                  style: TextStyle(color: Colors.white70, fontSize: 9, fontStyle: FontStyle.italic),
-                  textAlign: TextAlign.center,
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                SizedBox(height: 16),
-                Icon(Icons.keyboard_arrow_up, color: Colors.white54, size: 20),
-                Text('kaydır', style: TextStyle(color: Colors.white38, fontSize: 9)),
+                const SizedBox(height: 6),
+                Text(
+                  description,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 13,
+                    height: 1.5,
+                  ),
+                ),
               ],
             ),
           ),
+          if (isLeft) const Spacer(flex: 1),
         ],
       ),
     );
   }
+}
 
-  Widget _buildStep2() {
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('🎯', style: TextStyle(fontSize: 80)),
-          const SizedBox(height: 32),
-          const Text(
-            'Günlük hedefini belirle',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Her gün kaç paragraf okumak istiyorsun?',
-            style: TextStyle(fontSize: 16, color: AppColors.lightTextSecondary),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 40),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            alignment: WrapAlignment.center,
-            children: _goals.map((goal) => GestureDetector(
-              onTap: () => setState(() => _selectedGoal = goal),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
-                decoration: BoxDecoration(
-                  color: _selectedGoal == goal ? AppColors.primary : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: _selectedGoal == goal ? AppColors.primary : Colors.grey.shade200,
-                    width: 2,
-                  ),
-                  boxShadow: _selectedGoal == goal ? [
-                    BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
-                  ] : [],
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      '$goal',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: _selectedGoal == goal ? Colors.white : AppColors.lightText,
-                      ),
-                    ),
-                    Text(
-                      'paragraf/gün',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _selectedGoal == goal ? Colors.white70 : AppColors.lightTextSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )).toList(),
-          ),
-        ],
-      ),
-    );
-  }
+class _GoalChip extends StatelessWidget {
+  final int goal;
+  final bool selected;
+  final VoidCallback onTap;
 
-  Widget _buildStep3() {
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        children: [
-          const SizedBox(height: 16),
-          const Text('❤️', style: TextStyle(fontSize: 64)),
-          const SizedBox(height: 24),
-          const Text(
-            'İlgi alanlarını seç',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
+  const _GoalChip({
+    required this.goal,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? AppColors.primary : Colors.grey.shade200,
+            width: 2,
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'En az 2 kategori seç',
-            style: TextStyle(fontSize: 14, color: AppColors.lightTextSecondary),
-          ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              alignment: WrapAlignment.center,
-              children: _categories.map((cat) {
-                final selected = _selectedCategories.contains(cat['name']);
-                return GestureDetector(
-                  onTap: () => setState(() {
-                    if (selected) {
-                      _selectedCategories.remove(cat['name']);
-                    } else {
-                      _selectedCategories.add(cat['name']!);
-                    }
-                  }),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: selected ? AppColors.primary : Colors.white,
-                      borderRadius: BorderRadius.circular(40),
-                      border: Border.all(
-                        color: selected ? AppColors.primary : Colors.grey.shade200,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(cat['icon']!, style: const TextStyle(fontSize: 18)),
-                        const SizedBox(width: 8),
-                        Text(
-                          cat['name']!,
-                          style: TextStyle(
-                            color: selected ? Colors.white : AppColors.lightText,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
+          boxShadow: selected ? [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-          ),
-        ],
+          ] : [],
+        ),
+        child: Column(
+          children: [
+            Text(
+              '$goal',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: selected ? Colors.white : AppColors.lightText,
+              ),
+            ),
+            Text(
+              'paragraf/gün',
+              style: TextStyle(
+                fontSize: 12,
+                color: selected ? Colors.white70 : AppColors.lightTextSecondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
