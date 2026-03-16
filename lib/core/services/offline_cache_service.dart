@@ -13,7 +13,7 @@ class OfflineCacheService {
 
   static Future<Database> _initDb() async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'shortskitap.db');
+    final path = join(dbPath, 'kitaplig.db');
 
     return openDatabase(
       path,

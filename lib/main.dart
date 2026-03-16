@@ -1,19 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'app/routes/app_router.dart';
 import 'app/theme/app_theme.dart';
 import 'app/providers/settings_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Force portrait orientation for reading app
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
   await dotenv.load(fileName: '.env');
 
-  runApp(const ProviderScope(child: ShortsKitapApp()));
+  // Request notification permission on first launch (non-blocking)
+  _requestNotificationPermission();
+
+  runApp(const ProviderScope(child: KitapLigApp()));
 }
 
-class ShortsKitapApp extends ConsumerWidget {
-  const ShortsKitapApp({super.key});
+Future<void> _requestNotificationPermission() async {
+  final status = await Permission.notification.status;
+  if (status.isDenied) {
+    await Permission.notification.request();
+  }
+}
+
+class KitapLigApp extends ConsumerWidget {
+  const KitapLigApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,7 +40,7 @@ class ShortsKitapApp extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
 
     return MaterialApp.router(
-      title: 'Shorts Kitap',
+      title: 'KitapLig',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

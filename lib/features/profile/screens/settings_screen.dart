@@ -1,16 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../app/providers/settings_provider.dart';
 import '../../../app/theme/app_colors.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  PermissionStatus _notificationStatus = PermissionStatus.denied;
+  String _appVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final status = await Permission.notification.status;
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _notificationStatus = status;
+        _appVersion = '${info.version} (${info.buildNumber})';
+      });
+    }
+  }
+
+  Future<void> _toggleNotifications(bool enable) async {
+    if (enable) {
+      final status = await Permission.notification.request();
+      if (status.isPermanentlyDenied) openAppSettings();
+      if (mounted) setState(() => _notificationStatus = status);
+    } else {
+      await openAppSettings();
+    }
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sayfa açılamadı.')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
 
     return Scaffold(
       appBar: AppBar(
@@ -23,56 +74,242 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          // Theme
-          _SectionTitle('Tema'),
-          ...['light', 'dark', 'sepia'].map((t) {
-            final labels = {'light': '☀️ Açık', 'dark': '🌙 Koyu', 'sepia': '🍂 Sepya'};
-            return RadioListTile<String>(
-              title: Text(labels[t]!),
-              value: t,
-              groupValue: settings.theme,
-              activeColor: AppColors.primary,
-              onChanged: (v) => v != null ? notifier.setTheme(v) : null,
-            );
-          }),
+          // ─── Görünüm ───────────────────────────────────────────
+          _SectionTitle('GÖRÜNÜM'),
+          _SettingsCard(color: cardBg, children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Text('Tema', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey[600], fontSize: 12)),
+            ),
+            ...['light', 'dark', 'sepia'].map((t) {
+              final labels = {'light': '☀️  Açık', 'dark': '🌙  Koyu', 'sepia': '🍂  Sepya'};
+              return RadioListTile<String>(
+                title: Text(labels[t]!),
+                value: t,
+                groupValue: settings.theme,
+                activeColor: AppColors.primary,
+                dense: true,
+                onChanged: (v) => v != null ? notifier.setTheme(v) : null,
+              );
+            }),
+          ]),
+          const SizedBox(height: 20),
 
-          const SizedBox(height: 16),
-          _SectionTitle('Font Boyutu'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
+          // ─── Okuma ─────────────────────────────────────────────
+          _SectionTitle('OKUMA'),
+          _SettingsCard(color: cardBg, children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: Row(
+                children: [
+                  const Icon(Icons.text_fields, size: 18, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  const Text('Font Boyutu', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text('${settings.fontSize}px',
+                        style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                children: [
+                  const Text('A', style: TextStyle(fontSize: 12)),
+                  Expanded(
+                    child: Slider(
+                      value: settings.fontSize.toDouble(),
+                      min: 12,
+                      max: 22,
+                      divisions: 5,
+                      activeColor: AppColors.primary,
+                      onChanged: (v) => notifier.setFontSize(v.round()),
+                    ),
+                  ),
+                  const Text('A', style: TextStyle(fontSize: 22)),
+                ],
+              ),
+            ),
+            const Divider(height: 1, indent: 16),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.flag_outlined, size: 18, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  const Text('Günlük Hedef', style: TextStyle(fontWeight: FontWeight.w500)),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+              child: Wrap(
+                spacing: 8,
+                children: [5, 10, 20, 30].map((goal) => ChoiceChip(
+                  label: Text('$goal paragraf'),
+                  selected: settings.dailyGoal == goal,
+                  selectedColor: AppColors.primary,
+                  labelStyle: TextStyle(
+                    color: settings.dailyGoal == goal ? Colors.white : null,
+                    fontWeight: settings.dailyGoal == goal ? FontWeight.w600 : null,
+                  ),
+                  onSelected: (_) => notifier.setDailyGoal(goal),
+                )).toList(),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 20),
+
+          // ─── Bildirimler ────────────────────────────────────────
+          _SectionTitle('BİLDİRİMLER'),
+          _SettingsCard(color: cardBg, children: [
+            SwitchListTile(
+              secondary: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.notifications_outlined, color: AppColors.primary, size: 20),
+              ),
+              title: const Text('Günlük Hatırlatıcı', style: TextStyle(fontWeight: FontWeight.w500)),
+              subtitle: Text(
+                _notificationStatus.isGranted
+                    ? 'Bildirimler açık'
+                    : 'Okuma hedefin için günlük bildirim al',
+                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+              ),
+              value: _notificationStatus.isGranted,
+              activeColor: AppColors.primary,
+              onChanged: _toggleNotifications,
+            ),
+            if (!_notificationStatus.isGranted) ...[
+              const Divider(height: 1, indent: 16),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 14, color: Colors.orange[700]),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Bildirimler kapalı. Açmak için izin gereklidir.',
+                        style: TextStyle(fontSize: 12, color: Colors.orange[700]),
+                      ),
+                    ),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: () async {
+                        final status = await Permission.notification.request();
+                        if (status.isPermanentlyDenied) openAppSettings();
+                        if (mounted) setState(() => _notificationStatus = status);
+                      },
+                      child: const Text('İzin Ver', style: TextStyle(fontSize: 12)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ]),
+          const SizedBox(height: 20),
+
+          // ─── Yasal ─────────────────────────────────────────────
+          _SectionTitle('YASAL'),
+          _SettingsCard(color: cardBg, children: [
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.privacy_tip_outlined, color: Colors.blue, size: 20),
+              ),
+              title: const Text('Gizlilik Politikası', style: TextStyle(fontWeight: FontWeight.w500)),
+              trailing: const Icon(Icons.open_in_new, size: 16, color: Colors.grey),
+              onTap: () => _launchUrl('https://kitaplig.com/privacy'),
+            ),
+            const Divider(height: 1, indent: 56),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.description_outlined, color: Colors.blue, size: 20),
+              ),
+              title: const Text('Kullanım Koşulları', style: TextStyle(fontWeight: FontWeight.w500)),
+              trailing: const Icon(Icons.open_in_new, size: 16, color: Colors.grey),
+              onTap: () => _launchUrl('https://kitaplig.com/terms'),
+            ),
+          ]),
+          const SizedBox(height: 20),
+
+          // ─── Hakkında ───────────────────────────────────────────
+          _SectionTitle('HAKKINDA'),
+          _SettingsCard(color: cardBg, children: [
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.info_outline, color: AppColors.primary, size: 20),
+              ),
+              title: const Text('Uygulama Versiyonu', style: TextStyle(fontWeight: FontWeight.w500)),
+              trailing: Text(_appVersion, style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+            ),
+            const Divider(height: 1, indent: 56),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.email_outlined, color: AppColors.primary, size: 20),
+              ),
+              title: const Text('Geri Bildirim Gönder', style: TextStyle(fontWeight: FontWeight.w500)),
+              trailing: const Icon(Icons.open_in_new, size: 16, color: Colors.grey),
+              onTap: () => _launchUrl('mailto:destek@kitaplig.com?subject=KitapLig%20Geri%20Bildirim'),
+            ),
+          ]),
+          const SizedBox(height: 40),
+
+          // ─── Footer ─────────────────────────────────────────────
+          Center(
+            child: Column(
               children: [
-                const Text('A', style: TextStyle(fontSize: 12)),
-                Expanded(
-                  child: Slider(
-                    value: settings.fontSize.toDouble(),
-                    min: 12,
-                    max: 22,
-                    divisions: 5,
-                    label: '${settings.fontSize}px',
-                    activeColor: AppColors.primary,
-                    onChanged: (v) => notifier.setFontSize(v.round()),
+                Text(
+                  'KitapLig',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                    color: AppColors.primary,
                   ),
                 ),
-                const Text('A', style: TextStyle(fontSize: 22)),
+                const SizedBox(height: 4),
+                Text(
+                  '© 2026 KitapLig. Tüm hakları saklıdır.',
+                  style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                ),
               ],
             ),
           ),
-
-          const SizedBox(height: 16),
-          _SectionTitle('Günlük Hedef'),
-          Wrap(
-            spacing: 8,
-            children: [5, 10, 20, 30].map((goal) => ChoiceChip(
-              label: Text('$goal paragraf'),
-              selected: settings.dailyGoal == goal,
-              selectedColor: AppColors.primary,
-              labelStyle: TextStyle(
-                color: settings.dailyGoal == goal ? Colors.white : null,
-              ),
-              onSelected: (_) => notifier.setDailyGoal(goal),
-            )).toList(),
-          ),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -85,15 +322,33 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(left: 4, bottom: 8),
         child: Text(
           title,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.lightTextSecondary,
-            letterSpacing: 0.5,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: Colors.grey[500],
+            letterSpacing: 1.2,
           ),
         ),
       );
+}
+
+class _SettingsCard extends StatelessWidget {
+  final Color color;
+  final List<Widget> children;
+  const _SettingsCard({required this.color, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
+      ),
+      child: Column(children: children),
+    );
+  }
 }

@@ -48,4 +48,9 @@ class AuthService {
       return null;
     }
   }
+
+  Future<void> deleteAccount() async {
+    await _client.delete('/me');
+    await ApiClient.clearToken();
+  }
 }

@@ -83,7 +83,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               ),
               const SizedBox(height: 24),
               const Text(
-                'Shorts Kitap',
+                'KitapLig',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 32,

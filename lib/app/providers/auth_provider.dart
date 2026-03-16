@@ -80,6 +80,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState.unauthenticated();
   }
 
+  Future<bool> deleteAccount() async {
+    try {
+      await _service.deleteAccount();
+      state = const AuthState.unauthenticated();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   void updateUser(UserModel user) {
     state = AuthState.authenticated(user);
   }

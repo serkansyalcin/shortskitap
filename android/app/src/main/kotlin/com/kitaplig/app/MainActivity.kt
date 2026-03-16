@@ -1,4 +1,4 @@
-package com.shortskitap.shortskitap
+package com.kitaplig.app
 
 import io.flutter.embedding.android.FlutterActivity
 

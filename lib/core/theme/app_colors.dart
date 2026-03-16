@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Shorts Kitap - Kitap odaklı, sıcak ve okunabilir palet
+/// KitapLig - Kitap odaklı, sıcak ve okunabilir palet
 class AppColors {
   AppColors._();
 

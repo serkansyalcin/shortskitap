@@ -159,8 +159,8 @@ class ParagraphCard extends StatelessWidget {
 
   void _shareParagraph() {
     Share.share(
-      '"${paragraph.content}"\n\n— Shorts Kitap uygulamasından',
-      subject: 'Shorts Kitap',
+      '"${paragraph.content}"\n\n— KitapLig uygulamasından',
+      subject: 'KitapLig',
     );
   }
 }

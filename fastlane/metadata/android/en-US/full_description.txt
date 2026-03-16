@@ -1,0 +1,37 @@
+📚 KitapLig — Make Reading Fun!
+
+KitapLig is an innovative reading platform that combines book reading with TikTok's addictive scrolling experience. Read books in a vertical format with one paragraph per screen, while competing in a Duolingo-like league system that turns reading into a competition.
+
+🔥 WHY KITAPLIG?
+
+✅ Vertical Reading Experience
+Scroll like social media, read books. One paragraph per screen — stay focused, keep reading.
+
+🏆 League System
+• Sand, Bronze, Silver, Gold, Diamond, Legend leagues
+• Earn weekly XP, climb to the top of your league
+• New season every week — rise or fall!
+• Compete with readers in your league
+
+📖 Rich Library
+• Curated Turkish classics and world literature
+• Free public domain books
+• Expand your library with premium content
+
+🎯 Reading Goals & Achievements
+• Set daily reading goals
+• Read streaks, earn badges
+• Track your progress with detailed stats
+
+🌙 Customizable Reading Experience
+• Light, dark, and sepia themes
+• Font size adjustment
+• Offline reading support
+
+📤 Share & Inspire
+• Share your favorite paragraphs with friends
+• Add notes, bookmark your favorite sections
+
+---
+Build a reading habit with KitapLig.
+A few paragraphs every day, a new league every week. Join the competition!

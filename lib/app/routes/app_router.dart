@@ -15,6 +15,7 @@ import '../../features/book/screens/reader_screen.dart';
 import '../../features/library/screens/library_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/settings_screen.dart';
+import '../../features/league/screens/league_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -87,6 +88,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const SettingsScreen(),
           ),
         ],
+      ),
+      GoRoute(
+        path: '/league',
+        builder: (_, __) => const LeagueScreen(),
       ),
       GoRoute(
         path: '/books/:slug',

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../app/providers/auth_provider.dart';
 import '../../../app/providers/books_provider.dart';
 import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/settings_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../league/widgets/league_mini_card.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -32,10 +35,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (i) => setState(() => _selectedIndex = i),
+        onDestinationSelected: (i) {
+          if (i == 2) {
+            // League tab — navigate to dedicated league screen
+            context.push('/league');
+            return;
+          }
+          setState(() => _selectedIndex = i < 2 ? i : i - 1);
+        },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Ana Sayfa'),
           NavigationDestination(icon: Icon(Icons.explore_outlined), selectedIcon: Icon(Icons.explore), label: 'Keşfet'),
+          NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events), label: 'Lig'),
           NavigationDestination(icon: Icon(Icons.library_books_outlined), selectedIcon: Icon(Icons.library_books), label: 'Kütüphane'),
           NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profil'),
         ],
@@ -97,7 +108,11 @@ class _HomeTab extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // League mini card
+            const LeagueMiniCard(),
+            const SizedBox(height: 20),
 
             // Continue reading card
             progressAsync.when(
@@ -535,38 +550,115 @@ class _LibraryTab extends ConsumerWidget {
   }
 }
 
-class _ProfileTab extends ConsumerWidget {
+class _ProfileTab extends ConsumerStatefulWidget {
   const _ProfileTab();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ProfileTab> createState() => _ProfileTabState();
+}
+
+class _ProfileTabState extends ConsumerState<_ProfileTab> {
+  PermissionStatus _notificationStatus = PermissionStatus.denied;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkNotificationPermission();
+  }
+
+  Future<void> _checkNotificationPermission() async {
+    final status = await Permission.notification.status;
+    if (mounted) setState(() => _notificationStatus = status);
+  }
+
+  Future<void> _requestNotificationPermission() async {
+    final status = await Permission.notification.request();
+    if (mounted) setState(() => _notificationStatus = status);
+    if (status.isPermanentlyDenied && mounted) {
+      openAppSettings();
+    }
+  }
+
+  Future<void> _showDeleteAccountDialog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _DeleteAccountDialog(),
+    );
+    if (confirmed == true && mounted) {
+      final ok = await ref.read(authProvider.notifier).deleteAccount();
+      if (ok && mounted) {
+        context.go('/login');
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Hesap silinirken bir hata oluştu. Lütfen tekrar deneyin.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sayfa açılamadı.')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
 
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 12),
-            // Avatar
-            CircleAvatar(
-              radius: 40,
-              backgroundColor: AppColors.primary.withOpacity(0.15),
-              child: Text(
-                user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : '?',
-                style: const TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
+
+            // --- Avatar + Name ---
+            Center(
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 44,
+                    backgroundColor: AppColors.primary.withOpacity(0.15),
+                    child: Text(
+                      user?.name.isNotEmpty == true
+                          ? user!.name[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                        fontSize: 40,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    user?.name ?? '',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    user?.email ?? '',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            Text(user?.name ?? '', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            Text(user?.email ?? '', style: const TextStyle(color: AppColors.lightTextSecondary)),
             const SizedBox(height: 24),
 
-            // Stats row
+            // --- Stats ---
             Row(
               children: [
                 _StatCard(label: 'Günlük Hedef', value: '${user?.dailyGoal ?? 10}', icon: '🎯'),
@@ -576,27 +668,267 @@ class _ProfileTab extends ConsumerWidget {
                 const _StatCard(label: 'Rozetler', value: '0', icon: '🏆'),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
 
-            // Menu items
-            _MenuItem(
-              icon: Icons.settings_outlined,
-              title: 'Ayarlar',
-              onTap: () => context.push('/home/settings'),
+            // --- Hesap ---
+            _SectionLabel('HESAP'),
+            _MenuCard(color: cardColor, children: [
+              _MenuItem(
+                icon: Icons.settings_outlined,
+                title: 'Ayarlar',
+                onTap: () => context.push('/home/settings'),
+              ),
+              _MenuDivider(),
+              _MenuItem(
+                icon: Icons.logout_outlined,
+                title: 'Çıkış Yap',
+                onTap: () async {
+                  final ok = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Çıkış Yap'),
+                      content: const Text('Oturumunuzu kapatmak istediğinize emin misiniz?'),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('İptal')),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Çıkış Yap'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (ok == true && mounted) {
+                    await ref.read(authProvider.notifier).logout();
+                    if (mounted) context.go('/login');
+                  }
+                },
+              ),
+            ]),
+            const SizedBox(height: 20),
+
+            // --- Bildirimler ---
+            _SectionLabel('BİLDİRİMLER'),
+            _MenuCard(color: cardColor, children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.notifications_outlined,
+                          color: AppColors.primary, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Bildirimlere İzin Ver',
+                              style: TextStyle(fontWeight: FontWeight.w500)),
+                          Text(
+                            _notificationStatus.isGranted
+                                ? 'Bildirimler açık'
+                                : 'Günlük hatırlatıcılar ve lig güncellemeleri',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _notificationStatus.isGranted,
+                      activeColor: AppColors.primary,
+                      onChanged: (_) async {
+                        if (_notificationStatus.isGranted) {
+                          await openAppSettings();
+                        } else {
+                          await _requestNotificationPermission();
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ]),
+            const SizedBox(height: 20),
+
+            // --- Yasal ---
+            _SectionLabel('YASAL'),
+            _MenuCard(color: cardColor, children: [
+              _MenuItem(
+                icon: Icons.privacy_tip_outlined,
+                title: 'Gizlilik Politikası',
+                trailing: const Icon(Icons.open_in_new, size: 16, color: Colors.grey),
+                onTap: () => _launchUrl('https://kitaplig.com/privacy'),
+              ),
+              _MenuDivider(),
+              _MenuItem(
+                icon: Icons.description_outlined,
+                title: 'Kullanım Koşulları',
+                trailing: const Icon(Icons.open_in_new, size: 16, color: Colors.grey),
+                onTap: () => _launchUrl('https://kitaplig.com/terms'),
+              ),
+            ]),
+            const SizedBox(height: 20),
+
+            // --- Tehlikeli Alan ---
+            _SectionLabel('TEHLİKELİ ALAN'),
+            Container(
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.red.withOpacity(0.3)),
+              ),
+              child: _MenuItem(
+                icon: Icons.delete_forever_outlined,
+                title: 'Hesabı Sil',
+                subtitle: 'Tüm verileriniz kalıcı olarak silinir',
+                color: Colors.red,
+                onTap: _showDeleteAccountDialog,
+              ),
             ),
-            _MenuItem(
-              icon: Icons.logout,
-              title: 'Çıkış Yap',
-              color: Colors.red,
-              onTap: () async {
-                await ref.read(authProvider.notifier).logout();
-                if (context.mounted) context.go('/login');
-              },
-            ),
+            const SizedBox(height: 32),
           ],
         ),
       ),
     );
+  }
+}
+
+class _DeleteAccountDialog extends StatefulWidget {
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  final _controller = TextEditingController();
+  bool _canDelete = false;
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.warning_rounded, color: Colors.red[700]),
+          const SizedBox(width: 8),
+          const Text('Hesabı Sil'),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Text(
+              'Bu işlem geri alınamaz. Tüm okuma geçmişiniz, lig puanlarınız ve kişisel verileriniz kalıcı olarak silinecek.',
+              style: TextStyle(fontSize: 13),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Onaylamak için aşağıya "SİL" yazın:',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            textCapitalization: TextCapitalization.characters,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              hintText: 'SİL',
+              isDense: true,
+            ),
+            onChanged: (v) => setState(() => _canDelete = v.trim() == 'SİL'),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.pop(context, false),
+          child: const Text('Vazgeç'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: Colors.red),
+          onPressed: (_canDelete && !_loading)
+              ? () {
+                  setState(() => _loading = true);
+                  Navigator.pop(context, true);
+                }
+              : null,
+          child: _loading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Text('Hesabı Kalıcı Sil'),
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: Colors.grey[500],
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuCard extends StatelessWidget {
+  final Color color;
+  final List<Widget> children;
+  const _MenuCard({required this.color, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
+        ],
+      ),
+      child: Column(children: children),
+    );
+  }
+}
+
+class _MenuDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return const Divider(height: 1, indent: 56);
   }
 }
 
@@ -638,17 +970,36 @@ class _StatCard extends StatelessWidget {
 class _MenuItem extends StatelessWidget {
   final IconData icon;
   final String title;
+  final String? subtitle;
   final VoidCallback onTap;
   final Color? color;
+  final Widget? trailing;
 
-  const _MenuItem({required this.icon, required this.title, required this.onTap, this.color});
+  const _MenuItem({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.subtitle,
+    this.color,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, color: color ?? AppColors.primary),
-      title: Text(title, style: TextStyle(color: color)),
-      trailing: const Icon(Icons.chevron_right, size: 20),
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: (color ?? AppColors.primary).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: color ?? AppColors.primary, size: 20),
+      ),
+      title: Text(title, style: TextStyle(color: color, fontWeight: FontWeight.w500)),
+      subtitle: subtitle != null
+          ? Text(subtitle!, style: TextStyle(fontSize: 12, color: Colors.grey[500]))
+          : null,
+      trailing: trailing ?? Icon(Icons.chevron_right, size: 20, color: Colors.grey[400]),
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
