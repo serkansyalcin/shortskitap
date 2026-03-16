@@ -324,7 +324,7 @@ class _AnimatedSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final slide = 40 * (1 - visibility);
     final opacity = visibility.clamp(0.0, 1.0);
-    final dx = alignLeft == true ? -slide : (alignLeft == false ? slide : 0);
+    final dx = alignLeft == true ? -slide : (alignLeft == false ? slide : 0.0);
 
     return AnimatedOpacity(
       opacity: opacity,
