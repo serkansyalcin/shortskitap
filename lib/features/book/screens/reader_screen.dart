@@ -6,13 +6,25 @@ import 'package:go_router/go_router.dart';
 import '../../../app/providers/books_provider.dart';
 import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/settings_provider.dart';
+import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../features/subscription/widgets/ad_banner.dart';
 import '../widgets/paragraph_card.dart';
+
+/// Every N paragraphs, an ad slot is inserted for non-premium users.
+const _adEveryN = 5;
 
 class ReaderScreen extends ConsumerStatefulWidget {
   final int bookId;
 
-  const ReaderScreen({super.key, required this.bookId});
+  /// Optional flag passed from BookDetailScreen via route `extra`.
+  final bool bookIsPremium;
+
+  const ReaderScreen({
+    super.key,
+    required this.bookId,
+    this.bookIsPremium = false,
+  });
 
   @override
   ConsumerState<ReaderScreen> createState() => _ReaderScreenState();
@@ -33,7 +45,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     _pageController = PageController();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
-    // Session timer: counts reading time
     _sessionTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       _sessionSeconds++;
     });
@@ -82,6 +93,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   Widget build(BuildContext context) {
     final paragraphsAsync = ref.watch(paragraphsProvider(widget.bookId));
     final settings = ref.watch(settingsProvider);
+    final isPremium = ref.watch(isPremiumProvider);
+
+    // Gate: if book is premium and user is not premium, redirect to paywall
+    if (widget.bookIsPremium && !isPremium) {
+      return _PremiumGateScreen(
+        onUpgrade: () => context.push('/premium'),
+        onBack: () => context.pop(),
+      );
+    }
 
     return GestureDetector(
       onTap: _showControlsTemporarily,
@@ -92,23 +112,40 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               return const Center(child: Text('Bu kitapta henüz içerik yok.'));
             }
 
+            // Build a list of page items: paragraphs + ad slots for non-premium
+            final items = _buildItemList(paragraphs, isPremium);
+
             return Stack(
               children: [
-                // Main reading PageView
                 PageView.builder(
                   controller: _pageController,
                   scrollDirection: Axis.vertical,
-                  itemCount: paragraphs.length,
+                  itemCount: items.length,
                   onPageChanged: _onPageChanged,
-                  itemBuilder: (ctx, index) => ParagraphCard(
-                    paragraph: paragraphs[index],
-                    isCurrent: index == _currentIndex,
-                    total: paragraphs.length,
-                    fontSize: settings.fontSize.toDouble(),
-                  ),
+                  itemBuilder: (ctx, index) {
+                    final item = items[index];
+                    if (item is _AdItem) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Spacer(),
+                            const AdBannerWidget(position: 'reader_banner'),
+                            const Spacer(),
+                          ],
+                        ),
+                      );
+                    }
+                    final para = item as _ParagraphItem;
+                    return ParagraphCard(
+                      paragraph: para.paragraph,
+                      isCurrent: index == _currentIndex,
+                      total: paragraphs.length,
+                      fontSize: settings.fontSize.toDouble(),
+                    );
+                  },
                 ),
 
-                // Top bar
                 AnimatedOpacity(
                   opacity: _showControls ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 200),
@@ -118,7 +155,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   ),
                 ),
 
-                // Bottom progress bar
                 Positioned(
                   bottom: 0,
                   left: 0,
@@ -128,7 +164,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     duration: const Duration(milliseconds: 200),
                     child: _ReaderBottomBar(
                       current: _currentIndex + 1,
-                      total: paragraphs.length,
+                      total: items.length,
                     ),
                   ),
                 ),
@@ -158,6 +194,21 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
   }
 
+  List<dynamic> _buildItemList(List paragraphs, bool isPremium) {
+    if (isPremium) {
+      return paragraphs.map((p) => _ParagraphItem(p)).toList();
+    }
+    final items = <dynamic>[];
+    for (var i = 0; i < paragraphs.length; i++) {
+      items.add(_ParagraphItem(paragraphs[i]));
+      // Insert an ad every _adEveryN paragraphs (not at the very end)
+      if ((i + 1) % _adEveryN == 0 && i < paragraphs.length - 1) {
+        items.add(_AdItem());
+      }
+    }
+    return items;
+  }
+
   void _showReaderSettings(BuildContext context) {
     final settings = ref.read(settingsProvider);
     showModalBottomSheet(
@@ -175,7 +226,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               const Text('Okuma Ayarları', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
 
-              // Theme selector
               const Text('Tema', style: TextStyle(fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
               Row(
@@ -210,7 +260,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Font size
               const Text('Font Boyutu', style: TextStyle(fontWeight: FontWeight.w500)),
               Row(
                 children: [
@@ -238,6 +287,76 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
   }
 }
+
+// ── Page item types ────────────────────────────────────────────────────────────
+
+class _ParagraphItem {
+  final dynamic paragraph;
+  const _ParagraphItem(this.paragraph);
+}
+
+class _AdItem {}
+
+// ── Premium gate ──────────────────────────────────────────────────────────────
+
+class _PremiumGateScreen extends StatelessWidget {
+  final VoidCallback onUpgrade;
+  final VoidCallback onBack;
+
+  const _PremiumGateScreen({required this.onUpgrade, required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('👑', style: TextStyle(fontSize: 72)),
+              const SizedBox(height: 24),
+              const Text(
+                'Bu kitap Premium',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Bu kitabı okumak için KitapLig Premium üyeliği gerekiyor.\nAylık ₺14,99 ile sınırsız erişim sağlayın.',
+                style: TextStyle(fontSize: 15, color: Colors.black54, height: 1.6),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: onUpgrade,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text(
+                    'Premium\'a Geç',
+                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: onBack,
+                child: const Text('Geri Dön', style: TextStyle(color: AppColors.primaryLight)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── UI components ─────────────────────────────────────────────────────────────
 
 class _ReaderTopBar extends StatelessWidget {
   final VoidCallback onBack;

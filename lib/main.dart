@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'app/routes/app_router.dart';
 import 'app/theme/app_theme.dart';
@@ -17,6 +18,9 @@ void main() async {
   ]);
 
   await dotenv.load(fileName: '.env');
+
+  // Initialize Google Mobile Ads SDK
+  await MobileAds.instance.initialize();
 
   // Request notification permission on first launch (non-blocking)
   _requestNotificationPermission();

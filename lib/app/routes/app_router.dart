@@ -16,6 +16,7 @@ import '../../features/library/screens/library_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/settings_screen.dart';
 import '../../features/league/screens/league_screen.dart';
+import '../../features/subscription/screens/paywall_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -94,14 +95,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const LeagueScreen(),
       ),
       GoRoute(
+        path: '/premium',
+        builder: (_, __) => const PaywallScreen(),
+      ),
+      GoRoute(
         path: '/books/:slug',
         builder: (_, state) =>
             BookDetailScreen(slug: state.pathParameters['slug']!),
       ),
       GoRoute(
         path: '/read/:bookId',
-        builder: (_, state) =>
-            ReaderScreen(bookId: int.parse(state.pathParameters['bookId']!)),
+        builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return ReaderScreen(
+            bookId: int.parse(state.pathParameters['bookId']!),
+            bookIsPremium: extra?['isPremium'] == true,
+          );
+        },
       ),
     ],
   );

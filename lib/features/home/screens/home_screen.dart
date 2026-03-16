@@ -7,9 +7,11 @@ import '../../../app/providers/auth_provider.dart';
 import '../../../app/providers/books_provider.dart';
 import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/settings_provider.dart';
+import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../league/widgets/league_mini_card.dart';
+import '../../subscription/widgets/premium_badge.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -616,6 +618,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
     final user = ref.watch(authProvider).user;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final isPremium = ref.watch(isPremiumProvider);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -644,9 +647,18 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    user?.name ?? '',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        user?.name ?? '',
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      if (isPremium) ...[
+                        const SizedBox(width: 8),
+                        const PremiumBadge(size: PremiumBadgeSize.small),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -656,7 +668,13 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+
+            // --- Upgrade banner (non-premium users only) ---
+            if (!isPremium)
+              UpgradeBanner(onTap: () => context.push('/premium')),
+
+            const SizedBox(height: 16),
 
             // --- Stats ---
             Row(

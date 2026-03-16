@@ -91,6 +91,7 @@ class LeaderboardEntry {
   final String? avatarUrl;
   final int weeklyXp;
   final bool isMe;
+  final bool isPremium;
   final String resultPreview;
 
   const LeaderboardEntry({
@@ -100,6 +101,7 @@ class LeaderboardEntry {
     this.avatarUrl,
     required this.weeklyXp,
     required this.isMe,
+    this.isPremium = false,
     required this.resultPreview,
   });
 
@@ -111,6 +113,7 @@ class LeaderboardEntry {
       avatarUrl: json['avatar_url'] as String?,
       weeklyXp: json['weekly_xp'] as int,
       isMe: json['is_me'] as bool,
+      isPremium: json['is_premium'] == true,
       resultPreview: json['result_preview'] as String,
     );
   }

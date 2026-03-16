@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitaplig/app/providers/league_provider.dart';
 import 'package:kitaplig/core/models/league_model.dart';
+import '../../subscription/widgets/premium_badge.dart';
 
 class LeaderboardList extends ConsumerWidget {
   final LeagueMembershipModel membership;
@@ -107,6 +108,10 @@ class _LeaderboardTile extends StatelessWidget {
                 fontSize: 14,
               ),
             ),
+            if (entry.isPremium) ...[
+              const SizedBox(width: 5),
+              const PremiumCrownIcon(size: 14),
+            ],
             if (entry.isMe) ...[
               const SizedBox(width: 6),
               Container(

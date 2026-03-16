@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/providers/books_provider.dart';
+import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../features/subscription/widgets/premium_badge.dart';
 
 class BookDetailScreen extends ConsumerWidget {
   final String slug;
@@ -13,6 +15,7 @@ class BookDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bookAsync = ref.watch(bookDetailProvider(slug));
+    final isPremium = ref.watch(isPremiumProvider);
 
     return Scaffold(
       body: bookAsync.when(
@@ -114,17 +117,7 @@ class BookDetailScreen extends ConsumerWidget {
                         ),
                         if (book.isPremium) ...[
                           const SizedBox(width: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: Colors.purple.shade50,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Text(
-                              '👑 Premium',
-                              style: TextStyle(fontSize: 11, color: Colors.purple),
-                            ),
-                          ),
+                          const PremiumBadge(size: PremiumBadgeSize.small),
                         ],
                       ],
                     ),
@@ -148,20 +141,51 @@ class BookDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 32),
                     ],
 
-                    // Read button
-                    ElevatedButton.icon(
-                      onPressed: () => context.push('/read/${book.id}'),
-                      icon: const Icon(Icons.play_arrow),
-                      label: const Text('Okumaya Başla'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(double.infinity, 52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                    // Read button — shows paywall CTA if premium book + non-premium user
+                    if (book.isPremium && !isPremium) ...[
+                      ElevatedButton.icon(
+                        onPressed: () => context.push('/premium'),
+                        icon: const Text('👑', style: TextStyle(fontSize: 18)),
+                        label: const Text('Premium\'a Geç'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFFD700),
+                          foregroundColor: Colors.black87,
+                          minimumSize: const Size(double.infinity, 52),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 10),
+                      OutlinedButton.icon(
+                        onPressed: () => context.push(
+                          '/read/${book.id}',
+                          extra: {'isPremium': book.isPremium},
+                        ),
+                        icon: const Icon(Icons.preview_rounded),
+                        label: const Text('Önizleme (3 paragraf)'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 44),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                    ] else
+                      ElevatedButton.icon(
+                        onPressed: () => context.push(
+                          '/read/${book.id}',
+                          extra: {'isPremium': book.isPremium},
+                        ),
+                        icon: const Icon(Icons.play_arrow),
+                        label: const Text('Okumaya Başla'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 52),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
