@@ -34,21 +34,30 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen>
     final leagueAsync = ref.watch(myLeagueProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
       body: leagueAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => Center(
+          child: CircularProgressIndicator(
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
         error: (e, _) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text('🏆', style: TextStyle(fontSize: 48)),
               const SizedBox(height: 16),
-              const Text('Lig bilgisi yüklenemedi',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(
+                'Lig bilgisi yüklenemedi',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
               const SizedBox(height: 8),
-              TextButton(
+              FilledButton.icon(
                 onPressed: () => ref.refresh(myLeagueProvider),
-                child: const Text('Tekrar dene'),
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Tekrar dene'),
               ),
             ],
           ),

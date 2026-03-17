@@ -20,6 +20,7 @@ import '../../features/subscription/screens/paywall_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
+  final settings = ref.watch(settingsProvider);
 
   return GoRouter(
     initialLocation: '/splash',
@@ -27,77 +28,61 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthenticated = authState.status == AuthStatus.authenticated;
       final isUnknown = authState.status == AuthStatus.unknown;
       final location = state.matchedLocation;
+      final returnTo = state.uri.queryParameters['returnTo'];
 
-      if (isUnknown) return '/splash';
+      if (isUnknown) return location == '/splash' ? null : '/splash';
 
       final isAuthRoute = location == '/login' || location == '/register';
       final isOnboarding = location == '/onboarding';
       final isSplash = location == '/splash';
+      final needsOnboarding = !settings.onboardingDone && !isAuthenticated;
+      final isReadRoute = location.startsWith('/read/');
+      final isProtectedRoute =
+          isReadRoute ||
+          location == '/league' ||
+          location == '/home/library' ||
+          location == '/home/profile' ||
+          location == '/home/settings';
 
       if (isSplash) return null;
       if (isOnboarding) return null;
 
-      if (!isAuthenticated && !isAuthRoute) {
-        return '/login';
+      if (needsOnboarding && !isAuthRoute) {
+        return '/onboarding';
+      }
+
+      if (!isAuthenticated && isProtectedRoute) {
+        final encodedReturnTo = Uri.encodeComponent(state.uri.toString());
+        return '/login?returnTo=$encodedReturnTo';
       }
 
       if (isAuthenticated && isAuthRoute) {
-        return '/home';
+        return returnTo?.isNotEmpty == true ? returnTo : '/home';
       }
 
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/splash',
-        builder: (_, __) => const SplashScreen(),
-      ),
+      GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
       GoRoute(
         path: '/onboarding',
         builder: (_, __) => const OnboardingScreen(),
       ),
-      GoRoute(
-        path: '/login',
-        builder: (_, __) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: '/register',
-        builder: (_, __) => const RegisterScreen(),
-      ),
+      GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+      GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       GoRoute(
         path: '/home',
         builder: (_, __) => const HomeScreen(),
         routes: [
-          GoRoute(
-            path: 'discover',
-            builder: (_, __) => const DiscoverScreen(),
-          ),
-          GoRoute(
-            path: 'search',
-            builder: (_, __) => const SearchScreen(),
-          ),
-          GoRoute(
-            path: 'library',
-            builder: (_, __) => const LibraryScreen(),
-          ),
-          GoRoute(
-            path: 'profile',
-            builder: (_, __) => const ProfileScreen(),
-          ),
-          GoRoute(
-            path: 'settings',
-            builder: (_, __) => const SettingsScreen(),
-          ),
+          GoRoute(path: 'discover', builder: (_, __) => const DiscoverScreen()),
+          GoRoute(path: 'search', builder: (_, __) => const SearchScreen()),
+          GoRoute(path: 'library', builder: (_, __) => const LibraryScreen()),
+          GoRoute(path: 'profile', builder: (_, __) => const ProfileScreen()),
+          GoRoute(path: 'settings', builder: (_, __) => const SettingsScreen()),
         ],
       ),
-      GoRoute(
-        path: '/league',
-        builder: (_, __) => const LeagueScreen(),
-      ),
-      GoRoute(
-        path: '/premium',
-        builder: (_, __) => const PaywallScreen(),
-      ),
+      GoRoute(path: '/league', builder: (_, __) => const LeagueScreen()),
+      GoRoute(path: '/premium', builder: (_, __) => const PaywallScreen()),
       GoRoute(
         path: '/books/:slug',
         builder: (_, state) =>

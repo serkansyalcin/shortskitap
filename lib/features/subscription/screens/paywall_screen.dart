@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/platform/platform_support.dart';
 import '../../../core/services/subscription_service.dart';
 
 class PaywallScreen extends ConsumerStatefulWidget {
@@ -29,6 +30,15 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   }
 
   Future<void> _loadOfferings() async {
+    if (!PlatformSupport.supportsInAppPurchases) {
+      if (mounted) {
+        setState(() {
+          _offeringsLoading = false;
+        });
+      }
+      return;
+    }
+
     final service = SubscriptionService();
     final offerings = await service.getOfferings();
     if (mounted) {
@@ -42,14 +52,19 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Package? _packageForIndex(int index) {
     final current = _offerings?.current;
     if (current == null) return null;
-    final monthlyId  = dotenv.env['RC_PRODUCT_MONTHLY']  ?? 'kitaplig_premium_monthly';
-    final yearlyId   = dotenv.env['RC_PRODUCT_YEARLY']   ?? 'kitaplig_premium_yearly';
-    final lifetimeId = dotenv.env['RC_PRODUCT_LIFETIME'] ?? 'kitaplig_premium_lifetime';
+    final monthlyId =
+        dotenv.env['RC_PRODUCT_MONTHLY'] ?? 'kitaplig_premium_monthly';
+    final yearlyId =
+        dotenv.env['RC_PRODUCT_YEARLY'] ?? 'kitaplig_premium_yearly';
+    final lifetimeId =
+        dotenv.env['RC_PRODUCT_LIFETIME'] ?? 'kitaplig_premium_lifetime';
     for (final p in current.availablePackages) {
       final id = p.storeProduct.identifier;
-      if (index == 0 && (id == monthlyId  || id.contains('monthly')))             return p;
-      if (index == 1 && (id == yearlyId   || id.contains('yearly') || id.contains('annual'))) return p;
-      if (index == 2 && (id == lifetimeId || id.contains('lifetime')))             return p;
+      if (index == 0 && (id == monthlyId || id.contains('monthly'))) return p;
+      if (index == 1 &&
+          (id == yearlyId || id.contains('yearly') || id.contains('annual')))
+        return p;
+      if (index == 2 && (id == lifetimeId || id.contains('lifetime'))) return p;
     }
     return null;
   }
@@ -66,6 +81,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   }
 
   Future<void> _purchase() async {
+    if (!PlatformSupport.supportsInAppPurchases) {
+      setState(() {
+        _errorMessage =
+            'Premium satin alma su anda sadece Android ve iOS uygulamasinda destekleniyor.';
+      });
+      return;
+    }
+
     final pkg = _packageForIndex(_selectedIndex);
     if (pkg == null) {
       // No offerings from RevenueCat — sync manually via backend
@@ -73,44 +96,77 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       return;
     }
 
-    setState(() { _isLoading = true; _errorMessage = null; });
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     try {
-      final success = await ref.read(subscriptionProvider.notifier).purchase(pkg);
+      final success = await ref
+          .read(subscriptionProvider.notifier)
+          .purchase(pkg);
       if (success && mounted) {
         _showSuccessDialog();
       }
     } catch (e) {
       if (mounted) {
-        setState(() { _errorMessage = 'Satın alma işlemi başarısız: $e'; });
+        setState(() {
+          _errorMessage = 'Satın alma işlemi başarısız: $e';
+        });
       }
     } finally {
-      if (mounted) setState(() { _isLoading = false; });
+      if (mounted)
+        setState(() {
+          _isLoading = false;
+        });
     }
   }
 
   Future<void> _syncFallback() async {
     // Used in dev/test when RevenueCat is not configured
-    setState(() { _isLoading = true; });
+    setState(() {
+      _isLoading = true;
+    });
     await Future.delayed(const Duration(seconds: 1));
-    setState(() { _isLoading = false; });
+    setState(() {
+      _isLoading = false;
+    });
     if (mounted) _showSuccessDialog();
   }
 
   Future<void> _restore() async {
-    setState(() { _isLoading = true; _errorMessage = null; });
+    if (!PlatformSupport.supportsInAppPurchases) {
+      setState(() {
+        _errorMessage =
+            'Geri yukleme yalnizca Android ve iOS uygulamasinda kullanilabilir.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     try {
       final success = await ref.read(subscriptionProvider.notifier).restore();
       if (mounted) {
         if (success) {
           _showSuccessDialog();
         } else {
-          setState(() { _errorMessage = 'Geri yüklenecek aktif abonelik bulunamadı.'; });
+          setState(() {
+            _errorMessage = 'Geri yüklenecek aktif abonelik bulunamadı.';
+          });
         }
       }
     } catch (e) {
-      if (mounted) setState(() { _errorMessage = 'Geri yükleme başarısız.'; });
+      if (mounted)
+        setState(() {
+          _errorMessage = 'Geri yükleme başarısız.';
+        });
     } finally {
-      if (mounted) setState(() { _isLoading = false; });
+      if (mounted)
+        setState(() {
+          _isLoading = false;
+        });
     }
   }
 
@@ -126,20 +182,38 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             const SizedBox(height: 8),
             const Text('👑', style: TextStyle(fontSize: 56)),
             const SizedBox(height: 16),
-            const Text('Premium Aktif!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            const Text(
+              'Premium Aktif!',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
-            const Text('KitapLig Premium üyeliğiniz başarıyla aktive edildi.', textAlign: TextAlign.center, style: TextStyle(color: Colors.black54)),
+            const Text(
+              'KitapLig Premium üyeliğiniz başarıyla aktive edildi.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.black54),
+            ),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () { Navigator.of(context).pop(); context.pop(); },
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  context.pop();
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                child: const Text('Harika!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'Harika!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ],
@@ -150,6 +224,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final purchaseSupported = PlatformSupport.supportsInAppPurchases;
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -227,7 +303,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   ),
                   const SizedBox(height: 12),
                   if (_offeringsLoading)
-                    const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                    const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    )
                   else ...[
                     _PlanCard(
                       index: 0,
@@ -273,9 +353,51 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline, color: Colors.red, size: 18),
+                          const Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                            size: 18,
+                          ),
                           const SizedBox(width: 8),
-                          Expanded(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  if (!purchaseSupported)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.orange.shade200),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: Colors.orange,
+                            size: 18,
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Premium satin alma ve geri yukleme bu platformda kullanilamiyor. Mobil uygulamayi kullanabilirsiniz.',
+                              style: TextStyle(
+                                color: Colors.orange,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -284,11 +406,17 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _purchase,
+                      onPressed: (_isLoading || !purchaseSupported)
+                          ? null
+                          : _purchase,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        disabledBackgroundColor: AppColors.primary.withOpacity(0.5),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        disabledBackgroundColor: AppColors.primary.withOpacity(
+                          0.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         elevation: 2,
                       ),
@@ -296,10 +424,15 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                           ? const SizedBox(
                               width: 22,
                               height: 22,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
                             )
                           : Text(
-                              _selectedIndex == 2 ? 'Ömür Boyu Premium Satın Al' : 'Premium\'a Geç',
+                              _selectedIndex == 2
+                                  ? 'Ömür Boyu Premium Satın Al'
+                                  : 'Premium\'a Geç',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -314,10 +447,15 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   // Restore
                   Center(
                     child: TextButton(
-                      onPressed: _isLoading ? null : _restore,
+                      onPressed: (_isLoading || !purchaseSupported)
+                          ? null
+                          : _restore,
                       child: const Text(
                         'Satın Almaları Geri Yükle',
-                        style: TextStyle(color: AppColors.primaryLight, fontSize: 13),
+                        style: TextStyle(
+                          color: AppColors.primaryLight,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ),
@@ -357,24 +495,34 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         border: Border.all(color: const Color(0xFFCCE5CC)),
       ),
       child: Column(
-        children: features.map((f) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
+        children: features
+            .map(
+              (f) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(f.$2, color: Colors.white, size: 16),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      f.$1,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
-                child: Icon(f.$2, color: Colors.white, size: 16),
               ),
-              const SizedBox(width: 12),
-              Text(f.$1, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-            ],
-          ),
-        )).toList(),
+            )
+            .toList(),
       ),
     );
   }
@@ -414,7 +562,13 @@ class _PlanCard extends StatelessWidget {
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
-              ? [BoxShadow(color: AppColors.primary.withOpacity(0.12), blurRadius: 10, offset: const Offset(0, 4))]
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.12),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
               : [],
         ),
         child: Row(
@@ -453,15 +607,23 @@ class _PlanCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(title, style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: isSelected ? AppColors.primary : Colors.black87,
-                      )),
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected
+                              ? AppColors.primary
+                              : Colors.black87,
+                        ),
+                      ),
                       if (badge != null) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.accent,
                             borderRadius: BorderRadius.circular(8),
@@ -479,7 +641,10 @@ class _PlanCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
                 ],
               ),
             ),

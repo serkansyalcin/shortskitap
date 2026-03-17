@@ -25,16 +25,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final searchAsync = ref.watch(searchProvider(_query));
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textSecondary = colorScheme.onSurfaceVariant;
 
     return Scaffold(
       appBar: AppBar(
         title: TextField(
           controller: _ctrl,
           autofocus: true,
-          decoration: const InputDecoration(
+          style: TextStyle(color: colorScheme.onSurface),
+          decoration: InputDecoration(
             hintText: 'Kitap veya yazar ara...',
             border: InputBorder.none,
-            hintStyle: TextStyle(color: AppColors.lightTextSecondary),
+            hintStyle: TextStyle(color: textSecondary),
           ),
           onChanged: (v) => setState(() => _query = v.trim()),
         ),
@@ -44,20 +48,44 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ),
       ),
       body: _query.isEmpty
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('🔍', style: TextStyle(fontSize: 48)),
-                  SizedBox(height: 12),
-                  Text('Kitap adı veya yazar ismi girin', style: TextStyle(color: AppColors.lightTextSecondary)),
+                  const Text('🔍', style: TextStyle(fontSize: 48)),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Kitap adı veya yazar ismi girin',
+                    style: TextStyle(color: textSecondary, fontSize: 14),
+                  ),
                 ],
               ),
             )
           : searchAsync.when(
               data: (books) {
                 if (books.isEmpty) {
-                  return const Center(child: Text('Sonuç bulunamadı.'));
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('📚', style: TextStyle(fontSize: 48)),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Sonuç bulunamadı',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Farklı anahtar kelimeler deneyin',
+                          style: TextStyle(color: textSecondary, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  );
                 }
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
@@ -66,30 +94,66 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     final book = books[i];
                     return ListTile(
                       leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(8),
                         child: book.coverImageUrl != null
                             ? CachedNetworkImage(
                                 imageUrl: book.coverImageUrl!,
-                                width: 40,
-                                height: 52,
+                                width: 44,
+                                height: 58,
                                 fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) => Container(
+                                  color: AppColors.primary.withOpacity(0.1),
+                                  child: const Center(child: Text('📖')),
+                                ),
                               )
                             : Container(
-                                width: 40,
-                                height: 52,
+                                width: 44,
+                                height: 58,
                                 color: AppColors.primary.withOpacity(0.1),
                                 child: const Center(child: Text('📖')),
                               ),
                       ),
-                      title: Text(book.title, style: const TextStyle(fontWeight: FontWeight.w500)),
-                      subtitle: Text(book.author?.name ?? ''),
+                      title: Text(
+                        book.title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      subtitle: Text(
+                        book.author?.name ?? '',
+                        style: TextStyle(color: textSecondary, fontSize: 13),
+                      ),
                       onTap: () => context.push('/books/${book.slug}'),
                     );
                   },
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-              error: (_, __) => const Center(child: Text('Arama başarısız.')),
+              loading: () => Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+              error: (_, __) => Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.cloud_off_rounded, size: 48, color: textSecondary),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Arama başarısız',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'İnternet bağlantınızı kontrol edin',
+                      style: TextStyle(color: textSecondary, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
             ),
     );
   }

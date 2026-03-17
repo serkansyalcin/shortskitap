@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -24,9 +25,20 @@ class ApiClient {
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
+        assert(() {
+          // Debug: log API requests
+          debugPrint('[API] ${options.method} ${options.uri}');
+          return true;
+        }());
         handler.next(options);
       },
       onError: (error, handler) {
+        assert(() {
+          debugPrint('[API ERROR] ${error.requestOptions.uri}');
+          debugPrint('[API ERROR] ${error.response?.statusCode} ${error.response?.data}');
+          debugPrint('[API ERROR] ${error.message}');
+          return true;
+        }());
         handler.next(error);
       },
     ));

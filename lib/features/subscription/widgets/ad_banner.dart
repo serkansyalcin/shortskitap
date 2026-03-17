@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -8,33 +7,39 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/models/advertisement_model.dart';
+import '../../../core/platform/platform_support.dart';
 
 /// Returns the correct AdMob banner ad unit ID for the current platform.
 /// Reads from .env: ADMOB_BANNER_ANDROID / ADMOB_BANNER_IOS.
 String get _bannerAdUnitId {
-  if (Platform.isAndroid) {
-    return dotenv.env['ADMOB_BANNER_ANDROID'] ?? 'ca-app-pub-3940256099942544/6300978111';
+  if (PlatformSupport.isAndroid) {
+    return dotenv.env['ADMOB_BANNER_ANDROID'] ??
+        'ca-app-pub-3940256099942544/6300978111';
   }
-  return dotenv.env['ADMOB_BANNER_IOS'] ?? 'ca-app-pub-3940256099942544/2934735716';
+  return dotenv.env['ADMOB_BANNER_IOS'] ??
+      'ca-app-pub-3940256099942544/2934735716';
 }
 
+bool get _supportsAdMobBanner => PlatformSupport.supportsMobileAds;
+
 /// Provides active ads for a given position from the backend.
-final _adsProvider = FutureProvider.family<List<AdvertisementModel>, String>(
-  (ref, position) async {
-    try {
-      final res = await ApiClient.instance.get<Map<String, dynamic>>(
-        '/ads/active',
-        params: {'position': position},
-      );
-      final data = (res.data?['data'] as List<dynamic>?) ?? [];
-      return data
-          .map((e) => AdvertisementModel.fromJson(e as Map<String, dynamic>))
-          .toList();
-    } catch (_) {
-      return [];
-    }
-  },
-);
+final _adsProvider = FutureProvider.family<List<AdvertisementModel>, String>((
+  ref,
+  position,
+) async {
+  try {
+    final res = await ApiClient.instance.get<Map<String, dynamic>>(
+      '/ads/active',
+      params: {'position': position},
+    );
+    final data = (res.data?['data'] as List<dynamic>?) ?? [];
+    return data
+        .map((e) => AdvertisementModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  } catch (_) {
+    return [];
+  }
+});
 
 /// AdMob banner (test ID by default; replace with real IDs in production).
 class _AdMobBanner extends StatefulWidget {
@@ -55,12 +60,18 @@ class _AdMobBannerState extends State<_AdMobBanner> {
   }
 
   void _loadAd() {
+    if (!_supportsAdMobBanner) return;
+
     _bannerAd = BannerAd(
       adUnitId: _bannerAdUnitId,
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
-        onAdLoaded: (_) => setState(() => _adLoaded = true),
+        onAdLoaded: (_) {
+          if (mounted) {
+            setState(() => _adLoaded = true);
+          }
+        },
         onAdFailedToLoad: (ad, _) {
           ad.dispose();
           _bannerAd = null;
@@ -77,6 +88,7 @@ class _AdMobBannerState extends State<_AdMobBanner> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_supportsAdMobBanner) return const SizedBox.shrink();
     if (!_adLoaded || _bannerAd == null) return const SizedBox.shrink();
     return SizedBox(
       width: _bannerAd!.size.width.toDouble(),
@@ -91,10 +103,7 @@ class _AdMobBannerState extends State<_AdMobBanner> {
 class AdBannerWidget extends ConsumerWidget {
   final String position;
 
-  const AdBannerWidget({
-    super.key,
-    this.position = 'reader_banner',
-  });
+  const AdBannerWidget({super.key, this.position = 'reader_banner'});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -154,10 +163,7 @@ class _ApiAdBanner extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             if (ad.imageUrl != null)
-              CachedNetworkImage(
-                imageUrl: ad.imageUrl!,
-                fit: BoxFit.cover,
-              )
+              CachedNetworkImage(imageUrl: ad.imageUrl!, fit: BoxFit.cover)
             else
               Center(
                 child: Text(

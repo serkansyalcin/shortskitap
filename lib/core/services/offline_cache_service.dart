@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/paragraph_model.dart';
@@ -12,8 +13,8 @@ class OfflineCacheService {
   }
 
   static Future<Database> _initDb() async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'kitaplig.db');
+    // Web'de getDatabasesPath() çalışmaz; basit dosya adı kullan
+    final path = kIsWeb ? 'kitaplig.db' : join(await getDatabasesPath(), 'kitaplig.db');
 
     return openDatabase(
       path,

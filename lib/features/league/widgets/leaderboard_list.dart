@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitaplig/app/providers/league_provider.dart';
+import 'package:kitaplig/app/theme/app_colors.dart';
 import 'package:kitaplig/core/models/league_model.dart';
 import '../../subscription/widgets/premium_badge.dart';
 
@@ -14,8 +15,37 @@ class LeaderboardList extends ConsumerWidget {
     final boardAsync = ref.watch(leaderboardProvider);
 
     return boardAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Hata: $e')),
+      loading: () => Center(
+        child: CircularProgressIndicator(
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
+      error: (e, _) => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 48,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Liderboard yüklenemedi',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              onPressed: () => ref.refresh(leaderboardProvider),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Tekrar Dene'),
+            ),
+          ],
+        ),
+      ),
       data: (entries) => _buildList(entries),
     );
   }
@@ -70,21 +100,25 @@ class _LeaderboardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = theme.cardColor;
+
     final bgColor = entry.isMe
-        ? Colors.amber.shade50
+        ? (isDark ? Colors.amber.shade900.withOpacity(0.3) : Colors.amber.shade50)
         : isPromotionZone
-            ? Colors.green.shade50
+            ? (isDark ? Colors.green.shade900.withOpacity(0.2) : Colors.green.shade50)
             : isDemotionZone
-                ? Colors.red.shade50
-                : Colors.white;
+                ? (isDark ? Colors.red.shade900.withOpacity(0.2) : Colors.red.shade50)
+                : cardColor;
 
     final borderColor = entry.isMe
-        ? Colors.amber.shade300
+        ? Colors.amber.shade400
         : isPromotionZone
-            ? Colors.green.shade200
+            ? Colors.green.shade400
             : isDemotionZone
-                ? Colors.red.shade200
-                : Colors.grey.shade100;
+                ? Colors.red.shade400
+                : (isDark ? AppColors.outline : Colors.grey.shade200);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
@@ -106,6 +140,7 @@ class _LeaderboardTile extends StatelessWidget {
               style: TextStyle(
                 fontWeight: entry.isMe ? FontWeight.bold : FontWeight.w500,
                 fontSize: 14,
+                color: theme.colorScheme.onSurface,
               ),
             ),
             if (entry.isPremium) ...[
@@ -141,8 +176,11 @@ class _LeaderboardTile extends StatelessWidget {
                 const SizedBox(width: 2),
                 Text(
                   '${entry.weeklyXp}',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 15),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
               ],
             ),
@@ -165,17 +203,22 @@ class _RankBadge extends StatelessWidget {
     if (rank == 2) return const Text('🥈', style: TextStyle(fontSize: 28));
     if (rank == 3) return const Text('🥉', style: TextStyle(fontSize: 28));
 
+    final theme = Theme.of(context);
     return Container(
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: theme.colorScheme.surfaceContainerHighest,
         shape: BoxShape.circle,
       ),
       alignment: Alignment.center,
       child: Text(
         '$rank',
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 13,
+          color: theme.colorScheme.onSurface,
+        ),
       ),
     );
   }

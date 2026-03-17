@@ -9,6 +9,7 @@ import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/settings_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/platform/platform_support.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../league/widgets/league_mini_card.dart';
 import '../../subscription/widgets/premium_badge.dart';
@@ -25,19 +26,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final isAuthenticated = authState.isAuthenticated;
+    final guestSelectedIndex = _selectedIndex > 1 ? 0 : _selectedIndex;
+
     return Scaffold(
       body: IndexedStack(
-        index: _selectedIndex,
-        children: const [
-          _HomeTab(),
-          _DiscoverTab(),
-          _LibraryTab(),
-          _ProfileTab(),
-        ],
+        index: isAuthenticated ? _selectedIndex : guestSelectedIndex,
+        children: isAuthenticated
+            ? const [_HomeTab(), _DiscoverTab(), _LibraryTab(), _ProfileTab()]
+            : const [_HomeTab(), _DiscoverTab()],
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
+        selectedIndex: isAuthenticated ? _selectedIndex : guestSelectedIndex,
         onDestinationSelected: (i) {
+          if (!isAuthenticated) {
+            if (i == 2) {
+              context.push('/login');
+              return;
+            }
+            setState(() => _selectedIndex = i);
+            return;
+          }
           if (i == 2) {
             // League tab — navigate to dedicated league screen
             context.push('/league');
@@ -45,13 +55,51 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           }
           setState(() => _selectedIndex = i < 2 ? i : i - 1);
         },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Ana Sayfa'),
-          NavigationDestination(icon: Icon(Icons.explore_outlined), selectedIcon: Icon(Icons.explore), label: 'Keşfet'),
-          NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events), label: 'Lig'),
-          NavigationDestination(icon: Icon(Icons.library_books_outlined), selectedIcon: Icon(Icons.library_books), label: 'Kütüphane'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profil'),
-        ],
+        destinations: isAuthenticated
+            ? const [
+                NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home),
+                  label: 'Ana Sayfa',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.explore_outlined),
+                  selectedIcon: Icon(Icons.explore),
+                  label: 'Keşfet',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.emoji_events_outlined),
+                  selectedIcon: Icon(Icons.emoji_events),
+                  label: 'Lig',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.library_books_outlined),
+                  selectedIcon: Icon(Icons.library_books),
+                  label: 'Kütüphane',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.person_outline),
+                  selectedIcon: Icon(Icons.person),
+                  label: 'Profil',
+                ),
+              ]
+            : const [
+                NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home),
+                  label: 'Ana Sayfa',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.explore_outlined),
+                  selectedIcon: Icon(Icons.explore),
+                  label: 'Keşfet',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.login_rounded),
+                  selectedIcon: Icon(Icons.login_rounded),
+                  label: 'Giriş',
+                ),
+              ],
       ),
     );
   }
@@ -65,7 +113,7 @@ class _HomeTab extends ConsumerWidget {
     final user = ref.watch(authProvider).user;
     final progressAsync = ref.watch(allProgressProvider);
     final featuredAsync = ref.watch(featuredBooksProvider);
-    final settings = ref.watch(settingsProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -82,11 +130,18 @@ class _HomeTab extends ConsumerWidget {
                     children: [
                       Text(
                         'Merhaba, ${user?.name.split(' ').first ?? 'Okuyucu'} 👋',
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
                       ),
-                      const Text(
+                      Text(
                         'Bugün okumaya devam et!',
-                        style: TextStyle(fontSize: 14, color: AppColors.lightTextSecondary),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -101,7 +156,7 @@ class _HomeTab extends ConsumerWidget {
                       child: CircularProgressIndicator(
                         value: 0.3,
                         strokeWidth: 4,
-                        backgroundColor: Colors.grey.shade200,
+                        backgroundColor: colorScheme.surfaceContainerHighest,
                         color: AppColors.accent,
                       ),
                     ),
@@ -120,7 +175,8 @@ class _HomeTab extends ConsumerWidget {
             progressAsync.when(
               data: (progress) {
                 final recent = progress.isNotEmpty ? progress.first : null;
-                if (recent == null || recent.book == null) return const SizedBox.shrink();
+                if (recent == null || recent.book == null)
+                  return const SizedBox.shrink();
 
                 return GestureDetector(
                   onTap: () => context.push('/read/${recent.bookId}'),
@@ -128,7 +184,10 @@ class _HomeTab extends ConsumerWidget {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
+                        colors: [
+                          AppColors.primary,
+                          AppColors.primary.withOpacity(0.8),
+                        ],
                       ),
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -152,7 +211,9 @@ class _HomeTab extends ConsumerWidget {
                               color: Colors.white24,
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Center(child: Text('📖', style: TextStyle(fontSize: 28))),
+                            child: const Center(
+                              child: Text('📖', style: TextStyle(fontSize: 28)),
+                            ),
                           ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -161,7 +222,10 @@ class _HomeTab extends ConsumerWidget {
                             children: [
                               const Text(
                                 'Devam Et',
-                                style: TextStyle(color: Colors.white70, fontSize: 12),
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
                               ),
                               const SizedBox(height: 4),
                               Text(
@@ -187,7 +251,10 @@ class _HomeTab extends ConsumerWidget {
                               const SizedBox(height: 4),
                               Text(
                                 '%${recent.completionPercentage.toStringAsFixed(1)} tamamlandı',
-                                style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11,
+                                ),
                               ),
                             ],
                           ),
@@ -200,7 +267,11 @@ class _HomeTab extends ConsumerWidget {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Icon(Icons.play_arrow, color: AppColors.primary, size: 20),
+                          child: const Icon(
+                            Icons.play_arrow,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
                         ),
                       ],
                     ),
@@ -223,10 +294,20 @@ class _HomeTab extends ConsumerWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Öne Çıkan Kitaplar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text(
+                          'Öne Çıkan Kitaplar',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
                         TextButton(
                           onPressed: () {},
-                          child: const Text('Tümü', style: TextStyle(color: AppColors.primary)),
+                          child: const Text(
+                            'Tümü',
+                            style: TextStyle(color: AppColors.primary),
+                          ),
                         ),
                       ],
                     ),
@@ -254,21 +335,42 @@ class _HomeTab extends ConsumerWidget {
                                               imageUrl: book.coverImageUrl!,
                                               fit: BoxFit.cover,
                                               width: 120,
-                                              errorWidget: (_, __, ___) => Container(
-                                                color: AppColors.primary.withOpacity(0.1),
-                                                child: const Center(child: Text('📖', style: TextStyle(fontSize: 36))),
-                                              ),
+                                              errorWidget: (_, __, ___) =>
+                                                  Container(
+                                                    color: AppColors.primary
+                                                        .withOpacity(0.1),
+                                                    child: const Center(
+                                                      child: Text(
+                                                        '📖',
+                                                        style: TextStyle(
+                                                          fontSize: 36,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
                                             )
                                           : Container(
-                                              color: AppColors.primary.withOpacity(0.1),
-                                              child: const Center(child: Text('📖', style: TextStyle(fontSize: 36))),
+                                              color: AppColors.primary
+                                                  .withOpacity(0.1),
+                                              child: const Center(
+                                                child: Text(
+                                                  '📖',
+                                                  style: TextStyle(
+                                                    fontSize: 36,
+                                                  ),
+                                                ),
+                                              ),
                                             ),
                                     ),
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
                                     book.title,
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: colorScheme.onSurface,
+                                    ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -282,7 +384,9 @@ class _HomeTab extends ConsumerWidget {
                   ],
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              loading: () => Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
               error: (_, __) => const SizedBox.shrink(),
             ),
           ],
@@ -299,6 +403,10 @@ class _DiscoverTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final categoriesAsync = ref.watch(categoriesProvider);
     final booksAsync = ref.watch(booksProvider(const BooksFilter()));
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final surfaceColor = theme.cardColor;
+    final textSecondary = colorScheme.onSurfaceVariant;
 
     return SafeArea(
       child: CustomScrollView(
@@ -309,22 +417,42 @@ class _DiscoverTab extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Keşfet', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  Text(
+                    'Keşfet',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   // Search bar
                   GestureDetector(
                     onTap: () => context.push('/home/search'),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: surfaceColor,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.search, color: AppColors.lightTextSecondary, size: 20),
-                          SizedBox(width: 10),
-                          Text('Kitap veya yazar ara...', style: TextStyle(color: AppColors.lightTextSecondary)),
+                          Icon(
+                            Icons.search,
+                            color: textSecondary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Kitap veya yazar ara...',
+                            style: TextStyle(
+                              color: textSecondary,
+                              fontSize: 14,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -345,17 +473,31 @@ class _DiscoverTab extends ConsumerWidget {
                   itemCount: cats.length,
                   itemBuilder: (ctx, i) => Container(
                     margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: surfaceColor,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (cats[i].icon != null) Text(cats[i].icon!, style: const TextStyle(fontSize: 16)),
+                        if (cats[i].icon != null)
+                          Text(
+                            cats[i].icon!,
+                            style: const TextStyle(fontSize: 16),
+                          ),
                         const SizedBox(width: 6),
-                        Text(cats[i].name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                        Text(
+                          cats[i].name,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -370,9 +512,38 @@ class _DiscoverTab extends ConsumerWidget {
           SliverPadding(
             padding: const EdgeInsets.all(20),
             sliver: booksAsync.when(
-              data: (books) => SliverGrid(
-                delegate: SliverChildBuilderDelegate(
-                  (ctx, i) {
+              data: (books) {
+                if (books.isEmpty) {
+                  return SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 48),
+                      child: Column(
+                        children: [
+                          Text('📚', style: TextStyle(fontSize: 48)),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Henüz kitap bulunamadı.',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Yakında yeni kitaplar eklenecek.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return SliverGrid(
+                  delegate: SliverChildBuilderDelegate((ctx, i) {
                     final book = books[i];
                     return GestureDetector(
                       onTap: () => context.push('/books/${book.slug}'),
@@ -387,43 +558,99 @@ class _DiscoverTab extends ConsumerWidget {
                                       imageUrl: book.coverImageUrl!,
                                       fit: BoxFit.cover,
                                       width: double.infinity,
+                                      errorWidget: (_, __, ___) => Container(
+                                        color: AppColors.primary.withOpacity(0.1),
+                                        child: const Center(
+                                          child: Text('📖', style: TextStyle(fontSize: 36)),
+                                        ),
+                                      ),
                                     )
                                   : Container(
                                       color: AppColors.primary.withOpacity(0.1),
-                                      child: const Center(child: Text('📖', style: TextStyle(fontSize: 36))),
+                                      child: const Center(
+                                        child: Text(
+                                          '📖',
+                                          style: TextStyle(fontSize: 36),
+                                        ),
+                                      ),
                                     ),
                             ),
                           ),
                           const SizedBox(height: 6),
                           Text(
                             book.title,
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: colorScheme.onSurface,
+                            ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
                             book.author?.name ?? '',
-                            style: const TextStyle(fontSize: 11, color: AppColors.lightTextSecondary),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: textSecondary,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     );
-                  },
-                  childCount: books.length,
-                ),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.58,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+                  }, childCount: books.length),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.58,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                  ),
+                );
+              },
+              loading: () => SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 48),
+                  child: Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  ),
                 ),
               ),
-              loading: () => const SliverToBoxAdapter(
-                child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              error: (err, _) => SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 48),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.cloud_off_rounded,
+                        size: 48,
+                        color: textSecondary,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Kitaplar yüklenemedi',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'İnternet bağlantınızı kontrol edip tekrar deneyin.',
+                        style: TextStyle(fontSize: 14, color: textSecondary),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      FilledButton.icon(
+                        onPressed: () => ref.invalidate(booksProvider(const BooksFilter())),
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('Tekrar Dene'),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),
             ),
           ),
         ],
@@ -438,6 +665,9 @@ class _LibraryTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final progressAsync = ref.watch(allProgressProvider);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final cardColor = theme.cardColor;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -445,19 +675,37 @@ class _LibraryTab extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Kütüphane', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            Text(
+              'Kütüphane',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
+            ),
             const SizedBox(height: 20),
             progressAsync.when(
               data: (progress) {
                 if (progress.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Column(
                       children: [
-                        SizedBox(height: 60),
-                        Text('📚', style: TextStyle(fontSize: 48)),
-                        SizedBox(height: 16),
-                        Text('Henüz kitap okumadın.', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                        Text('Keşfet sekmesinden kitap bul!', style: TextStyle(color: AppColors.lightTextSecondary)),
+                        const SizedBox(height: 60),
+                        const Text('📚', style: TextStyle(fontSize: 48)),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Henüz kitap okumadın.',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Keşfet sekmesinden kitap bul!',
+                          style: TextStyle(color: colorScheme.onSurfaceVariant),
+                        ),
                       ],
                     ),
                   );
@@ -472,12 +720,12 @@ class _LibraryTab extends ConsumerWidget {
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: cardColor,
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
+                              color: Colors.black.withOpacity(0.06),
+                              blurRadius: 12,
                               offset: const Offset(0, 2),
                             ),
                           ],
@@ -492,6 +740,10 @@ class _LibraryTab extends ConsumerWidget {
                                       width: 48,
                                       height: 64,
                                       fit: BoxFit.cover,
+                                      errorWidget: (_, __, ___) => Container(
+                                        color: AppColors.primary.withOpacity(0.1),
+                                        child: const Center(child: Text('📖')),
+                                      ),
                                     )
                                   : Container(
                                       width: 48,
@@ -507,7 +759,10 @@ class _LibraryTab extends ConsumerWidget {
                                 children: [
                                   Text(
                                     p.book!.title,
-                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: colorScheme.onSurface,
+                                    ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -516,8 +771,10 @@ class _LibraryTab extends ConsumerWidget {
                                     borderRadius: BorderRadius.circular(2),
                                     child: LinearProgressIndicator(
                                       value: p.completionPercentage / 100,
-                                      backgroundColor: Colors.grey.shade200,
-                                      color: p.isCompleted ? Colors.green : AppColors.primary,
+                                      backgroundColor: colorScheme.surfaceContainerHighest,
+                                      color: p.isCompleted
+                                          ? Colors.green
+                                          : AppColors.primary,
                                       minHeight: 4,
                                     ),
                                   ),
@@ -528,13 +785,18 @@ class _LibraryTab extends ConsumerWidget {
                                         : '%${p.completionPercentage.toStringAsFixed(0)} tamamlandı',
                                     style: TextStyle(
                                       fontSize: 11,
-                                      color: p.isCompleted ? Colors.green : AppColors.lightTextSecondary,
+                                      color: p.isCompleted
+                                          ? Colors.green
+                                          : colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            const Icon(Icons.play_arrow, color: AppColors.primary),
+                            const Icon(
+                              Icons.play_arrow,
+                              color: AppColors.primary,
+                            ),
                           ],
                         ),
                       ),
@@ -542,7 +804,9 @@ class _LibraryTab extends ConsumerWidget {
                   }).toList(),
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
               error: (_, __) => const SizedBox.shrink(),
             ),
           ],
@@ -569,11 +833,19 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
   }
 
   Future<void> _checkNotificationPermission() async {
+    if (!PlatformSupport.supportsNotificationPermission) {
+      return;
+    }
+
     final status = await Permission.notification.status;
     if (mounted) setState(() => _notificationStatus = status);
   }
 
   Future<void> _requestNotificationPermission() async {
+    if (!PlatformSupport.supportsNotificationPermission) {
+      return;
+    }
+
     final status = await Permission.notification.request();
     if (mounted) setState(() => _notificationStatus = status);
     if (status.isPermanentlyDenied && mounted) {
@@ -594,7 +866,9 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Hesap silinirken bir hata oluştu. Lütfen tekrar deneyin.'),
+            content: Text(
+              'Hesap silinirken bir hata oluştu. Lütfen tekrar deneyin.',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -606,9 +880,9 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
     final uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sayfa açılamadı.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Sayfa açılamadı.')));
       }
     }
   }
@@ -616,9 +890,12 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final theme = Theme.of(context);
+    final cardColor = theme.cardColor;
+    final colorScheme = theme.colorScheme;
     final isPremium = ref.watch(isPremiumProvider);
+    final notificationsSupported =
+        PlatformSupport.supportsNotificationPermission;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -652,7 +929,11 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                     children: [
                       Text(
                         user?.name ?? '',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
                       ),
                       if (isPremium) ...[
                         const SizedBox(width: 8),
@@ -663,7 +944,10 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                   const SizedBox(height: 4),
                   Text(
                     user?.email ?? '',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 13,
+                    ),
                   ),
                 ],
               ),
@@ -679,7 +963,11 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
             // --- Stats ---
             Row(
               children: [
-                _StatCard(label: 'Günlük Hedef', value: '${user?.dailyGoal ?? 10}', icon: '🎯'),
+                _StatCard(
+                  label: 'Günlük Hedef',
+                  value: '${user?.dailyGoal ?? 10}',
+                  icon: '🎯',
+                ),
                 const SizedBox(width: 12),
                 const _StatCard(label: 'Seri', value: '—', icon: '🔥'),
                 const SizedBox(width: 12),
@@ -690,106 +978,141 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
 
             // --- Hesap ---
             _SectionLabel('HESAP'),
-            _MenuCard(color: cardColor, children: [
-              _MenuItem(
-                icon: Icons.settings_outlined,
-                title: 'Ayarlar',
-                onTap: () => context.push('/home/settings'),
-              ),
-              _MenuDivider(),
-              _MenuItem(
-                icon: Icons.logout_outlined,
-                title: 'Çıkış Yap',
-                onTap: () async {
-                  final ok = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text('Çıkış Yap'),
-                      content: const Text('Oturumunuzu kapatmak istediğinize emin misiniz?'),
-                      actions: [
-                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('İptal')),
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, true),
-                          child: const Text('Çıkış Yap'),
+            _MenuCard(
+              color: cardColor,
+              children: [
+                _MenuItem(
+                  icon: Icons.settings_outlined,
+                  title: 'Ayarlar',
+                  onTap: () => context.push('/home/settings'),
+                ),
+                _MenuDivider(),
+                _MenuItem(
+                  icon: Icons.logout_outlined,
+                  title: 'Çıkış Yap',
+                  onTap: () async {
+                    final ok = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Çıkış Yap'),
+                        content: const Text(
+                          'Oturumunuzu kapatmak istediğinize emin misiniz?',
                         ),
-                      ],
-                    ),
-                  );
-                  if (ok == true && mounted) {
-                    await ref.read(authProvider.notifier).logout();
-                    if (mounted) context.go('/login');
-                  }
-                },
-              ),
-            ]),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('İptal'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('Çıkış Yap'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (ok == true && mounted) {
+                      await ref.read(authProvider.notifier).logout();
+                      if (mounted) context.go('/login');
+                    }
+                  },
+                ),
+              ],
+            ),
             const SizedBox(height: 20),
 
             // --- Bildirimler ---
             _SectionLabel('BİLDİRİMLER'),
-            _MenuCard(color: cardColor, children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
+            _MenuCard(
+              color: cardColor,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.notifications_outlined,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
                       ),
-                      child: const Icon(Icons.notifications_outlined,
-                          color: AppColors.primary, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Bildirimlere İzin Ver',
-                              style: TextStyle(fontWeight: FontWeight.w500)),
-                          Text(
-                            _notificationStatus.isGranted
-                                ? 'Bildirimler açık'
-                                : 'Günlük hatırlatıcılar ve lig güncellemeleri',
-                            style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                          ),
-                        ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Bildirimlere İzin Ver',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                            Text(
+                              _notificationStatus.isGranted
+                                  ? 'Bildirimler açık'
+                                  : 'Günlük hatırlatıcılar ve lig güncellemeleri',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    Switch(
-                      value: _notificationStatus.isGranted,
-                      activeColor: AppColors.primary,
-                      onChanged: (_) async {
-                        if (_notificationStatus.isGranted) {
-                          await openAppSettings();
-                        } else {
-                          await _requestNotificationPermission();
-                        }
-                      },
-                    ),
-                  ],
+                      Switch(
+                        value: _notificationStatus.isGranted,
+                        activeColor: AppColors.primary,
+                        onChanged: notificationsSupported
+                            ? (_) async {
+                                if (_notificationStatus.isGranted) {
+                                  await openAppSettings();
+                                } else {
+                                  await _requestNotificationPermission();
+                                }
+                              }
+                            : null,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
             const SizedBox(height: 20),
 
             // --- Yasal ---
             _SectionLabel('YASAL'),
-            _MenuCard(color: cardColor, children: [
-              _MenuItem(
-                icon: Icons.privacy_tip_outlined,
-                title: 'Gizlilik Politikası',
-                trailing: const Icon(Icons.open_in_new, size: 16, color: Colors.grey),
-                onTap: () => _launchUrl('https://kitaplig.com/privacy'),
-              ),
-              _MenuDivider(),
-              _MenuItem(
-                icon: Icons.description_outlined,
-                title: 'Kullanım Koşulları',
-                trailing: const Icon(Icons.open_in_new, size: 16, color: Colors.grey),
-                onTap: () => _launchUrl('https://kitaplig.com/terms'),
-              ),
-            ]),
+            _MenuCard(
+              color: cardColor,
+              children: [
+                _MenuItem(
+                  icon: Icons.privacy_tip_outlined,
+                  title: 'Gizlilik Politikası',
+                  trailing: const Icon(
+                    Icons.open_in_new,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
+                  onTap: () => _launchUrl('https://kitaplig.com/privacy'),
+                ),
+                _MenuDivider(),
+                _MenuItem(
+                  icon: Icons.description_outlined,
+                  title: 'Kullanım Koşulları',
+                  trailing: const Icon(
+                    Icons.open_in_new,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
+                  onTap: () => _launchUrl('https://kitaplig.com/terms'),
+                ),
+              ],
+            ),
             const SizedBox(height: 20),
 
             // --- Tehlikeli Alan ---
@@ -868,7 +1191,9 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
             autofocus: true,
             textCapitalization: TextCapitalization.characters,
             decoration: InputDecoration(
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               hintText: 'SİL',
               isDense: true,
             ),
@@ -893,7 +1218,10 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
               ? const SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : const Text('Hesabı Kalıcı Sil'),
         ),
@@ -915,7 +1243,7 @@ class _SectionLabel extends StatelessWidget {
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: Colors.grey[500],
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           letterSpacing: 1.2,
         ),
       ),
@@ -955,20 +1283,26 @@ class _StatCard extends StatelessWidget {
   final String value;
   final String icon;
 
-  const _StatCard({required this.label, required this.value, required this.icon});
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -976,8 +1310,22 @@ class _StatCard extends StatelessWidget {
           children: [
             Text(icon, style: const TextStyle(fontSize: 24)),
             const SizedBox(height: 6),
-            Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            Text(label, style: const TextStyle(fontSize: 11, color: AppColors.lightTextSecondary), textAlign: TextAlign.center),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
@@ -1013,11 +1361,26 @@ class _MenuItem extends StatelessWidget {
         ),
         child: Icon(icon, color: color ?? AppColors.primary, size: 20),
       ),
-      title: Text(title, style: TextStyle(color: color, fontWeight: FontWeight.w500)),
+      title: Text(
+        title,
+        style: TextStyle(color: color, fontWeight: FontWeight.w500),
+      ),
       subtitle: subtitle != null
-          ? Text(subtitle!, style: TextStyle(fontSize: 12, color: Colors.grey[500]))
+          ? Text(
+              subtitle!,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            )
           : null,
-      trailing: trailing ?? Icon(Icons.chevron_right, size: 20, color: Colors.grey[400]),
+      trailing:
+          trailing ??
+          Icon(
+            Icons.chevron_right,
+            size: 20,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );

@@ -2,13 +2,17 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../api/api_client.dart';
+import '../platform/platform_support.dart';
 
 /// RevenueCat product identifiers — read from .env so you can swap without
 /// recompiling. Falls back to hardcoded strings if key is missing.
 class RcProductIds {
-  static String get monthly  => dotenv.env['RC_PRODUCT_MONTHLY']  ?? 'kitaplig_premium_monthly';
-  static String get yearly   => dotenv.env['RC_PRODUCT_YEARLY']   ?? 'kitaplig_premium_yearly';
-  static String get lifetime => dotenv.env['RC_PRODUCT_LIFETIME'] ?? 'kitaplig_premium_lifetime';
+  static String get monthly =>
+      dotenv.env['RC_PRODUCT_MONTHLY'] ?? 'kitaplig_premium_monthly';
+  static String get yearly =>
+      dotenv.env['RC_PRODUCT_YEARLY'] ?? 'kitaplig_premium_yearly';
+  static String get lifetime =>
+      dotenv.env['RC_PRODUCT_LIFETIME'] ?? 'kitaplig_premium_lifetime';
 }
 
 /// RevenueCat entitlement name (defined in RC dashboard > Entitlements).
@@ -18,8 +22,8 @@ class RcEntitlement {
 
 /// Fallback prices shown while RevenueCat offerings load or on error.
 class FallbackPrices {
-  static String get monthly  => dotenv.env['PRICE_MONTHLY']  ?? '₺14,99';
-  static String get yearly   => dotenv.env['PRICE_YEARLY']   ?? '₺99,99';
+  static String get monthly => dotenv.env['PRICE_MONTHLY'] ?? '₺14,99';
+  static String get yearly => dotenv.env['PRICE_YEARLY'] ?? '₺99,99';
   static String get lifetime => dotenv.env['PRICE_LIFETIME'] ?? '₺299,99';
 }
 
@@ -39,19 +43,19 @@ class SubscriptionStatus {
   });
 
   const SubscriptionStatus.free()
-      : isPremium = false,
-        planType = null,
-        planLabel = null,
-        expiresAt = null,
-        isLifetime = false;
+    : isPremium = false,
+      planType = null,
+      planLabel = null,
+      expiresAt = null,
+      isLifetime = false;
 
   factory SubscriptionStatus.fromJson(Map<String, dynamic> json) {
     final sub = json['subscription'] as Map<String, dynamic>?;
     return SubscriptionStatus(
-      isPremium:  json['is_premium'] == true,
-      planType:   sub?['plan_type'] as String?,
-      planLabel:  sub?['plan_label'] as String?,
-      expiresAt:  sub?['expires_at'] != null
+      isPremium: json['is_premium'] == true,
+      planType: sub?['plan_type'] as String?,
+      planLabel: sub?['plan_label'] as String?,
+      expiresAt: sub?['expires_at'] != null
           ? DateTime.tryParse(sub!['expires_at'] as String)
           : null,
       isLifetime: sub?['is_lifetime'] == true,
@@ -62,6 +66,11 @@ class SubscriptionStatus {
 class SubscriptionService {
   /// Call this once on app start (after user is identified).
   static Future<void> configure(String userId) async {
+    if (!PlatformSupport.supportsInAppPurchases) {
+      debugPrint('[RC] In-app purchases are not supported on this platform');
+      return;
+    }
+
     final apiKey = dotenv.env['REVENUECAT_API_KEY'] ?? '';
     if (apiKey.isEmpty) {
       debugPrint('[RC] REVENUECAT_API_KEY not set — skipping RevenueCat init');
@@ -77,6 +86,10 @@ class SubscriptionService {
 
   /// Fetch offerings from RevenueCat.
   Future<Offerings?> getOfferings() async {
+    if (!PlatformSupport.supportsInAppPurchases) {
+      return null;
+    }
+
     try {
       return await Purchases.getOfferings();
     } catch (e) {
@@ -87,9 +100,14 @@ class SubscriptionService {
 
   /// Purchase a package. Returns true on success.
   Future<bool> purchasePackage(Package package) async {
+    if (!PlatformSupport.supportsInAppPurchases) {
+      debugPrint('[RC] purchasePackage skipped on unsupported platform');
+      return false;
+    }
+
     try {
       final result = await Purchases.purchasePackage(package);
-      final info   = result.customerInfo;
+      final info = result.customerInfo;
       await _syncWithBackend(info);
       return info.entitlements.active.containsKey(RcEntitlement.name);
     } on PurchasesErrorCode catch (e) {
@@ -105,6 +123,11 @@ class SubscriptionService {
 
   /// Restore purchases (e.g. on a new device).
   Future<bool> restorePurchases() async {
+    if (!PlatformSupport.supportsInAppPurchases) {
+      debugPrint('[RC] restorePurchases skipped on unsupported platform');
+      return false;
+    }
+
     try {
       final info = await Purchases.restorePurchases();
       await _syncWithBackend(info);
@@ -118,7 +141,9 @@ class SubscriptionService {
   /// Fetch subscription status from backend.
   Future<SubscriptionStatus> getStatusFromBackend() async {
     try {
-      final res = await ApiClient.instance.get<Map<String, dynamic>>('/subscription/status');
+      final res = await ApiClient.instance.get<Map<String, dynamic>>(
+        '/subscription/status',
+      );
       if (res.data != null) {
         return SubscriptionStatus.fromJson(res.data!);
       }
@@ -142,11 +167,14 @@ class SubscriptionService {
         planType = 'lifetime';
       }
 
-      await ApiClient.instance.post<dynamic>('/subscription/sync', data: {
-        'revenuecat_customer_id': info.originalAppUserId,
-        'plan_type': planType,
-        'expires_at': active.expirationDate,
-      });
+      await ApiClient.instance.post<dynamic>(
+        '/subscription/sync',
+        data: {
+          'revenuecat_customer_id': info.originalAppUserId,
+          'plan_type': planType,
+          'expires_at': active.expirationDate,
+        },
+      );
     } catch (e) {
       debugPrint('[RC] _syncWithBackend error: $e');
     }
@@ -154,6 +182,10 @@ class SubscriptionService {
 
   /// Check if the user currently has an active "premium" entitlement locally.
   Future<bool> hasPremiumEntitlement() async {
+    if (!PlatformSupport.supportsInAppPurchases) {
+      return false;
+    }
+
     try {
       final info = await Purchases.getCustomerInfo();
       return info.entitlements.active.containsKey(RcEntitlement.name);

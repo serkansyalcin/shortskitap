@@ -1,89 +1,231 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'app_colors.dart';
 
 class AppTheme {
   static ThemeData get light => _buildTheme(
-        brightness: Brightness.light,
-        background: AppColors.lightBackground,
-        surface: AppColors.lightSurface,
-        text: AppColors.lightText,
-        textSecondary: AppColors.lightTextSecondary,
-      );
+    brightness: Brightness.dark,
+    background: AppColors.lightBackground,
+    surface: AppColors.lightSurface,
+    surfaceHigh: AppColors.spotifyPanelHigh,
+    text: AppColors.lightText,
+    textSecondary: AppColors.lightTextSecondary,
+  );
 
   static ThemeData get dark => _buildTheme(
-        brightness: Brightness.dark,
-        background: AppColors.darkBackground,
-        surface: AppColors.darkSurface,
-        text: AppColors.darkText,
-        textSecondary: AppColors.darkTextSecondary,
-      );
+    brightness: Brightness.dark,
+    background: AppColors.darkBackground,
+    surface: AppColors.darkSurface,
+    surfaceHigh: AppColors.spotifyPanel,
+    text: AppColors.darkText,
+    textSecondary: AppColors.darkTextSecondary,
+  );
 
   static ThemeData get sepia => _buildTheme(
-        brightness: Brightness.light,
-        background: AppColors.sepiaBackground,
-        surface: AppColors.sepiaSurface,
-        text: AppColors.sepiaText,
-        textSecondary: AppColors.sepiaTextSecondary,
-      );
+    brightness: Brightness.light,
+    background: AppColors.sepiaBackground,
+    surface: AppColors.sepiaSurface,
+    surfaceHigh: AppColors.sepiaSurface,
+    text: AppColors.sepiaText,
+    textSecondary: AppColors.sepiaTextSecondary,
+  );
 
   static ThemeData _buildTheme({
     required Brightness brightness,
     required Color background,
     required Color surface,
+    required Color surfaceHigh,
     required Color text,
     required Color textSecondary,
   }) {
+    final isDark = brightness == Brightness.dark;
+    final colorScheme =
+        ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          brightness: brightness,
+          surface: surface,
+        ).copyWith(
+          primary: AppColors.primary,
+          onPrimary: Colors.black,
+          secondary: AppColors.primaryLight,
+          onSecondary: Colors.black,
+          surface: surface,
+          onSurface: text,
+          outline: AppColors.outline,
+          error: const Color(0xFFFF6B6B),
+          onError: Colors.white,
+        );
+
+    final textTheme = GoogleFonts.dmSansTextTheme().copyWith(
+      displayLarge: GoogleFonts.spaceGrotesk(
+        color: text,
+        fontSize: 40,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -1.4,
+      ),
+      displayMedium: GoogleFonts.spaceGrotesk(
+        color: text,
+        fontSize: 34,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -1.0,
+      ),
+      headlineLarge: GoogleFonts.spaceGrotesk(
+        color: text,
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.8,
+      ),
+      titleLarge: GoogleFonts.spaceGrotesk(
+        color: text,
+        fontSize: 22,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.4,
+      ),
+      titleMedium: GoogleFonts.dmSans(
+        color: text,
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+      ),
+      bodyLarge: GoogleFonts.dmSans(
+        color: text,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
+      bodyMedium: GoogleFonts.dmSans(
+        color: text,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      bodySmall: GoogleFonts.dmSans(
+        color: textSecondary,
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+      ),
+      labelLarge: GoogleFonts.dmSans(
+        color: text,
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+
     return ThemeData(
       brightness: brightness,
+      colorScheme: colorScheme,
       scaffoldBackgroundColor: background,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primary,
-        brightness: brightness,
-        background: background,
-        surface: surface,
-      ),
-      textTheme: GoogleFonts.nunitoTextTheme().apply(
-        bodyColor: text,
-        displayColor: text,
-      ),
+      canvasColor: background,
+      cardColor: surfaceHigh,
+      dividerColor: AppColors.outline,
+      splashColor: AppColors.primary.withValues(alpha: 0.12),
+      highlightColor: AppColors.primary.withValues(alpha: 0.08),
+      textTheme: textTheme,
       appBarTheme: AppBarTheme(
-        backgroundColor: background,
+        backgroundColor: Colors.transparent,
         foregroundColor: text,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
+        titleTextStyle: textTheme.titleLarge,
+      ),
+      iconTheme: IconThemeData(color: text),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: surface,
+        surfaceTintColor: Colors.transparent,
+        height: 72,
+        indicatorColor: AppColors.primary.withValues(alpha: 0.18),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return textTheme.bodySmall?.copyWith(
+            color: selected ? text : textSecondary,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            color: selected ? AppColors.primary : textSecondary,
+          );
+        }),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          disabledBackgroundColor: surfaceHigh,
+          disabledForegroundColor: textSecondary,
+          minimumSize: const Size(double.infinity, 56),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          shape: const StadiumBorder(),
+          textStyle: textTheme.titleMedium,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.primaryLight,
+          textStyle: textTheme.labelLarge,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: text,
+          side: const BorderSide(color: AppColors.outline),
           minimumSize: const Size(double.infinity, 52),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
           ),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: textTheme.labelLarge,
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surface,
+        fillColor: surfaceHigh,
+        labelStyle: TextStyle(color: textSecondary),
+        hintStyle: TextStyle(color: textSecondary),
+        prefixIconColor: textSecondary,
+        suffixIconColor: textSecondary,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: textSecondary.withOpacity(0.3)),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: AppColors.outline),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: textSecondary.withOpacity(0.3)),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: AppColors.outline),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.6),
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: Color(0xFFFF6B6B)),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: Color(0xFFFF6B6B), width: 1.6),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 18,
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: surfaceHigh,
+        surfaceTintColor: Colors.transparent,
+        modalBackgroundColor: surfaceHigh,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: isDark
+            ? AppColors.spotifyPanelHigh
+            : AppColors.sepiaText,
+        contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       useMaterial3: true,
     );
@@ -103,6 +245,9 @@ class AppTheme {
 
 extension ThemeContext on BuildContext {
   bool get isDark => Theme.of(this).brightness == Brightness.dark;
+
   Color get readerBackground => Theme.of(this).scaffoldBackgroundColor;
-  Color get readerText => Theme.of(this).textTheme.bodyLarge?.color ?? Colors.black;
+
+  Color get readerText =>
+      Theme.of(this).textTheme.bodyLarge?.color ?? Colors.black;
 }

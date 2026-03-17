@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../app/providers/auth_provider.dart';
 import '../../../app/providers/books_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
@@ -15,7 +16,13 @@ class BookDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bookAsync = ref.watch(bookDetailProvider(slug));
+    final authState = ref.watch(authProvider);
+    final isAuthenticated = authState.isAuthenticated;
     final isPremium = ref.watch(isPremiumProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+    final textSecondary = colorScheme.onSurfaceVariant;
+    String loginPathForBook(int bookId) =>
+        '/login?returnTo=${Uri.encodeComponent('/read/$bookId')}';
 
     return Scaffold(
       body: bookAsync.when(
@@ -38,7 +45,8 @@ class BookDetailScreen extends ConsumerWidget {
                       CachedNetworkImage(
                         imageUrl: book.coverImageUrl!,
                         fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => Container(color: AppColors.primary),
+                        errorWidget: (_, __, ___) =>
+                            Container(color: AppColors.primary),
                       )
                     else
                       Container(color: AppColors.primary),
@@ -68,18 +76,19 @@ class BookDetailScreen extends ConsumerWidget {
                     // Title & Author
                     Text(
                       book.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     if (book.author != null) ...[
                       const SizedBox(height: 4),
                       Text(
                         book.author!.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
-                          color: AppColors.lightTextSecondary,
+                          color: textSecondary,
                         ),
                       ),
                     ],
@@ -90,30 +99,52 @@ class BookDetailScreen extends ConsumerWidget {
                       children: [
                         if (book.category != null)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: Color(int.parse(
-                                    book.category!.color?.replaceFirst('#', '0xFF') ?? '0xFF2D6A4F',
-                                  )).withOpacity(0.15),
+                              color: Color(
+                                int.parse(
+                                  book.category!.color?.replaceFirst(
+                                        '#',
+                                        '0xFF',
+                                      ) ??
+                                      '0xFF2D6A4F',
+                                ),
+                              ).withOpacity(0.15),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               book.category!.name,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Color(int.parse(
-                                  book.category!.color?.replaceFirst('#', '0xFF') ?? '0xFF2D6A4F',
-                                )),
+                                color: Color(
+                                  int.parse(
+                                    book.category!.color?.replaceFirst(
+                                          '#',
+                                          '0xFF',
+                                        ) ??
+                                        '0xFF2D6A4F',
+                                  ),
+                                ),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
                         const SizedBox(width: 12),
-                        const Icon(Icons.auto_stories_outlined, size: 14, color: AppColors.lightTextSecondary),
+                        Icon(
+                          Icons.auto_stories_outlined,
+                          size: 14,
+                          color: textSecondary,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           '${book.totalParagraphs} paragraf',
-                          style: const TextStyle(fontSize: 12, color: AppColors.lightTextSecondary),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: textSecondary,
+                          ),
                         ),
                         if (book.isPremium) ...[
                           const SizedBox(width: 12),
@@ -124,18 +155,23 @@ class BookDetailScreen extends ConsumerWidget {
                     const SizedBox(height: 24),
 
                     // Description
-                    if (book.description != null && book.description!.isNotEmpty) ...[
-                      const Text(
+                    if (book.description != null &&
+                        book.description!.isNotEmpty) ...[
+                      Text(
                         'Hakkında',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         book.description!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           height: 1.7,
-                          color: AppColors.lightTextSecondary,
+                          color: textSecondary,
                         ),
                       ),
                       const SizedBox(height: 32),
@@ -166,7 +202,9 @@ class BookDetailScreen extends ConsumerWidget {
                         label: const Text('Önizleme (3 paragraf)'),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(double.infinity, 44),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
                       ),
                     ] else
@@ -192,8 +230,39 @@ class BookDetailScreen extends ConsumerWidget {
             ),
           ],
         ),
-        loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-        error: (e, _) => Center(child: Text('Hata: $e')),
+        loading: () => Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        error: (e, _) => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Kitap yüklenemedi',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$e',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -9,9 +9,29 @@ class LeagueHistory extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final historyAsync = ref.watch(leagueHistoryProvider);
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return historyAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Hata: $e')),
+      loading: () => Center(
+        child: CircularProgressIndicator(color: colorScheme.primary),
+      ),
+      error: (e, _) => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cloud_off_rounded, size: 48, color: colorScheme.onSurfaceVariant),
+            const SizedBox(height: 16),
+            Text(
+              'Geçmiş yüklenemedi',
+              style: TextStyle(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
       data: (history) {
         if (history.isEmpty) {
           return Center(
@@ -23,14 +43,14 @@ class LeagueHistory extends ConsumerWidget {
                 Text(
                   'Henüz geçmiş sezon yok',
                   style: TextStyle(
-                    color: Colors.grey.shade600,
+                    color: colorScheme.onSurface,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'İlk sezonun bitmesini bekle!',
-                  style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                  style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
                 ),
               ],
             ),
@@ -53,24 +73,25 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final result = entry['result'] as String?;
     final (resultIcon, resultText, resultColor) = switch (result) {
       'promoted' => ('↑', 'Terfi Etti', Colors.green.shade600),
       'demoted'  => ('↓', 'Düştü', Colors.red.shade500),
       'stayed'   => ('→', 'Kaldı', Colors.grey.shade500),
-      _          => ('—', 'Tamamlanmadı', Colors.grey.shade400),
+      _          => ('—', 'Tamamlanmadı', theme.colorScheme.onSurfaceVariant),
     };
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 12,
             offset: const Offset(0, 2),
           ),
         ],
@@ -88,13 +109,19 @@ class _HistoryCard extends StatelessWidget {
               children: [
                 Text(
                   entry['season'] as String? ?? '',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 15),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   entry['tier_label'] as String? ?? '',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),
@@ -108,8 +135,11 @@ class _HistoryCard extends StatelessWidget {
                   const SizedBox(width: 2),
                   Text(
                     '${entry['weekly_xp']} XP',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 15),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
                 ],
               ),
@@ -130,7 +160,10 @@ class _HistoryCard extends StatelessWidget {
               if (entry['rank'] != null)
                 Text(
                   '#${entry['rank']}. sıra',
-                  style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 11,
+                  ),
                 ),
             ],
           ),

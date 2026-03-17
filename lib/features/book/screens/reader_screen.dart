@@ -8,6 +8,7 @@ import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/settings_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/platform/platform_support.dart';
 import '../../../features/subscription/widgets/ad_banner.dart';
 import '../widgets/paragraph_card.dart';
 
@@ -43,7 +44,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   void initState() {
     super.initState();
     _pageController = PageController();
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    if (PlatformSupport.supportsImmersiveUi) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    }
 
     _sessionTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       _sessionSeconds++;
@@ -65,7 +68,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     _debounce?.cancel();
     _sessionTimer?.cancel();
     _controlsTimer?.cancel();
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    if (PlatformSupport.supportsImmersiveUi) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
     super.dispose();
   }
 
@@ -75,11 +80,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
-      ref.read(progressSyncProvider.notifier).sync(
-            widget.bookId,
-            index + 1,
-            _sessionSeconds,
-          );
+      ref
+          .read(progressSyncProvider.notifier)
+          .sync(widget.bookId, index + 1, _sessionSeconds);
       _sessionSeconds = 0;
     });
   }
@@ -183,7 +186,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                 Text('Yüklenemedi: $e'),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => ref.refresh(paragraphsProvider(widget.bookId)),
+                  onPressed: () =>
+                      ref.refresh(paragraphsProvider(widget.bookId)),
                   child: const Text('Tekrar Dene'),
                 ),
               ],
@@ -223,14 +227,21 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Okuma Ayarları', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                'Okuma Ayarları',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 20),
 
               const Text('Tema', style: TextStyle(fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
               Row(
                 children: ['light', 'dark', 'sepia'].map((t) {
-                  final labels = {'light': '☀️ Açık', 'dark': '🌙 Koyu', 'sepia': '🍂 Sepya'};
+                  final labels = {
+                    'light': '☀️ Açık',
+                    'dark': '🌙 Koyu',
+                    'sepia': '🍂 Sepya',
+                  };
                   return Expanded(
                     child: GestureDetector(
                       onTap: () {
@@ -241,13 +252,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         margin: const EdgeInsets.only(right: 8),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: settings.theme == t ? AppColors.primary : Colors.grey.shade100,
+                          color: settings.theme == t
+                              ? AppColors.primary
+                              : Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
                           labels[t]!,
                           style: TextStyle(
-                            color: settings.theme == t ? Colors.white : Colors.black,
+                            color: settings.theme == t
+                                ? Colors.white
+                                : Colors.black,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -260,7 +275,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               ),
               const SizedBox(height: 20),
 
-              const Text('Font Boyutu', style: TextStyle(fontWeight: FontWeight.w500)),
+              const Text(
+                'Font Boyutu',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
               Row(
                 children: [
                   const Text('A', style: TextStyle(fontSize: 12)),
@@ -272,7 +290,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       divisions: 5,
                       activeColor: AppColors.primary,
                       onChanged: (v) {
-                        ref.read(settingsProvider.notifier).setFontSize(v.round());
+                        ref
+                            .read(settingsProvider.notifier)
+                            .setFontSize(v.round());
                         setModalState(() {});
                       },
                     ),
@@ -324,7 +344,11 @@ class _PremiumGateScreen extends StatelessWidget {
               const SizedBox(height: 12),
               const Text(
                 'Bu kitabı okumak için KitapLig Premium üyeliği gerekiyor.\nAylık ₺14,99 ile sınırsız erişim sağlayın.',
-                style: TextStyle(fontSize: 15, color: Colors.black54, height: 1.6),
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.black54,
+                  height: 1.6,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
@@ -334,19 +358,28 @@ class _PremiumGateScreen extends StatelessWidget {
                   onPressed: onUpgrade,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   child: const Text(
                     'Premium\'a Geç',
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: onBack,
-                child: const Text('Geri Dön', style: TextStyle(color: AppColors.primaryLight)),
+                child: const Text(
+                  'Geri Dön',
+                  style: TextStyle(color: AppColors.primaryLight),
+                ),
               ),
             ],
           ),
@@ -381,17 +414,18 @@ class _ReaderTopBar extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Colors.black.withOpacity(0.3),
-              Colors.transparent,
-            ],
+            colors: [Colors.black.withOpacity(0.3), Colors.transparent],
           ),
         ),
         child: Row(
           children: [
             IconButton(
               onPressed: onBack,
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+              icon: const Icon(
+                Icons.arrow_back_ios_new,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
             const Spacer(),
             IconButton(
@@ -426,10 +460,7 @@ class _ReaderBottomBar extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
-          colors: [
-            Colors.black.withOpacity(0.3),
-            Colors.transparent,
-          ],
+          colors: [Colors.black.withOpacity(0.3), Colors.transparent],
         ),
       ),
       child: Column(

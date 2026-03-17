@@ -1,26 +1,39 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
+import 'package:sqflite/sqflite.dart';
 import 'app/routes/app_router.dart';
 import 'app/theme/app_theme.dart';
 import 'app/providers/settings_provider.dart';
+import 'core/platform/platform_support.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // sqflite web desteği — Flutter web'de databaseFactory gerekli
+  if (kIsWeb) {
+    databaseFactory = databaseFactoryFfiWeb;
+  }
+
   // Force portrait orientation for reading app
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  if (PlatformSupport.supportsOrientationLock) {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
 
   await dotenv.load(fileName: '.env');
 
   // Initialize Google Mobile Ads SDK
-  await MobileAds.instance.initialize();
+  if (PlatformSupport.supportsMobileAds) {
+    await MobileAds.instance.initialize();
+  }
 
   // Request notification permission on first launch (non-blocking)
   _requestNotificationPermission();
@@ -29,6 +42,10 @@ void main() async {
 }
 
 Future<void> _requestNotificationPermission() async {
+  if (!PlatformSupport.supportsNotificationPermission) {
+    return;
+  }
+
   final status = await Permission.notification.status;
   if (status.isDenied) {
     await Permission.notification.request();
@@ -59,10 +76,26 @@ class KitapLigApp extends ConsumerWidget {
         if (settings.theme == 'sepia') {
           return ColorFiltered(
             colorFilter: const ColorFilter.matrix([
-              0.89, 0.09, 0.02, 0, 0,
-              0.60, 0.52, 0.08, 0, 0,
-              0.22, 0.18, 0.10, 0, 0,
-              0, 0, 0, 1, 0,
+              0.89,
+              0.09,
+              0.02,
+              0,
+              0,
+              0.60,
+              0.52,
+              0.08,
+              0,
+              0,
+              0.22,
+              0.18,
+              0.10,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
             ]),
             child: child!,
           );
