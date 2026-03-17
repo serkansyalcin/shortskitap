@@ -39,6 +39,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   int _sessionSeconds = 0;
   bool _showControls = true;
   Timer? _controlsTimer;
+  String? _readerThemeOverride;
+  double? _readerFontSizeOverride;
 
   @override
   void initState() {
@@ -97,6 +99,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final paragraphsAsync = ref.watch(paragraphsProvider(widget.bookId));
     final settings = ref.watch(settingsProvider);
     final isPremium = ref.watch(isPremiumProvider);
+    final readerTheme = _readerThemeOverride ?? settings.theme;
+    final readerFontSize =
+        _readerFontSizeOverride ?? settings.fontSize.toDouble();
+    final readerPalette = _paletteForTheme(readerTheme);
 
     // Gate: if book is premium and user is not premium, redirect to paywall
     if (widget.bookIsPremium && !isPremium) {
@@ -109,6 +115,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     return GestureDetector(
       onTap: _showControlsTemporarily,
       child: Scaffold(
+        backgroundColor: readerPalette.background,
         body: paragraphsAsync.when(
           data: (paragraphs) {
             if (paragraphs.isEmpty) {
@@ -144,7 +151,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       paragraph: para.paragraph,
                       isCurrent: index == _currentIndex,
                       total: paragraphs.length,
-                      fontSize: settings.fontSize.toDouble(),
+                      fontSize: readerFontSize,
+                      textColor: readerPalette.text,
+                      dividerColor: readerPalette.divider,
+                      accentColor: readerPalette.accent,
+                      mutedColor: readerPalette.muted,
                     );
                   },
                 ),
@@ -153,8 +164,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   opacity: _showControls ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 200),
                   child: _ReaderTopBar(
+                    readerTheme: readerTheme,
                     onBack: () => context.pop(),
-                    onSettings: () => _showReaderSettings(context),
+                    onSettings: () => _showReaderSettings(context, readerTheme),
                   ),
                 ),
 
@@ -166,6 +178,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     opacity: _showControls ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 200),
                     child: _ReaderBottomBar(
+                      readerTheme: readerTheme,
                       current: _currentIndex + 1,
                       total: items.length,
                     ),
@@ -213,10 +226,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     return items;
   }
 
-  void _showReaderSettings(BuildContext context) {
+  void _showReaderSettings(BuildContext context, String readerTheme) {
     final settings = ref.read(settingsProvider);
     showModalBottomSheet(
       context: context,
+      backgroundColor: const Color(0xFF202020),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -229,11 +243,21 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             children: [
               const Text(
                 'Okuma Ayarları',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(height: 20),
 
-              const Text('Tema', style: TextStyle(fontWeight: FontWeight.w500)),
+              const Text(
+                'Tema',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
+              ),
               const SizedBox(height: 8),
               Row(
                 children: ['light', 'dark', 'sepia'].map((t) {
@@ -245,24 +269,25 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   return Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        ref.read(settingsProvider.notifier).setTheme(t);
+                        _readerThemeOverride = t;
                         setModalState(() {});
+                        if (mounted) setState(() {});
                       },
                       child: Container(
                         margin: const EdgeInsets.only(right: 8),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: settings.theme == t
+                          color: readerTheme == t
                               ? AppColors.primary
-                              : Colors.grey.shade100,
+                              : Colors.white.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
                           labels[t]!,
                           style: TextStyle(
-                            color: settings.theme == t
+                            color: readerTheme == t
                                 ? Colors.white
-                                : Colors.black,
+                                : Colors.white70,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -277,27 +302,37 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
               const Text(
                 'Font Boyutu',
-                style: TextStyle(fontWeight: FontWeight.w500),
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
               ),
               Row(
                 children: [
-                  const Text('A', style: TextStyle(fontSize: 12)),
+                  const Text(
+                    'A',
+                    style: TextStyle(fontSize: 12, color: Colors.white70),
+                  ),
                   Expanded(
                     child: Slider(
-                      value: settings.fontSize.toDouble(),
+                      value:
+                          _readerFontSizeOverride ??
+                          settings.fontSize.toDouble(),
                       min: 12,
                       max: 22,
                       divisions: 5,
                       activeColor: AppColors.primary,
                       onChanged: (v) {
-                        ref
-                            .read(settingsProvider.notifier)
-                            .setFontSize(v.round());
+                        _readerFontSizeOverride = v;
                         setModalState(() {});
+                        if (mounted) setState(() {});
                       },
                     ),
                   ),
-                  const Text('A', style: TextStyle(fontSize: 22)),
+                  const Text(
+                    'A',
+                    style: TextStyle(fontSize: 22, color: Colors.white),
+                  ),
                 ],
               ),
             ],
@@ -305,6 +340,32 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         ),
       ),
     );
+  }
+
+  _ReaderPalette _paletteForTheme(String theme) {
+    return switch (theme) {
+      'light' => const _ReaderPalette(
+        background: Color(0xFFF8F5EE),
+        text: Color(0xFF1A1A1A),
+        muted: Color(0xFF7A746B),
+        divider: Color(0xFFD9D3C8),
+        accent: AppColors.primary,
+      ),
+      'sepia' => const _ReaderPalette(
+        background: Color(0xFFF1E4C8),
+        text: Color(0xFF4A3928),
+        muted: Color(0xFF8E745C),
+        divider: Color(0xFFD7C3A1),
+        accent: Color(0xFF9A6B33),
+      ),
+      _ => const _ReaderPalette(
+        background: Color(0xFF050505),
+        text: Color(0xFFE8E5DF),
+        muted: Color(0xFF8D8880),
+        divider: Color(0xFF2B2B2B),
+        accent: AppColors.primary,
+      ),
+    };
   }
 }
 
@@ -392,10 +453,15 @@ class _PremiumGateScreen extends StatelessWidget {
 // ── UI components ─────────────────────────────────────────────────────────────
 
 class _ReaderTopBar extends StatelessWidget {
+  final String readerTheme;
   final VoidCallback onBack;
   final VoidCallback onSettings;
 
-  const _ReaderTopBar({required this.onBack, required this.onSettings});
+  const _ReaderTopBar({
+    required this.readerTheme,
+    required this.onBack,
+    required this.onSettings,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -414,23 +480,32 @@ class _ReaderTopBar extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Colors.black.withOpacity(0.3), Colors.transparent],
+            colors: [
+              (readerTheme == 'light' || readerTheme == 'sepia')
+                  ? Colors.black.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.3),
+              Colors.transparent,
+            ],
           ),
         ),
         child: Row(
           children: [
             IconButton(
               onPressed: onBack,
-              icon: const Icon(
+              icon: Icon(
                 Icons.arrow_back_ios_new,
-                color: Colors.white,
+                color: readerTheme == 'dark' ? Colors.white : Colors.black87,
                 size: 20,
               ),
             ),
             const Spacer(),
             IconButton(
               onPressed: onSettings,
-              icon: const Icon(Icons.tune, color: Colors.white, size: 20),
+              icon: Icon(
+                Icons.tune,
+                color: readerTheme == 'dark' ? Colors.white : Colors.black87,
+                size: 20,
+              ),
             ),
           ],
         ),
@@ -440,10 +515,15 @@ class _ReaderTopBar extends StatelessWidget {
 }
 
 class _ReaderBottomBar extends StatelessWidget {
+  final String readerTheme;
   final int current;
   final int total;
 
-  const _ReaderBottomBar({required this.current, required this.total});
+  const _ReaderBottomBar({
+    required this.readerTheme,
+    required this.current,
+    required this.total,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -460,7 +540,12 @@ class _ReaderBottomBar extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
-          colors: [Colors.black.withOpacity(0.3), Colors.transparent],
+          colors: [
+            (readerTheme == 'light' || readerTheme == 'sepia')
+                ? Colors.black.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.3),
+            Colors.transparent,
+          ],
         ),
       ),
       child: Column(
@@ -471,11 +556,21 @@ class _ReaderBottomBar extends StatelessWidget {
             children: [
               Text(
                 '$current / $total',
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                style: TextStyle(
+                  color: readerTheme == 'dark'
+                      ? Colors.white70
+                      : Colors.black54,
+                  fontSize: 12,
+                ),
               ),
               Text(
                 '${(progress * 100).toStringAsFixed(1)}%',
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                style: TextStyle(
+                  color: readerTheme == 'dark'
+                      ? Colors.white70
+                      : Colors.black54,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -493,4 +588,20 @@ class _ReaderBottomBar extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ReaderPalette {
+  final Color background;
+  final Color text;
+  final Color muted;
+  final Color divider;
+  final Color accent;
+
+  const _ReaderPalette({
+    required this.background,
+    required this.text,
+    required this.muted,
+    required this.divider,
+    required this.accent,
+  });
 }

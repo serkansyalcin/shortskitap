@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/paragraph_model.dart';
 
@@ -8,6 +9,10 @@ class ParagraphCard extends StatelessWidget {
   final bool isCurrent;
   final int total;
   final double fontSize;
+  final Color textColor;
+  final Color dividerColor;
+  final Color accentColor;
+  final Color mutedColor;
 
   const ParagraphCard({
     super.key,
@@ -15,6 +20,10 @@ class ParagraphCard extends StatelessWidget {
     required this.isCurrent,
     required this.total,
     required this.fontSize,
+    required this.textColor,
+    required this.dividerColor,
+    required this.accentColor,
+    required this.mutedColor,
   });
 
   @override
@@ -26,16 +35,15 @@ class ParagraphCard extends StatelessWidget {
         height: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 80),
         child: switch (paragraph.type) {
-          ParagraphType.sceneBreak => _buildSceneBreak(context),
-          ParagraphType.quote => _buildQuote(context),
-          _ => _buildText(context),
+          ParagraphType.sceneBreak => _buildSceneBreak(),
+          ParagraphType.quote => _buildQuote(),
+          _ => _buildText(),
         },
       ),
     );
   }
 
-  Widget _buildText(BuildContext context) {
-    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+  Widget _buildText() {
     return Center(
       child: Text(
         paragraph.content,
@@ -50,8 +58,7 @@ class ParagraphCard extends StatelessWidget {
     );
   }
 
-  Widget _buildQuote(BuildContext context) {
-    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+  Widget _buildQuote() {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -60,7 +67,7 @@ class ParagraphCard extends StatelessWidget {
             '"',
             style: TextStyle(
               fontSize: 80,
-              color: AppColors.primary.withOpacity(0.2),
+              color: accentColor.withValues(alpha: 0.20),
               height: 0.8,
               fontFamily: 'Georgia',
             ),
@@ -82,30 +89,16 @@ class ParagraphCard extends StatelessWidget {
     );
   }
 
-  Widget _buildSceneBreak(BuildContext context) {
+  Widget _buildSceneBreak() {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 60,
-            height: 1,
-            color: Theme.of(context).dividerColor,
-          ),
+          Container(width: 60, height: 1, color: dividerColor),
           const SizedBox(height: 12),
-          const Text(
-            '⁂',
-            style: TextStyle(
-              fontSize: 24,
-              color: AppColors.lightTextSecondary,
-            ),
-          ),
+          Text('⁂', style: TextStyle(fontSize: 24, color: mutedColor)),
           const SizedBox(height: 12),
-          Container(
-            width: 60,
-            height: 1,
-            color: Theme.of(context).dividerColor,
-          ),
+          Container(width: 60, height: 1, color: dividerColor),
         ],
       ),
     );
@@ -141,8 +134,11 @@ class ParagraphCard extends StatelessWidget {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.bookmark_add_outlined, color: AppColors.primary),
-                title: const Text('Yer İmi Ekle'),
+                leading: const Icon(
+                  Icons.bookmark_add_outlined,
+                  color: AppColors.primary,
+                ),
+                title: const Text('Yer imi ekle'),
                 onTap: () {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
