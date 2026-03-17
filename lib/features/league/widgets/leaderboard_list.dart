@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitaplig/app/providers/league_provider.dart';
-import 'package:kitaplig/app/theme/app_colors.dart';
 import 'package:kitaplig/core/models/league_model.dart';
+
 import '../../subscription/widgets/premium_badge.dart';
 
 class LeaderboardList extends ConsumerWidget {
@@ -15,74 +15,157 @@ class LeaderboardList extends ConsumerWidget {
     final boardAsync = ref.watch(leaderboardProvider);
 
     return boardAsync.when(
-      loading: () => Center(
-        child: CircularProgressIndicator(
-          color: Theme.of(context).colorScheme.primary,
-        ),
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF22C55E)),
       ),
-      error: (e, _) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.cloud_off_rounded,
-              size: 48,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Liderboard yüklenemedi',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.w500,
+      error: (_, __) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.cloud_off_rounded,
+                size: 42,
+                color: Colors.white.withValues(alpha: 0.72),
               ),
-            ),
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              onPressed: () => ref.refresh(leaderboardProvider),
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Tekrar Dene'),
-            ),
-          ],
+              const SizedBox(height: 12),
+              const Text(
+                'Liderlik tablosu yüklenemedi',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => ref.refresh(leaderboardProvider),
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Tekrar dene'),
+              ),
+            ],
+          ),
         ),
       ),
-      data: (entries) => _buildList(entries),
+      data: (entries) {
+        if (entries.isEmpty) {
+          return const _LeagueEmptyState(
+            icon: Icons.groups_rounded,
+            title: 'Henüz grup oluşmadı',
+            subtitle:
+                'Katılımcılar yerleştiğinde liderlik tablosu burada görünecek.',
+          );
+        }
+
+        final widgets = _buildRows(entries);
+
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
+          children: widgets,
+        );
+      },
     );
   }
 
-  Widget _buildList(List<LeaderboardEntry> entries) {
-    final promotionZone = membership.promotionZone;
-    final demotionZone = membership.demotionZone;
-    final groupSize = membership.groupSize;
+  List<Widget> _buildRows(List<LeaderboardEntry> entries) {
+    final rows = <Widget>[
+      _LeagueSummaryCard(membership: membership),
+      const SizedBox(height: 14),
+    ];
 
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 8, bottom: 24),
-      itemCount: entries.length + 2, // +2 for zone dividers
-      itemBuilder: (context, index) {
-        // Calculate effective index accounting for zone headers
-        if (index == promotionZone) {
-          return _ZoneDivider(
-            label: '— Terfi Bölgesi Sınırı —',
-            color: Colors.green.shade400,
-          );
-        }
-        if (index == groupSize - (groupSize - demotionZone + 1) + 1) {
-          return _ZoneDivider(
-            label: '— Düşme Bölgesi Sınırı —',
-            color: Colors.red.shade400,
-          );
-        }
-
-        final effectiveIndex = index > promotionZone ? index - 1 : index;
-        if (effectiveIndex >= entries.length) return const SizedBox.shrink();
-        final entry = entries[effectiveIndex];
-
-        return _LeaderboardTile(
-          entry: entry,
-          isPromotionZone: entry.rank <= promotionZone,
-          isDemotionZone: entry.rank >= demotionZone,
+    for (final entry in entries) {
+      if (entry.rank == membership.promotionZone + 1) {
+        rows.add(
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: _ZoneDivider(
+              label: 'Terfi çizgisi',
+              color: Color(0xFF4ADE80),
+            ),
+          ),
         );
-      },
+      }
+
+      if (entry.rank == membership.demotionZone) {
+        rows.add(
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: _ZoneDivider(
+              label: 'Düşme çizgisi',
+              color: Color(0xFFF87171),
+            ),
+          ),
+        );
+      }
+
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: _LeaderboardTile(
+            entry: entry,
+            isPromotionZone: entry.rank <= membership.promotionZone,
+            isDemotionZone: entry.rank >= membership.demotionZone,
+          ),
+        ),
+      );
+    }
+
+    return rows;
+  }
+}
+
+class _LeagueSummaryCard extends StatelessWidget {
+  final LeagueMembershipModel membership;
+
+  const _LeagueSummaryCard({required this.membership});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF181818),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFF2B2B2B)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: const Color(0xFF22C55E).withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.insights_rounded, color: Color(0xFF22C55E)),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Bu haftaki konumun',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '#${membership.rank} sıradasın · ${membership.weeklyXp} XP',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -100,167 +183,247 @@ class _LeaderboardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cardColor = theme.cardColor;
-
-    final bgColor = entry.isMe
-        ? (isDark ? Colors.amber.shade900.withOpacity(0.3) : Colors.amber.shade50)
-        : isPromotionZone
-            ? (isDark ? Colors.green.shade900.withOpacity(0.2) : Colors.green.shade50)
-            : isDemotionZone
-                ? (isDark ? Colors.red.shade900.withOpacity(0.2) : Colors.red.shade50)
-                : cardColor;
-
     final borderColor = entry.isMe
-        ? Colors.amber.shade400
+        ? const Color(0xFFFBBF24)
         : isPromotionZone
-            ? Colors.green.shade400
-            : isDemotionZone
-                ? Colors.red.shade400
-                : (isDark ? AppColors.outline : Colors.grey.shade200);
+        ? const Color(0xFF4ADE80)
+        : isDemotionZone
+        ? const Color(0xFFF87171)
+        : const Color(0xFF262626);
+
+    final background = entry.isMe
+        ? const Color(0xFF201A08)
+        : isPromotionZone
+        ? const Color(0xFF102014)
+        : isDemotionZone
+        ? const Color(0xFF231212)
+        : const Color(0xFF151515);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
+        color: background,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: borderColor),
-        boxShadow: entry.isMe
-            ? [BoxShadow(color: Colors.amber.shade200, blurRadius: 6)]
-            : null,
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: _RankBadge(rank: entry.rank),
-        title: Row(
-          children: [
-            Text(
-              entry.name,
-              style: TextStyle(
-                fontWeight: entry.isMe ? FontWeight.bold : FontWeight.w500,
-                fontSize: 14,
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-            if (entry.isPremium) ...[
-              const SizedBox(width: 5),
-              const PremiumCrownIcon(size: 14),
-            ],
-            if (entry.isMe) ...[
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.amber.shade600,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text('Sen',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ],
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
+      child: Row(
+        children: [
+          _RankBadge(rank: entry.rank),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('⚡',
-                    style: const TextStyle(fontSize: 13)),
-                const SizedBox(width: 2),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        entry.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: entry.isMe
+                              ? FontWeight.w800
+                              : FontWeight.w700,
+                          fontSize: 17,
+                        ),
+                      ),
+                    ),
+                    if (entry.isPremium) ...[
+                      const SizedBox(width: 6),
+                      const PremiumCrownIcon(size: 14),
+                    ],
+                    if (entry.isMe) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFBBF24),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: const Text(
+                          'Sen',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 6),
                 Text(
-                  '${entry.weeklyXp}',
+                  _resultLabel(entry.resultPreview),
                   style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: theme.colorScheme.onSurface,
+                    color: _resultColor(entry.resultPreview),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 2),
-            _ResultPreviewBadge(result: entry.resultPreview),
-          ],
-        ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              const Text(
+                'Haftalık XP',
+                style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${entry.weeklyXp}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
+  }
+
+  String _resultLabel(String result) {
+    return switch (result) {
+      'promoted' => 'Terfi hattında',
+      'demoted' => 'Düşme hattında',
+      _ => 'Sabit bölgede',
+    };
+  }
+
+  Color _resultColor(String result) {
+    return switch (result) {
+      'promoted' => const Color(0xFF4ADE80),
+      'demoted' => const Color(0xFFF87171),
+      _ => Colors.white70,
+    };
   }
 }
 
 class _RankBadge extends StatelessWidget {
   final int rank;
+
   const _RankBadge({required this.rank});
 
   @override
   Widget build(BuildContext context) {
-    if (rank == 1) return const Text('🥇', style: TextStyle(fontSize: 28));
-    if (rank == 2) return const Text('🥈', style: TextStyle(fontSize: 28));
-    if (rank == 3) return const Text('🥉', style: TextStyle(fontSize: 28));
+    if (rank == 1)
+      return const Icon(
+        Icons.workspace_premium,
+        color: Color(0xFFFBBF24),
+        size: 30,
+      );
+    if (rank == 2)
+      return const Icon(
+        Icons.workspace_premium,
+        color: Color(0xFFD1D5DB),
+        size: 30,
+      );
+    if (rank == 3)
+      return const Icon(
+        Icons.workspace_premium,
+        color: Color(0xFFB45309),
+        size: 30,
+      );
 
-    final theme = Theme.of(context);
     return Container(
-      width: 36,
-      height: 36,
+      width: 42,
+      height: 42,
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        shape: BoxShape.circle,
+        color: const Color(0xFF1F1F1F),
+        borderRadius: BorderRadius.circular(14),
       ),
       alignment: Alignment.center,
       child: Text(
         '$rank',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 13,
-          color: theme.colorScheme.onSurface,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
-  }
-}
-
-class _ResultPreviewBadge extends StatelessWidget {
-  final String result;
-  const _ResultPreviewBadge({required this.result});
-
-  @override
-  Widget build(BuildContext context) {
-    final (text, color) = switch (result) {
-      'promoted' => ('↑ Terfi', Colors.green.shade600),
-      'demoted'  => ('↓ Düşer', Colors.red.shade500),
-      _          => ('→ Kalır', Colors.grey.shade500),
-    };
-
-    return Text(text,
-        style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w500));
   }
 }
 
 class _ZoneDivider extends StatelessWidget {
   final String label;
   final Color color;
+
   const _ZoneDivider({required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Row(
-        children: [
-          Expanded(child: Divider(color: color, thickness: 1)),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(label,
-                style: TextStyle(
-                    color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+    return Row(
+      children: [
+        Expanded(child: Divider(color: color.withValues(alpha: 0.7))),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          Expanded(child: Divider(color: color, thickness: 1)),
-        ],
+        ),
+        Expanded(child: Divider(color: color.withValues(alpha: 0.7))),
+      ],
+    );
+  }
+}
+
+class _LeagueEmptyState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  const _LeagueEmptyState({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 42, color: const Color(0xFF22C55E)),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, height: 1.5),
+            ),
+          ],
+        ),
       ),
     );
   }

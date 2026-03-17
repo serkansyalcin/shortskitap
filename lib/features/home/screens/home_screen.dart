@@ -6,12 +6,13 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../app/providers/auth_provider.dart';
 import '../../../app/providers/books_provider.dart';
 import '../../../app/providers/progress_provider.dart';
-import '../../../app/providers/settings_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/platform/platform_support.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../league/screens/league_screen.dart';
 import '../../league/widgets/league_mini_card.dart';
+import '../../library/widgets/library_view.dart';
 import '../../subscription/widgets/premium_badge.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -34,7 +35,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: IndexedStack(
         index: isAuthenticated ? _selectedIndex : guestSelectedIndex,
         children: isAuthenticated
-            ? const [_HomeTab(), _DiscoverTab(), _LibraryTab(), _ProfileTab()]
+            ? const [
+                _HomeTab(),
+                _DiscoverTab(),
+                _LeagueTab(),
+                _LibraryTab(),
+                _ProfileTab(),
+              ]
             : const [_HomeTab(), _DiscoverTab()],
       ),
       bottomNavigationBar: NavigationBar(
@@ -48,12 +55,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             setState(() => _selectedIndex = i);
             return;
           }
-          if (i == 2) {
-            // League tab — navigate to dedicated league screen
-            context.push('/league');
-            return;
-          }
-          setState(() => _selectedIndex = i < 2 ? i : i - 1);
+          setState(() => _selectedIndex = i);
         },
         destinations: isAuthenticated
             ? const [
@@ -396,13 +398,21 @@ class _HomeTab extends ConsumerWidget {
   }
 }
 
-class _DiscoverTab extends ConsumerWidget {
+class _DiscoverTab extends ConsumerStatefulWidget {
   const _DiscoverTab();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_DiscoverTab> createState() => _DiscoverTabState();
+}
+
+class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
+  String? _selectedCategory;
+
+  @override
+  Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesProvider);
-    final booksAsync = ref.watch(booksProvider(const BooksFilter()));
+    final currentFilter = BooksFilter(category: _selectedCategory);
+    final booksAsync = ref.watch(booksProvider(currentFilter));
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final surfaceColor = theme.cardColor;
@@ -440,11 +450,7 @@ class _DiscoverTab extends ConsumerWidget {
                       ),
                       child: Row(
                         children: [
-                          Icon(
-                            Icons.search,
-                            color: textSecondary,
-                            size: 20,
-                          ),
+                          Icon(Icons.search, color: textSecondary, size: 20),
                           const SizedBox(width: 10),
                           Text(
                             'Kitap veya yazar ara...',
@@ -470,41 +476,114 @@ class _DiscoverTab extends ConsumerWidget {
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: cats.length,
-                  itemBuilder: (ctx, i) => Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: surfaceColor,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (cats[i].icon != null)
-                          Text(
-                            cats[i].icon!,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        const SizedBox(width: 6),
-                        Text(
-                          cats[i].name,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: colorScheme.onSurface,
-                          ),
+                  itemCount: cats.length + 1,
+                  itemBuilder: (ctx, i) {
+                    final isAllTab = i == 0;
+                    final category = isAllTab ? null : cats[i - 1];
+                    final isSelected = isAllTab
+                        ? _selectedCategory == null
+                        : _selectedCategory == category!.slug;
+
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (isAllTab) {
+                            _selectedCategory = null;
+                          } else if (isSelected) {
+                            _selectedCategory = null;
+                          } else {
+                            _selectedCategory = category!.slug;
+                          }
+                        });
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
                         ),
-                      ],
-                    ),
-                  ),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.primary : surfaceColor,
+                          borderRadius: BorderRadius.circular(20),
+                          border: isSelected
+                              ? Border.all(
+                                  color: AppColors.primary.withOpacity(0.35),
+                                )
+                              : null,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isAllTab)
+                              Icon(
+                                Icons.grid_view_rounded,
+                                size: 16,
+                                color: isSelected
+                                    ? Colors.black
+                                    : colorScheme.onSurface,
+                              )
+                            else if (category?.icon != null)
+                              Text(
+                                category!.icon!,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            const SizedBox(width: 6),
+                            Text(
+                              isAllTab ? 'Tümü' : category!.name,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isSelected
+                                    ? Colors.black
+                                    : colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
               loading: () => const SizedBox.shrink(),
               error: (_, __) => const SizedBox.shrink(),
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              child: _selectedCategory == null
+                  ? const SizedBox.shrink()
+                  : Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.tune_rounded,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Kategori filtresi aktif',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: textSecondary,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              setState(() => _selectedCategory = null);
+                            },
+                            child: const Text('Temizle'),
+                          ),
+                        ],
+                      ),
+                    ),
             ),
           ),
 
@@ -559,9 +638,14 @@ class _DiscoverTab extends ConsumerWidget {
                                       fit: BoxFit.cover,
                                       width: double.infinity,
                                       errorWidget: (_, __, ___) => Container(
-                                        color: AppColors.primary.withOpacity(0.1),
+                                        color: AppColors.primary.withOpacity(
+                                          0.1,
+                                        ),
                                         child: const Center(
-                                          child: Text('📖', style: TextStyle(fontSize: 36)),
+                                          child: Text(
+                                            '📖',
+                                            style: TextStyle(fontSize: 36),
+                                          ),
                                         ),
                                       ),
                                     )
@@ -643,7 +727,8 @@ class _DiscoverTab extends ConsumerWidget {
                       ),
                       const SizedBox(height: 20),
                       FilledButton.icon(
-                        onPressed: () => ref.invalidate(booksProvider(const BooksFilter())),
+                        onPressed: () =>
+                            ref.invalidate(booksProvider(currentFilter)),
                         icon: const Icon(Icons.refresh, size: 18),
                         label: const Text('Tekrar Dene'),
                       ),
@@ -659,161 +744,18 @@ class _DiscoverTab extends ConsumerWidget {
   }
 }
 
+class _LeagueTab extends StatelessWidget {
+  const _LeagueTab();
+
+  @override
+  Widget build(BuildContext context) => const LeagueScreen(embedded: true);
+}
+
 class _LibraryTab extends ConsumerWidget {
   const _LibraryTab();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final progressAsync = ref.watch(allProgressProvider);
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final cardColor = theme.cardColor;
-
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Kütüphane',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 20),
-            progressAsync.when(
-              data: (progress) {
-                if (progress.isEmpty) {
-                  return Center(
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 60),
-                        const Text('📚', style: TextStyle(fontSize: 48)),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Henüz kitap okumadın.',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Keşfet sekmesinden kitap bul!',
-                          style: TextStyle(color: colorScheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return Column(
-                  children: progress.map((p) {
-                    if (p.book == null) return const SizedBox.shrink();
-                    return GestureDetector(
-                      onTap: () => context.push('/read/${p.bookId}'),
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: cardColor,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.06),
-                              blurRadius: 12,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: p.book!.coverImageUrl != null
-                                  ? CachedNetworkImage(
-                                      imageUrl: p.book!.coverImageUrl!,
-                                      width: 48,
-                                      height: 64,
-                                      fit: BoxFit.cover,
-                                      errorWidget: (_, __, ___) => Container(
-                                        color: AppColors.primary.withOpacity(0.1),
-                                        child: const Center(child: Text('📖')),
-                                      ),
-                                    )
-                                  : Container(
-                                      width: 48,
-                                      height: 64,
-                                      color: AppColors.primary.withOpacity(0.1),
-                                      child: const Center(child: Text('📖')),
-                                    ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    p.book!.title,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color: colorScheme.onSurface,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 6),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(2),
-                                    child: LinearProgressIndicator(
-                                      value: p.completionPercentage / 100,
-                                      backgroundColor: colorScheme.surfaceContainerHighest,
-                                      color: p.isCompleted
-                                          ? Colors.green
-                                          : AppColors.primary,
-                                      minHeight: 4,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    p.isCompleted
-                                        ? '✅ Tamamlandı'
-                                        : '%${p.completionPercentage.toStringAsFixed(0)} tamamlandı',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: p.isCompleted
-                                          ? Colors.green
-                                          : colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(
-                              Icons.play_arrow,
-                              color: AppColors.primary,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              ),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context, WidgetRef ref) => const LibraryView();
 }
 
 class _ProfileTab extends ConsumerStatefulWidget {

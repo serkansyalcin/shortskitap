@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/providers/auth_provider.dart';
 import '../../../app/providers/settings_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/widgets/brand_logo.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -15,25 +16,25 @@ class SplashScreen extends ConsumerStatefulWidget {
 
 class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fade;
-  late Animation<double> _scale;
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+  late final Animation<double> _lift;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1300),
     );
     _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
-    _scale = Tween<double>(
-      begin: 0.92,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+    _lift = Tween<double>(
+      begin: 26,
+      end: 0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _controller.forward();
 
-    Future.delayed(const Duration(milliseconds: 1800), _navigate);
+    Future.delayed(const Duration(milliseconds: 1850), _navigate);
   }
 
   void _navigate() {
@@ -66,70 +67,99 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       body: Stack(
         children: [
           const _SplashBackdrop(),
-          Center(
-            child: FadeTransition(
-              opacity: _fade,
-              child: ScaleTransition(
-                scale: _scale,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 108,
-                      height: 108,
-                      decoration: BoxDecoration(
-                        gradient: AppColors.brandGradient,
-                        borderRadius: BorderRadius.circular(34),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.34),
-                            blurRadius: 42,
-                            offset: const Offset(0, 20),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+              child: Column(
+                children: [
+                  const Spacer(),
+                  AnimatedBuilder(
+                    animation: _controller,
+                    builder: (context, child) {
+                      return Opacity(
+                        opacity: _fade.value,
+                        child: Transform.translate(
+                          offset: Offset(0, _lift.value),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Column(
+                      children: [
+                        const BrandLogo(
+                          variant: BrandLogoVariant.light,
+                          height: 72,
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Kısa paragraflarla daha çok oku.',
+                          style: textTheme.headlineLarge?.copyWith(
+                            color: AppColors.lightText,
+                            height: 1.05,
                           ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.menu_book_rounded,
-                        color: Colors.white,
-                        size: 50,
-                      ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Okuma ritmini kur, kategorilerini keşfet, ligde yüksel.',
+                          style: textTheme.bodyLarge?.copyWith(
+                            color: AppColors.lightTextSecondary,
+                            height: 1.55,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 22),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 9,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.spotifyPanel.withValues(
+                              alpha: 0.92,
+                            ),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: AppColors.outline),
+                          ),
+                          child: Text(
+                            'Okuma alışkanlığını hafiflet, sürekliliği büyüt',
+                            style: textTheme.bodySmall?.copyWith(
+                              color: AppColors.lightTextSecondary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 26),
-                    Text(
-                      'KitapLig',
-                      style: textTheme.displayMedium?.copyWith(
-                        color: AppColors.lightText,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Paragraf paragraf oku, ligde yarış',
-                      style: textTheme.bodyLarge?.copyWith(
-                        color: AppColors.lightTextSecondary,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.spotifyPanel.withValues(alpha: 0.92),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: AppColors.outline),
-                      ),
-                      child: Text(
-                        'Kısa okuma. Büyük ilerleme.',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: AppColors.lightTextSecondary,
-                          fontWeight: FontWeight.w700,
+                  ),
+                  const Spacer(),
+                  Column(
+                    children: [
+                      SizedBox(
+                        width: 140,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(999),
+                          child: const LinearProgressIndicator(
+                            minHeight: 5,
+                            backgroundColor: AppColors.outline,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.primary,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'Hazırlanıyor',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppColors.lightTextSecondary,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -151,19 +181,38 @@ class _SplashBackdrop extends StatelessWidget {
             decoration: const BoxDecoration(gradient: AppColors.heroGradient),
           ),
           Positioned(
-            top: -140,
-            right: -40,
+            top: -120,
+            left: -60,
             child: _SplashGlow(
-              size: 280,
-              color: AppColors.primary.withValues(alpha: 0.28),
+              size: 240,
+              color: AppColors.accent.withValues(alpha: 0.14),
             ),
           ),
           Positioned(
-            bottom: -100,
-            left: -60,
+            top: 110,
+            right: -44,
             child: _SplashGlow(
-              size: 260,
-              color: AppColors.accent.withValues(alpha: 0.16),
+              size: 280,
+              color: AppColors.primary.withValues(alpha: 0.20),
+            ),
+          ),
+          Positioned(
+            bottom: -120,
+            left: 24,
+            right: 24,
+            child: Container(
+              height: 220,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(40),
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.white.withValues(alpha: 0.08),
+                    Colors.transparent,
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
             ),
           ),
         ],

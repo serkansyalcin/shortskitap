@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/providers/auth_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/widgets/brand_logo.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -344,7 +345,7 @@ class _AuthHero extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(
-                Icons.menu_book_rounded,
+                Icons.auto_stories_rounded,
                 color: AppColors.primary,
                 size: 16,
               ),
@@ -360,26 +361,7 @@ class _AuthHero extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 22),
-        Container(
-          width: 78,
-          height: 78,
-          decoration: BoxDecoration(
-            gradient: AppColors.brandGradient,
-            borderRadius: BorderRadius.circular(26),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.28),
-                blurRadius: 34,
-                offset: const Offset(0, 18),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.menu_book_rounded,
-            color: Colors.white,
-            size: 38,
-          ),
-        ),
+        const BrandLogo(variant: BrandLogoVariant.dark, height: 56),
         const SizedBox(height: 24),
         Text(
           title,

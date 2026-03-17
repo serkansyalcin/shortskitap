@@ -9,57 +9,29 @@ class LeagueHistory extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final historyAsync = ref.watch(leagueHistoryProvider);
 
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
     return historyAsync.when(
-      loading: () => Center(
-        child: CircularProgressIndicator(color: colorScheme.primary),
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF22C55E)),
       ),
-      error: (e, _) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.cloud_off_rounded, size: 48, color: colorScheme.onSurfaceVariant),
-            const SizedBox(height: 16),
-            Text(
-              'Geçmiş yüklenemedi',
-              style: TextStyle(
-                color: colorScheme.onSurface,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
+      error: (_, __) => const _HistoryEmptyState(
+        icon: Icons.history_toggle_off_rounded,
+        title: 'Geçmiş şu an alınamadı',
+        subtitle: 'Sezon kayıtlarını birazdan tekrar yükleyebilirsin.',
       ),
       data: (history) {
         if (history.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('📖', style: TextStyle(fontSize: 48)),
-                const SizedBox(height: 12),
-                Text(
-                  'Henüz geçmiş sezon yok',
-                  style: TextStyle(
-                    color: colorScheme.onSurface,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'İlk sezonun bitmesini bekle!',
-                  style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
-                ),
-              ],
-            ),
+          return const _HistoryEmptyState(
+            icon: Icons.auto_awesome_motion_rounded,
+            title: 'Henüz tamamlanan sezon yok',
+            subtitle:
+                'İlk sezonun bittiğinde geçmiş burada birikmeye başlayacak.',
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
+        return ListView.separated(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
           itemCount: history.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (context, i) => _HistoryCard(entry: history[i]),
         );
       },
@@ -69,38 +41,46 @@ class LeagueHistory extends ConsumerWidget {
 
 class _HistoryCard extends StatelessWidget {
   final Map<String, dynamic> entry;
+
   const _HistoryCard({required this.entry});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final result = entry['result'] as String?;
-    final (resultIcon, resultText, resultColor) = switch (result) {
-      'promoted' => ('↑', 'Terfi Etti', Colors.green.shade600),
-      'demoted'  => ('↓', 'Düştü', Colors.red.shade500),
-      'stayed'   => ('→', 'Kaldı', Colors.grey.shade500),
-      _          => ('—', 'Tamamlanmadı', theme.colorScheme.onSurfaceVariant),
+    final tone = switch (result) {
+      'promoted' => const Color(0xFF4ADE80),
+      'demoted' => const Color(0xFFF87171),
+      'stayed' => const Color(0xFFFBBF24),
+      _ => Colors.white70,
+    };
+    final label = switch (result) {
+      'promoted' => 'Terfi ettin',
+      'demoted' => 'Düştün',
+      'stayed' => 'Ligini korudun',
+      _ => 'Sezon tamamlanmadı',
     };
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: const Color(0xFF151515),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFF262626)),
       ),
       child: Row(
         children: [
-          Text(
-            entry['tier_icon'] as String? ?? '🏅',
-            style: const TextStyle(fontSize: 32),
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: tone.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              entry['tier_icon'] as String? ?? '🏅',
+              style: const TextStyle(fontSize: 28),
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -108,66 +88,94 @@ class _HistoryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  entry['season'] as String? ?? '',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: theme.colorScheme.onSurface,
+                  entry['season'] as String? ?? 'Sezon',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   entry['tier_label'] as String? ?? '',
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontSize: 13,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Row(
-                children: [
-                  const Text('⚡', style: TextStyle(fontSize: 13)),
-                  const SizedBox(width: 2),
-                  Text(
-                    '${entry['weekly_xp']} XP',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                ],
+              Text(
+                '${entry['weekly_xp']} XP',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
               ),
               const SizedBox(height: 4),
-              Row(
-                children: [
-                  Text(resultIcon,
-                      style: TextStyle(
-                          color: resultColor, fontWeight: FontWeight.bold)),
-                  const SizedBox(width: 3),
-                  Text(resultText,
-                      style: TextStyle(
-                          color: resultColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500)),
-                ],
-              ),
-              if (entry['rank'] != null)
-                Text(
-                  '#${entry['rank']}. sıra',
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontSize: 11,
-                  ),
+              Text(
+                label,
+                style: TextStyle(
+                  color: tone,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
                 ),
+              ),
+              if (entry['rank'] != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  '#${entry['rank']} sıra',
+                  style: const TextStyle(color: Colors.white54, fontSize: 11),
+                ),
+              ],
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HistoryEmptyState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  const _HistoryEmptyState({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 42, color: const Color(0xFF22C55E)),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, height: 1.5),
+            ),
+          ],
+        ),
       ),
     );
   }

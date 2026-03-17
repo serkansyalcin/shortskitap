@@ -1,30 +1,86 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import 'package:shortskitap/main.dart';
+import 'package:kitaplig/app/providers/settings_provider.dart';
+import 'package:kitaplig/app/routes/app_router.dart';
+import 'package:kitaplig/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('KitapLigApp', () {
+    testWidgets('renders router content with provider overrides', (
+      WidgetTester tester,
+    ) async {
+      final router = GoRouter(
+        initialLocation: '/test',
+        routes: [
+          GoRoute(
+            path: '/test',
+            builder: (_, __) =>
+                const Scaffold(body: Center(child: Text('Test Route Content'))),
+          ),
+        ],
+      );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            routerProvider.overrideWithValue(router),
+            settingsProvider.overrideWith(
+              (ref) => _TestSettingsNotifier(
+                const UserSettings(theme: 'light', onboardingDone: true),
+              ),
+            ),
+          ],
+          child: const KitapLigApp(),
+        ),
+      );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+      await tester.pumpAndSettle();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+      expect(find.text('Test Route Content'), findsOneWidget);
+      expect(find.byType(MaterialApp), findsOneWidget);
+    });
+
+    testWidgets('applies sepia builder wrapper when sepia theme is active', (
+      WidgetTester tester,
+    ) async {
+      final router = GoRouter(
+        initialLocation: '/test',
+        routes: [
+          GoRoute(
+            path: '/test',
+            builder: (_, __) =>
+                const Scaffold(body: Center(child: Text('Sepia Route'))),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            routerProvider.overrideWithValue(router),
+            settingsProvider.overrideWith(
+              (ref) => _TestSettingsNotifier(
+                const UserSettings(theme: 'sepia', onboardingDone: true),
+              ),
+            ),
+          ],
+          child: const KitapLigApp(),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sepia Route'), findsOneWidget);
+      expect(find.byType(ColorFiltered), findsWidgets);
+    });
   });
+}
+
+class _TestSettingsNotifier extends SettingsNotifier {
+  _TestSettingsNotifier(UserSettings value) : super() {
+    state = value;
+  }
 }

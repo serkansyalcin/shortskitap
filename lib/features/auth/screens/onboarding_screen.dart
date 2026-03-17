@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/providers/settings_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/widgets/brand_logo.dart';
+import '../../../core/widgets/category_visuals.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -19,16 +21,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final Set<String> _selectedCategories = <String>{};
 
   static const List<int> _goals = [5, 10, 20, 30];
-  static const List<_InterestOption> _categories = [
-    _InterestOption('Roman', Icons.auto_stories_rounded),
-    _InterestOption('Psikoloji', Icons.psychology_alt_rounded),
-    _InterestOption('Klasikler', Icons.castle_rounded),
-    _InterestOption('Bilim Kurgu', Icons.rocket_launch_rounded),
-    _InterestOption('Felsefe', Icons.lightbulb_outline_rounded),
-    _InterestOption('Tarih', Icons.history_edu_rounded),
-    _InterestOption('Kişisel Gelişim', Icons.spa_rounded),
-    _InterestOption('Polisiye', Icons.search_rounded),
+  static const List<String> _categories = [
+    'Roman',
+    'Psikoloji',
+    'Klasikler',
+    'Bilim Kurgu',
+    'Felsefe',
+    'Tarih',
+    'Kisisel Gelisim',
+    'Polisiye',
   ];
+
+  bool get _canFinish => _selectedCategories.length >= 2;
 
   @override
   void initState() {
@@ -47,8 +51,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   double _visibility(double sectionTop, double viewportHeight) {
-    final visibleStart = sectionTop - viewportHeight * 0.62;
-    final visibleEnd = sectionTop - viewportHeight * 0.18;
+    final visibleStart = sectionTop - viewportHeight * 0.72;
+    final visibleEnd = sectionTop - viewportHeight * 0.22;
     if (_scrollOffset < visibleStart) return 0;
     if (_scrollOffset > visibleEnd) return 1;
     return ((_scrollOffset - visibleStart) / (visibleEnd - visibleStart)).clamp(
@@ -61,12 +65,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     await ref.read(settingsProvider.notifier).setTheme('light');
     await ref.read(settingsProvider.notifier).setDailyGoal(_selectedGoal);
     await ref.read(settingsProvider.notifier).completeOnboarding();
-    if (mounted) {
-      context.go('/home');
-    }
+    if (mounted) context.go('/home');
   }
-
-  bool get _canFinish => _selectedCategories.length >= 2;
 
   @override
   Widget build(BuildContext context) {
@@ -81,243 +81,188 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           SafeArea(
             child: CustomScrollView(
               controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
               slivers: [
-                SliverToBoxAdapter(
-                  child: _AnimatedSection(
-                    visibility: _visibility(0, viewportHeight),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-                      child: Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.spotifyPanelHigh.withValues(
-                                alpha: 0.92,
-                              ),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(color: AppColors.outline),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.auto_stories_rounded,
-                                  size: 16,
-                                  color: AppColors.primary,
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 36),
+                  sliver: SliverList.list(
+                    children: [
+                      _AnimatedSection(
+                        visibility: _visibility(0, viewportHeight),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Align(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 9,
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Kısa paragraflarla okuma alışkanlığı',
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.06),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.08),
+                                  ),
+                                ),
+                                child: Text(
+                                  '3 adımda sana uygun bir başlangıç',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: AppColors.lightTextSecondary,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 28),
-                          Container(
-                            width: 92,
-                            height: 92,
-                            decoration: BoxDecoration(
-                              gradient: AppColors.brandGradient,
-                              borderRadius: BorderRadius.circular(30),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.34,
-                                  ),
-                                  blurRadius: 36,
-                                  offset: const Offset(0, 18),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.menu_book_rounded,
-                              size: 44,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            'KitapLig',
-                            style: theme.textTheme.displayMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.lightText,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 10),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 520),
-                            child: Text(
-                              'Kitapları paragraf paragraf oku, günlük hedefini tut, ligde arkadaşlarınla yarış.',
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: AppColors.lightTextSecondary,
-                                height: 1.55,
                               ),
-                              textAlign: TextAlign.center,
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: _AnimatedSection(
-                    visibility: _visibility(250, viewportHeight),
-                    alignLeft: true,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
-                      child: _FeatureCard(
-                        eyebrow: 'OKUMA',
-                        icon: Icons.swipe_up_alt_rounded,
-                        title: 'Paragraf paragraf oku',
-                        description:
-                            'Her ekranda tek paragraf. Kaydır, oku, ilerle. Dikkat dağıtmadan odaklı okuma deneyimi.',
-                        accentColor: AppColors.primary,
-                      ),
-                    ),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: _AnimatedSection(
-                    visibility: _visibility(470, viewportHeight),
-                    alignLeft: false,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-                      child: _FeatureCard(
-                        eyebrow: 'LİG',
-                        icon: Icons.emoji_events_rounded,
-                        title: 'Okudukça XP kazan, ligde yüksel',
-                        description:
-                            'Her paragraf sana puan kazandırır. Sezonluk liglerde arkadaşlarınla yarış, terfi et, motivasyonunu koru.',
-                        accentColor: AppColors.accent,
-                      ),
-                    ),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: _AnimatedSection(
-                    visibility: _visibility(720, viewportHeight),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
-                      child: _SectionPanel(
-                        icon: Icons.track_changes_rounded,
-                        title: 'Günlük hedefini belirle',
-                        subtitle:
-                            'Her gün kaç paragraf okumayı hedefliyorsun? Okuma alışkanlığını bu hedefle güçlendir.',
-                        child: Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: _goals
-                              .map(
-                                (goal) => _GoalChip(
-                                  goal: goal,
-                                  selected: _selectedGoal == goal,
-                                  onTap: () =>
-                                      setState(() => _selectedGoal = goal),
-                                ),
-                              )
-                              .toList(),
+                            const SizedBox(height: 26),
+                            const Center(
+                              child: BrandLogo(
+                                variant: BrandLogoVariant.dark,
+                                height: 74,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            _HeroPanel(selectedGoal: _selectedGoal),
+                          ],
                         ),
                       ),
-                    ),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: _AnimatedSection(
-                    visibility: _visibility(1010, viewportHeight),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
-                      child: _SectionPanel(
-                        icon: Icons.favorite_rounded,
-                        title: 'İlgi alanlarını seç',
-                        subtitle:
-                            'En az iki kategori seç. Keşfet sayfasında sana uygun kitapları öne çıkaralım.',
-                        child: Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: _categories.map((category) {
-                            final selected = _selectedCategories.contains(
-                              category.name,
-                            );
-                            return _InterestChip(
-                              label: category.name,
-                              icon: category.icon,
-                              selected: selected,
-                              onTap: () {
-                                setState(() {
-                                  if (selected) {
-                                    _selectedCategories.remove(category.name);
-                                  } else {
-                                    _selectedCategories.add(category.name);
-                                  }
-                                });
-                              },
-                            );
-                          }).toList(),
+                      const SizedBox(height: 18),
+                      _AnimatedSection(
+                        visibility: _visibility(360, viewportHeight),
+                        alignLeft: true,
+                        child: const _FeatureCard(
+                          eyebrow: 'KISA VE AKICI',
+                          icon: Icons.swipe_up_alt_rounded,
+                          title: 'Her kaydırışta okumaya devam et',
+                          description:
+                              'Uzun ve yorucu sayfalar yerine, odaklanamna yardımcı olacak kısa paragraflarla ritmini kaybetmeden ilerle.',
+                          accentColor: AppColors.primary,
                         ),
                       ),
-                    ),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 22, 20, 34),
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppColors.spotifyPanel,
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(color: AppColors.outline),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.30),
-                            blurRadius: 32,
-                            offset: const Offset(0, 18),
-                          ),
-                        ],
+                      const SizedBox(height: 14),
+                      _AnimatedSection(
+                        visibility: _visibility(560, viewportHeight),
+                        alignLeft: false,
+                        child: const _FeatureCard(
+                          eyebrow: 'MOTİVASYON',
+                          icon: Icons.emoji_events_rounded,
+                          title: 'Hedef koy, istikrar kazan, ligde yüksel',
+                          description:
+                              'Günlük hedefini korudukça okuma alışkanlığın güçlenir. Lig sistemi seni oyunda tutar.',
+                          accentColor: AppColors.accent,
+                        ),
                       ),
-                      child: Column(
-                        children: [
-                          Text(
-                            _canFinish
-                                ? 'Hazırsın! Okumaya başla.'
-                                : 'Devam etmek için en az 2 kategori seç.',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppColors.lightTextSecondary,
-                            ),
-                            textAlign: TextAlign.center,
+                      const SizedBox(height: 18),
+                      _AnimatedSection(
+                        visibility: _visibility(820, viewportHeight),
+                        child: _SectionPanel(
+                          icon: Icons.track_changes_rounded,
+                          title: 'Günlük hedefini seç',
+                          subtitle:
+                              'Sana uygun tempoyu belirle. İstersen bunu daha sonra ayarlardan değiştirebilirsin.',
+                          child: _GoalSelector(
+                            goals: _goals,
+                            selectedGoal: _selectedGoal,
+                            onSelect: (goal) =>
+                                setState(() => _selectedGoal = goal),
                           ),
-                          const SizedBox(height: 18),
-                          ElevatedButton(
-                            onPressed: _canFinish ? _finish : null,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  _canFinish ? 'Keşfetmeye Başla' : 'Kategori seç',
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _AnimatedSection(
+                        visibility: _visibility(1120, viewportHeight),
+                        child: _SectionPanel(
+                          icon: Icons.favorite_rounded,
+                          title: 'İlgi alanlarını seç',
+                          subtitle:
+                              'En az iki kategori seç. Kesfet ekranında sana daha uygun kitapları öne çıkaralım.',
+                          child: Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: _categories.map((category) {
+                              final selected = _selectedCategories.contains(
+                                category,
+                              );
+                              return _InterestChip(
+                                label: category,
+                                selected: selected,
+                                onTap: () {
+                                  setState(() {
+                                    if (selected) {
+                                      _selectedCategories.remove(category);
+                                    } else {
+                                      _selectedCategories.add(category);
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      _AnimatedSection(
+                        visibility: _visibility(1460, viewportHeight),
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: AppColors.spotifyPanel,
+                            borderRadius: BorderRadius.circular(28),
+                            border: Border.all(color: AppColors.outline),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.28),
+                                blurRadius: 32,
+                                offset: const Offset(0, 18),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                'Kitap okumayı sevdiren Lig',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  color: AppColors.lightText,
                                 ),
-                                if (_canFinish) ...[
-                                  const SizedBox(width: 8),
-                                  const Icon(
-                                    Icons.arrow_forward_rounded,
-                                    size: 20,
-                                  ),
-                                ],
-                              ],
-                            ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _canFinish
+                                    ? 'Başlangıcın hazır. Şimdi sana uygun kitapları keşfetmeye geçebilirsin.'
+                                    : 'Devam etmek için en az 2 kategori seç.',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.lightTextSecondary,
+                                  height: 1.55,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 18),
+                              ElevatedButton(
+                                onPressed: _canFinish ? _finish : null,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      _canFinish
+                                          ? 'Keşfetmeye Başla'
+                                          : 'Kategori seç',
+                                    ),
+                                    if (_canFinish) ...[
+                                      const SizedBox(width: 8),
+                                      const Icon(
+                                        Icons.arrow_forward_rounded,
+                                        size: 20,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ],
@@ -342,14 +287,16 @@ class _AnimatedSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final slide = 40 * (1 - visibility);
+    final slide = 36 * (1 - visibility);
     final opacity = visibility.clamp(0.0, 1.0);
+    final dy = 20 * (1 - visibility);
     final dx = alignLeft == true ? -slide : (alignLeft == false ? slide : 0.0);
 
     return AnimatedOpacity(
       opacity: opacity,
-      duration: const Duration(milliseconds: 120),
-      child: Transform.translate(offset: Offset(dx, 0), child: child),
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOutCubic,
+      child: Transform.translate(offset: Offset(dx, dy), child: child),
     );
   }
 }
@@ -367,26 +314,26 @@ class _OnboardingBackdrop extends StatelessWidget {
           ),
           Positioned(
             top: -120,
-            right: -40,
+            right: -50,
             child: _GlowBlob(
-              size: 260,
-              color: AppColors.primary.withValues(alpha: 0.30),
+              size: 280,
+              color: AppColors.primary.withValues(alpha: 0.24),
             ),
           ),
           Positioned(
-            top: 300,
-            left: -70,
+            top: 420,
+            left: -90,
             child: _GlowBlob(
               size: 220,
-              color: AppColors.accent.withValues(alpha: 0.20),
+              color: AppColors.accent.withValues(alpha: 0.14),
             ),
           ),
           Positioned(
-            bottom: -80,
+            bottom: -140,
             right: -20,
             child: _GlowBlob(
               size: 300,
-              color: AppColors.primaryLight.withValues(alpha: 0.24),
+              color: AppColors.accentSoft.withValues(alpha: 0.12),
             ),
           ),
         ],
@@ -414,6 +361,139 @@ class _GlowBlob extends StatelessWidget {
   }
 }
 
+class _HeroPanel extends StatelessWidget {
+  final int selectedGoal;
+
+  const _HeroPanel({required this.selectedGoal});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.spotifyPanel.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: AppColors.outline),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.30),
+            blurRadius: 36,
+            offset: const Offset(0, 18),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Kitap okumayı sevdiren Lig',
+            style: theme.textTheme.headlineLarge?.copyWith(
+              color: AppColors.lightText,
+              height: 1.08,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Kısa paragraflarla okumaya daha kolay başla, ritmini koru ve lig motivasyonuyla istikrar kazan.',
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: AppColors.lightTextSecondary,
+              height: 1.6,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 22),
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.menu_book_rounded,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Her paragraf yeni bir adım',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: AppColors.lightText,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Dikkatini dağıtmayan kısa paragraflarla okumak daha hafif hissettirir ve günlük alışkanlık kurmayı kolaylaştıır.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.lightTextSecondary,
+                    height: 1.6,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.brandGradient,
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.24),
+                          blurRadius: 18,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.local_fire_department_rounded,
+                          size: 18,
+                          color: Colors.black,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$selectedGoal paragraf hedefi',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _FeatureCard extends StatelessWidget {
   final String eyebrow;
   final IconData icon;
@@ -434,77 +514,63 @@ class _FeatureCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: AppColors.spotifyPanel,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: AppColors.outline),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.34),
-            blurRadius: 36,
-            offset: const Offset(0, 18),
+            color: Colors.black.withValues(alpha: 0.28),
+            blurRadius: 28,
+            offset: const Offset(0, 16),
           ),
         ],
       ),
-      child: Stack(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Positioned(
-            top: -36,
-            right: -18,
-            child: _GlowBlob(
-              size: 140,
-              color: accentColor.withValues(alpha: 0.28),
+          Container(
+            width: 62,
+            height: 62,
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: accentColor.withValues(alpha: 0.24)),
             ),
+            child: Icon(icon, size: 30, color: accentColor),
           ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 62,
-                height: 62,
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: accentColor.withValues(alpha: 0.34),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  eyebrow,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: accentColor,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.1,
                   ),
                 ),
-                child: Icon(icon, color: accentColor, size: 30),
-              ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      eyebrow,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: accentColor,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      title,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: AppColors.lightText,
-                        height: 1.1,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      description,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppColors.lightTextSecondary,
-                        height: 1.6,
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 8),
+                Text(
+                  title,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: AppColors.lightText,
+                    height: 1.15,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  description,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.lightTextSecondary,
+                    height: 1.6,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -537,9 +603,9 @@ class _SectionPanel extends StatelessWidget {
         border: Border.all(color: AppColors.outline),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.28),
-            blurRadius: 32,
-            offset: const Offset(0, 18),
+            color: Colors.black.withValues(alpha: 0.26),
+            blurRadius: 28,
+            offset: const Offset(0, 16),
           ),
         ],
       ),
@@ -547,6 +613,7 @@ class _SectionPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 48,
@@ -573,7 +640,7 @@ class _SectionPanel extends StatelessWidget {
                       subtitle,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: AppColors.lightTextSecondary,
-                        height: 1.5,
+                        height: 1.55,
                       ),
                     ),
                   ],
@@ -585,6 +652,44 @@ class _SectionPanel extends StatelessWidget {
           child,
         ],
       ),
+    );
+  }
+}
+
+class _GoalSelector extends StatelessWidget {
+  final List<int> goals;
+  final int selectedGoal;
+  final ValueChanged<int> onSelect;
+
+  const _GoalSelector({
+    required this.goals,
+    required this.selectedGoal,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = (constraints.maxWidth - 12) / 2;
+
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: goals
+              .map(
+                (goal) => SizedBox(
+                  width: itemWidth,
+                  child: _GoalChip(
+                    goal: goal,
+                    selected: selectedGoal == goal,
+                    onTap: () => onSelect(goal),
+                  ),
+                ),
+              )
+              .toList(),
+        );
+      },
     );
   }
 }
@@ -602,49 +707,87 @@ class _GoalChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.spotifyPanelHigh,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: selected ? AppColors.primaryLight : AppColors.outline,
-            width: 1.6,
+    final theme = Theme.of(context);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          constraints: const BoxConstraints(minHeight: 96),
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+          decoration: BoxDecoration(
+            gradient: selected ? AppColors.brandGradient : null,
+            color: selected ? null : AppColors.spotifyPanelHigh,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: selected ? AppColors.primaryLight : AppColors.outline,
+              width: selected ? 1.6 : 1.2,
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.24),
+                      blurRadius: 22,
+                      offset: const Offset(0, 10),
+                    ),
+                  ]
+                : null,
           ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.24),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Align(
+                alignment: Alignment.topRight,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 180),
+                  opacity: selected ? 1 : 0,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: const BoxDecoration(
+                      color: Colors.black,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check_rounded,
+                      size: 14,
+                      color: Colors.white,
+                    ),
                   ),
-                ]
-              : null,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '$goal',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                color: selected ? Colors.black : AppColors.lightText,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'paragraf / gün',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: selected ? Colors.black87 : AppColors.lightTextSecondary,
+              const SizedBox(height: 2),
+              Text(
+                '$goal',
+                style: theme.textTheme.displayMedium?.copyWith(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: selected ? Colors.black : AppColors.lightText,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                'paragraf',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: selected ? Colors.black87 : AppColors.lightText,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Text(
+                '/ gun',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: selected
+                      ? Colors.black87
+                      : AppColors.lightTextSecondary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -653,45 +796,55 @@ class _GoalChip extends StatelessWidget {
 
 class _InterestChip extends StatelessWidget {
   final String label;
-  final IconData icon;
   final bool selected;
   final VoidCallback onTap;
 
   const _InterestChip({
     required this.label,
-    required this.icon,
     required this.selected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final visual = CategoryVisuals.resolve(name: label);
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.spotifyPanelHigh,
+          color: selected ? visual.tint : AppColors.spotifyPanelHigh,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: selected ? AppColors.primaryLight : AppColors.outline,
+            color: selected ? visual.accent : AppColors.outline,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 18,
-              color: selected ? Colors.black : AppColors.lightTextSecondary,
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: selected
+                    ? visual.accent.withValues(alpha: 0.18)
+                    : visual.tint,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Icon(
+                visual.icon,
+                size: 18,
+                color: selected ? visual.accent : AppColors.lightText,
+              ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             Text(
               label,
-              style: TextStyle(
-                color: selected ? Colors.black : AppColors.lightText,
+              style: const TextStyle(
+                color: AppColors.lightText,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -700,11 +853,4 @@ class _InterestChip extends StatelessWidget {
       ),
     );
   }
-}
-
-class _InterestOption {
-  final String name;
-  final IconData icon;
-
-  const _InterestOption(this.name, this.icon);
 }
