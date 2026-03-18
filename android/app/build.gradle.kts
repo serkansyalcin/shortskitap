@@ -52,8 +52,7 @@ dependencies {
     implementation("androidx.multidex:multidex:2.0.1")
 
     // com.google.crypto.tink.util.KeysDownloader optional deps referenced in release builds
-    implementation("com.google.http-client:google-http-client:1.43.3")
-    implementation("com.google.http-client:google-http-client-javanet:1.43.3")
+    implementation("com.google.http-client:google-http-client:1.47.0")
     implementation("joda-time:joda-time:2.12.7")
 }
 
