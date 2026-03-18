@@ -16,11 +16,13 @@ class AppColors {
   static const spotifyPanelHigh = Color(0xFF232323);
   static const outline = Color(0xFF2E2E2E);
 
-  // Default app theme: KitapLig dark UI
-  static const lightBackground = spotifyBlack;
-  static const lightSurface = spotifyGraphite;
-  static const lightText = Color(0xFFF6F6F6);
-  static const lightTextSecondary = Color(0xFFB3B3B3);
+  // Light theme
+  static const lightBackground = Color(0xFFF7F8F4);
+  static const lightSurface = Color(0xFFFFFFFF);
+  static const lightSurfaceHigh = Color(0xFFFDFDFB);
+  static const lightText = Color(0xFF111713);
+  static const lightTextSecondary = Color(0xFF66736B);
+  static const lightOutline = Color(0xFFDCE4DB);
 
   // Alternative dark mode: deeper black
   static const darkBackground = Color(0xFF030303);

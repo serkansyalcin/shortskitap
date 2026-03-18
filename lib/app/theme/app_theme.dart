@@ -5,12 +5,13 @@ import 'app_colors.dart';
 
 class AppTheme {
   static ThemeData get light => _buildTheme(
-    brightness: Brightness.dark,
+    brightness: Brightness.light,
     background: AppColors.lightBackground,
     surface: AppColors.lightSurface,
-    surfaceHigh: AppColors.spotifyPanelHigh,
+    surfaceHigh: AppColors.lightSurfaceHigh,
     text: AppColors.lightText,
     textSecondary: AppColors.lightTextSecondary,
+    outline: AppColors.lightOutline,
   );
 
   static ThemeData get dark => _buildTheme(
@@ -20,6 +21,7 @@ class AppTheme {
     surfaceHigh: AppColors.spotifyPanel,
     text: AppColors.darkText,
     textSecondary: AppColors.darkTextSecondary,
+    outline: AppColors.outline,
   );
 
   static ThemeData get sepia => _buildTheme(
@@ -29,6 +31,7 @@ class AppTheme {
     surfaceHigh: AppColors.sepiaSurface,
     text: AppColors.sepiaText,
     textSecondary: AppColors.sepiaTextSecondary,
+    outline: const Color(0xFFD1C1A2),
   );
 
   static ThemeData _buildTheme({
@@ -38,6 +41,7 @@ class AppTheme {
     required Color surfaceHigh,
     required Color text,
     required Color textSecondary,
+    required Color outline,
   }) {
     final isDark = brightness == Brightness.dark;
     final colorScheme =
@@ -52,7 +56,7 @@ class AppTheme {
           onSecondary: Colors.black,
           surface: surface,
           onSurface: text,
-          outline: AppColors.outline,
+          outline: outline,
           error: const Color(0xFFFF6B6B),
           onError: Colors.white,
         );
@@ -115,7 +119,7 @@ class AppTheme {
       scaffoldBackgroundColor: background,
       canvasColor: background,
       cardColor: surfaceHigh,
-      dividerColor: AppColors.outline,
+      dividerColor: outline,
       splashColor: AppColors.primary.withValues(alpha: 0.12),
       highlightColor: AppColors.primary.withValues(alpha: 0.08),
       textTheme: textTheme,
@@ -170,7 +174,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: text,
-          side: const BorderSide(color: AppColors.outline),
+          side: BorderSide(color: outline),
           minimumSize: const Size(double.infinity, 52),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           shape: RoundedRectangleBorder(
@@ -188,11 +192,11 @@ class AppTheme {
         suffixIconColor: textSecondary,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: AppColors.outline),
+          borderSide: BorderSide(color: outline),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: AppColors.outline),
+          borderSide: BorderSide(color: outline),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),

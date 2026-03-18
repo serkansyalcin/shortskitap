@@ -341,16 +341,17 @@ class _LibraryHero extends StatelessWidget {
     final favoritesCount = favoritesAsync.valueOrNull?.length ?? 0;
     final bookmarksCount = bookmarksAsync.valueOrNull?.length ?? 0;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: AppColors.spotifyPanel,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.24),
+            color: Colors.black.withValues(alpha: isDark ? 0.24 : 0.06),
             blurRadius: 28,
             offset: const Offset(0, 16),
           ),
@@ -388,7 +389,7 @@ class _LibraryHero extends StatelessWidget {
           Text(
             'Okuma düzenin tek bakışta',
             style: theme.textTheme.headlineLarge?.copyWith(
-              color: AppColors.lightText,
+              color: theme.colorScheme.onSurface,
               height: 1.05,
             ),
           ),
@@ -396,7 +397,7 @@ class _LibraryHero extends StatelessWidget {
           Text(
             'Devam ettiğin kitaplar, favorilerin ve kaydettiğin alıntılar burada bir arada.',
             style: theme.textTheme.bodyLarge?.copyWith(
-              color: AppColors.lightTextSecondary,
+              color: theme.colorScheme.onSurfaceVariant,
               height: 1.55,
             ),
           ),
@@ -438,12 +439,13 @@ class _StatPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.spotifyPanelHigh,
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.7)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -452,13 +454,13 @@ class _StatPill extends StatelessWidget {
             value,
             style: Theme.of(
               context,
-            ).textTheme.titleLarge?.copyWith(color: AppColors.lightText),
+            ).textTheme.titleLarge?.copyWith(color: theme.colorScheme.onSurface),
           ),
           const SizedBox(height: 2),
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.lightTextSecondary,
+              color: theme.colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -475,6 +477,7 @@ class _ModeSummaryPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -502,7 +505,7 @@ class _ModeSummaryPill extends StatelessWidget {
             child: Text(
               summary,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.lightTextSecondary,
+                color: theme.colorScheme.onSurfaceVariant,
                 height: 1.45,
                 fontWeight: FontWeight.w600,
               ),
@@ -530,14 +533,14 @@ class _SectionTitle extends StatelessWidget {
         Text(
           title,
           style: theme.textTheme.titleLarge?.copyWith(
-            color: AppColors.lightText,
+            color: theme.colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           subtitle,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.lightTextSecondary,
+            color: theme.colorScheme.onSurfaceVariant,
             height: 1.5,
           ),
         ),
@@ -555,15 +558,16 @@ class _ProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final book = progress.book;
     if (book == null) return const SizedBox.shrink();
+    final theme = Theme.of(context);
 
     return GestureDetector(
       onTap: () => context.push('/read/${progress.bookId}'),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.spotifyPanel,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(26),
-          border: Border.all(color: AppColors.outline),
+          border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
         ),
         child: Row(
           children: [
@@ -590,7 +594,7 @@ class _ProgressCard extends StatelessWidget {
                       ),
                       child: Text(
                         book.category!.name,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        style: theme.textTheme.bodySmall?.copyWith(
                           color: AppColors.primaryLight,
                           fontWeight: FontWeight.w800,
                         ),
@@ -601,8 +605,8 @@ class _ProgressCard extends StatelessWidget {
                     book.title,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.lightText,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.onSurface,
                       height: 1.2,
                     ),
                   ),
@@ -612,7 +616,7 @@ class _ProgressCard extends StatelessWidget {
                     child: LinearProgressIndicator(
                       value: progress.completionPercentage / 100,
                       minHeight: 7,
-                      backgroundColor: AppColors.outline,
+                      backgroundColor: theme.colorScheme.outline.withOpacity(0.45),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         progress.isCompleted ? Colors.green : AppColors.primary,
                       ),
@@ -623,8 +627,8 @@ class _ProgressCard extends StatelessWidget {
                     progress.isCompleted
                         ? 'Tamamlandi'
                         : '%${progress.completionPercentage.toStringAsFixed(0)} tamamlandi',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.lightTextSecondary,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -647,6 +651,7 @@ class _FavoriteChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final book = favorite.book;
     if (book == null) return const SizedBox.shrink();
+    final theme = Theme.of(context);
 
     return InkWell(
       onTap: () => context.push('/books/${book.slug}'),
@@ -654,9 +659,9 @@ class _FavoriteChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.spotifyPanel,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: AppColors.outline),
+          border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -677,16 +682,16 @@ class _FavoriteChip extends StatelessWidget {
                     book.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.lightText,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Favori kitap',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.lightTextSecondary,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -706,6 +711,7 @@ class _BookmarkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final excerpt = bookmark.note?.trim().isNotEmpty == true
         ? bookmark.note!.trim()
         : bookmark.paragraph?.content.trim() ?? '';
@@ -714,9 +720,9 @@ class _BookmarkCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.spotifyPanel,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -741,7 +747,9 @@ class _BookmarkCard extends StatelessWidget {
                   book?.title ?? 'Kaydedilen alinti',
                   style: Theme.of(
                     context,
-                  ).textTheme.titleMedium?.copyWith(color: AppColors.lightText),
+                  ).textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
               ),
             ],
@@ -751,8 +759,8 @@ class _BookmarkCard extends StatelessWidget {
             excerpt.isEmpty ? 'Not veya paragraf bulunamadi.' : excerpt,
             maxLines: 4,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.lightTextSecondary,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
               height: 1.6,
             ),
           ),
@@ -801,10 +809,11 @@ class _BookCoverFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       width: width,
       height: height,
-      color: AppColors.spotifyPanelHigh,
+      color: theme.colorScheme.surfaceContainerHighest,
       child: const Center(
         child: Icon(
           Icons.menu_book_rounded,
@@ -833,12 +842,13 @@ class _EmptyPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: AppColors.spotifyPanel,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
       ),
       child: Column(
         children: [
@@ -857,14 +867,14 @@ class _EmptyPanel extends StatelessWidget {
             textAlign: TextAlign.center,
             style: Theme.of(
               context,
-            ).textTheme.titleLarge?.copyWith(color: AppColors.lightText),
+            ).textTheme.titleLarge?.copyWith(color: theme.colorScheme.onSurface),
           ),
           const SizedBox(height: 8),
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.lightTextSecondary,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
               height: 1.55,
             ),
           ),
@@ -884,12 +894,13 @@ class _InlineInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.spotifyPanel,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -898,13 +909,13 @@ class _InlineInfoCard extends StatelessWidget {
             title,
             style: Theme.of(
               context,
-            ).textTheme.titleMedium?.copyWith(color: AppColors.lightText),
+            ).textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurface),
           ),
           const SizedBox(height: 6),
           Text(
             subtitle,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.lightTextSecondary,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
               height: 1.55,
             ),
           ),
@@ -921,12 +932,13 @@ class _LibraryLoadingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.spotifyPanel,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
       ),
       child: const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
@@ -948,12 +960,13 @@ class _LibraryErrorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: AppColors.spotifyPanel,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
       ),
       child: Column(
         children: [
@@ -968,7 +981,7 @@ class _LibraryErrorCard extends StatelessWidget {
             textAlign: TextAlign.center,
             style: Theme.of(
               context,
-            ).textTheme.titleMedium?.copyWith(color: AppColors.lightText),
+            ).textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurface),
           ),
           const SizedBox(height: 14),
           OutlinedButton(onPressed: onPressed, child: Text(buttonLabel)),

@@ -26,15 +26,21 @@ class AnimatedSegmentedControl<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final container = Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: const Color(0xFF161616),
+        color: isDark ? const Color(0xFF161616) : theme.cardColor,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFF2B2B2B)),
-        boxShadow: const [
+        border: Border.all(
+          color: isDark
+              ? const Color(0xFF2B2B2B)
+              : theme.colorScheme.outline.withOpacity(0.8),
+        ),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x22000000),
+            color: Colors.black.withOpacity(isDark ? 0.13 : 0.05),
             blurRadius: 20,
             offset: Offset(0, 10),
           ),
@@ -74,6 +80,7 @@ class _FixedSegments<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -107,7 +114,9 @@ class _FixedSegments<T> extends StatelessWidget {
                               .copyWith(
                                 color: isSelected
                                     ? Colors.black
-                                    : Colors.white70,
+                                    : isDark
+                                    ? Colors.white70
+                                    : theme.colorScheme.onSurfaceVariant,
                                 fontWeight: FontWeight.w800,
                               ),
                       onTap: () => onChanged(item.value),
@@ -137,6 +146,7 @@ class _ScrollableSegments<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -171,7 +181,11 @@ class _ScrollableSegments<T> extends StatelessWidget {
                 isSelected: isSelected,
                 textStyle: (theme.textTheme.bodyMedium ?? const TextStyle())
                     .copyWith(
-                      color: isSelected ? Colors.black : Colors.white70,
+                      color: isSelected
+                          ? Colors.black
+                          : isDark
+                          ? Colors.white70
+                          : theme.colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w800,
                     ),
                 onTap: () => onChanged(item.value),
@@ -199,6 +213,7 @@ class _SegmentButton<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -217,7 +232,11 @@ class _SegmentButton<T> extends StatelessWidget {
                   Icon(
                     item.icon,
                     size: 16,
-                    color: isSelected ? Colors.black : Colors.white70,
+                    color: isSelected
+                        ? Colors.black
+                        : isDark
+                        ? Colors.white70
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 8),
                 ],

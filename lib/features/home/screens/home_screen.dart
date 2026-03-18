@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../app/providers/auth_provider.dart';
 import '../../../app/providers/books_provider.dart';
+import '../../../app/providers/library_provider.dart';
 import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
-import '../../../core/platform/platform_support.dart';
+import '../../../core/services/notification_permission_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../league/screens/league_screen.dart';
 import '../../league/widgets/league_mini_card.dart';
@@ -167,7 +167,7 @@ class _HomeTab extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // League mini card
             const LeagueMiniCard(),
@@ -766,7 +766,11 @@ class _ProfileTab extends ConsumerStatefulWidget {
 }
 
 class _ProfileTabState extends ConsumerState<_ProfileTab> {
-  PermissionStatus _notificationStatus = PermissionStatus.denied;
+  final NotificationPermissionService _notificationPermissionService =
+      createNotificationPermissionService();
+  NotificationPermissionState _notificationStatus =
+      NotificationPermissionState.denied;
+  bool _notificationLoading = false;
 
   @override
   void initState() {
@@ -775,23 +779,61 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
   }
 
   Future<void> _checkNotificationPermission() async {
-    if (!PlatformSupport.supportsNotificationPermission) {
-      return;
+    final status = await _notificationPermissionService.getStatus();
+    if (mounted) {
+      setState(() => _notificationStatus = status);
     }
-
-    final status = await Permission.notification.status;
-    if (mounted) setState(() => _notificationStatus = status);
   }
 
-  Future<void> _requestNotificationPermission() async {
-    if (!PlatformSupport.supportsNotificationPermission) {
+  Future<void> _toggleNotifications(bool enable) async {
+    if (_notificationLoading) {
       return;
     }
 
-    final status = await Permission.notification.request();
-    if (mounted) setState(() => _notificationStatus = status);
-    if (status.isPermanentlyDenied && mounted) {
-      openAppSettings();
+    setState(() => _notificationLoading = true);
+
+    NotificationPermissionState nextStatus = _notificationStatus;
+    if (enable) {
+      nextStatus = await _notificationPermissionService.requestPermission();
+      if (nextStatus == NotificationPermissionState.permanentlyDenied) {
+        await _notificationPermissionService.openSettings();
+        nextStatus = await _notificationPermissionService.getStatus();
+      }
+    } else {
+      await _notificationPermissionService.openSettings();
+      nextStatus = await _notificationPermissionService.getStatus();
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _notificationStatus = nextStatus;
+      _notificationLoading = false;
+    });
+
+    switch (nextStatus) {
+      case NotificationPermissionState.granted:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bildirimler artık açık.')),
+        );
+        break;
+      case NotificationPermissionState.unsupported:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bu platformda bildirim desteği kullanılamıyor.'),
+          ),
+        );
+        break;
+      case NotificationPermissionState.denied:
+      case NotificationPermissionState.permanentlyDenied:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bildirim izni kapalı. İstersen ayarlardan açabilirsin.'),
+          ),
+        );
+        break;
     }
   }
 
@@ -832,63 +874,153 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
+    final progress = ref.watch(allProgressProvider).valueOrNull ?? const [];
+    final favorites = ref.watch(favoritesProvider).valueOrNull ?? const [];
     final theme = Theme.of(context);
     final cardColor = theme.cardColor;
     final colorScheme = theme.colorScheme;
     final isPremium = ref.watch(isPremiumProvider);
-    final notificationsSupported =
-        PlatformSupport.supportsNotificationPermission;
+    final startedBooks = progress
+        .where(
+          (item) =>
+              item.totalParagraphsRead > 0 || (item.lastParagraphOrder ?? 0) > 0,
+        )
+        .length;
+    final completedBooks = progress.where((item) => item.isCompleted).length;
+    final readParagraphs = progress.fold<int>(
+      0,
+      (sum, item) => sum + item.totalParagraphsRead,
+    );
+    final notificationEnabled =
+        _notificationStatus == NotificationPermissionState.granted;
+    final notificationStatusLabel = switch (_notificationStatus) {
+      NotificationPermissionState.granted => 'Açık',
+      NotificationPermissionState.unsupported => 'Desteklenmiyor',
+      NotificationPermissionState.permanentlyDenied => 'Tarayıcı / sistem kapalı',
+      NotificationPermissionState.denied => 'Kapalı',
+    };
+    final notificationDescription = switch (_notificationStatus) {
+      NotificationPermissionState.granted =>
+        'Günlük hedefin ve önemli güncellemeler için bildirim alıyorsun.',
+      NotificationPermissionState.unsupported =>
+        'Bu cihazda bildirim izni desteklenmiyor.',
+      NotificationPermissionState.permanentlyDenied =>
+        'İzin kapatılmış görünüyor. Tek dokunuşla ayarlara gidip açabilirsin.',
+      NotificationPermissionState.denied =>
+        'Günlük hatırlatıcılar ve lig gelişmeleri için izni açabilirsin.',
+    };
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 12),
+            _ProfileHeroCard(
+              userName: user?.name ?? 'Okuyucu',
+              userEmail: user?.email ?? '',
+              initial: user?.name.isNotEmpty == true
+                  ? user!.name[0].toUpperCase()
+                  : '?',
+              isPremium: isPremium,
+              providerLabel: _providerLabel(user?.provider),
+              dailyGoal: user?.dailyGoal ?? 10,
+              onPremiumTap: isPremium ? null : () => context.push('/premium'),
+            ),
 
-            // --- Avatar + Name ---
-            Center(
-              child: Column(
+            const SizedBox(height: 14),
+
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _ProfileQuickStat(
+                  width: (MediaQuery.of(context).size.width - 42) / 2,
+                  icon: Icons.flag_rounded,
+                  iconColor: AppColors.primary,
+                  value: '${user?.dailyGoal ?? 10}',
+                  label: 'Günlük hedef',
+                ),
+                _ProfileQuickStat(
+                  width: (MediaQuery.of(context).size.width - 42) / 2,
+                  icon: Icons.auto_stories_rounded,
+                  iconColor: const Color(0xFFEA580C),
+                  value: '$startedBooks',
+                  label: 'Başlanan kitap',
+                ),
+                _ProfileQuickStat(
+                  width: (MediaQuery.of(context).size.width - 42) / 2,
+                  icon: Icons.check_circle_outline_rounded,
+                  iconColor: const Color(0xFF06B6D4),
+                  value: '$completedBooks',
+                  label: 'Tamamlanan',
+                ),
+                _ProfileQuickStat(
+                  width: (MediaQuery.of(context).size.width - 42) / 2,
+                  icon: Icons.favorite_border_rounded,
+                  iconColor: const Color(0xFFEF4444),
+                  value: '${favorites.length}',
+                  label: 'Favori kitap',
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: theme.brightness == Brightness.dark
+                      ? const [Color(0xFF161713), Color(0xFF1E211C)]
+                      : const [Color(0xFFF7FBF7), Color(0xFFEFF6EF)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: theme.colorScheme.outline.withOpacity(0.7),
+                ),
+              ),
+              child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 44,
-                    backgroundColor: AppColors.primary.withOpacity(0.15),
-                    child: Text(
-                      user?.name.isNotEmpty == true
-                          ? user!.name[0].toUpperCase()
-                          : '?',
-                      style: const TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.14),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.menu_book_rounded,
+                      color: AppColors.primary,
+                      size: 20,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        user?.name ?? '',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Okuma özeti',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: colorScheme.onSurface,
+                          ),
                         ),
-                      ),
-                      if (isPremium) ...[
-                        const SizedBox(width: 8),
-                        const PremiumBadge(size: PremiumBadgeSize.small),
+                        const SizedBox(height: 2),
+                        Text(
+                          readParagraphs > 0
+                              ? 'Toplam $readParagraphs paragraf okudun. Güzel bir ritim yakaladın.'
+                              : 'Henüz başlangıç aşamasındasın. İlk birkaç paragrafla ritmi yakalayabilirsin.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.4,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                       ],
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    user?.email ?? '',
-                    style: TextStyle(
-                      color: colorScheme.onSurfaceVariant,
-                      fontSize: 13,
                     ),
                   ),
                 ],
@@ -896,15 +1028,11 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
             ),
             const SizedBox(height: 20),
 
-            // --- Upgrade banner (non-premium users only) ---
-            if (!isPremium)
-              UpgradeBanner(onTap: () => context.push('/premium')),
-
-            const SizedBox(height: 16),
-
             // --- Stats ---
-            Row(
-              children: [
+            Offstage(
+              offstage: true,
+              child: Row(
+                children: [
                 _StatCard(
                   label: 'Günlük Hedef',
                   value: '${user?.dailyGoal ?? 10}',
@@ -914,18 +1042,20 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                 const _StatCard(label: 'Seri', value: '—', icon: '🔥'),
                 const SizedBox(width: 12),
                 const _StatCard(label: 'Rozetler', value: '0', icon: '🏆'),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 28),
 
             // --- Hesap ---
-            _SectionLabel('HESAP'),
+            _SectionLabel('Hesap'),
             _MenuCard(
               color: cardColor,
               children: [
                 _MenuItem(
                   icon: Icons.settings_outlined,
                   title: 'Ayarlar',
+                  subtitle: 'Tema, okuma tercihleri ve uygulama ayarları',
                   onTap: () => context.push('/home/settings'),
                 ),
                 _MenuDivider(),
@@ -996,7 +1126,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                               style: TextStyle(fontWeight: FontWeight.w500),
                             ),
                             Text(
-                              _notificationStatus.isGranted
+                              notificationEnabled
                                   ? 'Bildirimler açık'
                                   : 'Günlük hatırlatıcılar ve lig güncellemeleri',
                               style: TextStyle(
@@ -1008,17 +1138,9 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                         ),
                       ),
                       Switch(
-                        value: _notificationStatus.isGranted,
+                        value: notificationEnabled,
                         activeColor: AppColors.primary,
-                        onChanged: notificationsSupported
-                            ? (_) async {
-                                if (_notificationStatus.isGranted) {
-                                  await openAppSettings();
-                                } else {
-                                  await _requestNotificationPermission();
-                                }
-                              }
-                            : null,
+                        onChanged: _toggleNotifications,
                       ),
                     ],
                   ),
@@ -1040,7 +1162,8 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                     size: 16,
                     color: Colors.grey,
                   ),
-                  onTap: () => _launchUrl('https://kitaplig.com/privacy'),
+                  onTap: () =>
+                      _launchUrl('https://kitaplig.com/gizlilik-politikasi'),
                 ),
                 _MenuDivider(),
                 _MenuItem(
@@ -1051,7 +1174,8 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                     size: 16,
                     color: Colors.grey,
                   ),
-                  onTap: () => _launchUrl('https://kitaplig.com/terms'),
+                  onTap: () =>
+                      _launchUrl('https://kitaplig.com/kullanim-kosullari'),
                 ),
               ],
             ),
@@ -1079,6 +1203,17 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
       ),
     );
   }
+
+  String _providerLabel(String? provider) {
+    switch ((provider ?? '').toLowerCase()) {
+      case 'google':
+        return 'Google ile bağlı';
+      case 'apple':
+        return 'Apple ile bağlı';
+      default:
+        return 'E-posta hesabı';
+    }
+  }
 }
 
 class _DeleteAccountDialog extends StatefulWidget {
@@ -1099,12 +1234,55 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return AlertDialog(
+      backgroundColor: isDark ? const Color(0xFF171A17) : theme.cardColor,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      contentPadding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 10, 24, 26),
       title: Row(
         children: [
-          Icon(Icons.warning_rounded, color: Colors.red[700]),
-          const SizedBox(width: 8),
-          const Text('Hesabı Sil'),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFF7F1D1D).withOpacity(0.24),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(
+              Icons.warning_amber_rounded,
+              color: Color(0xFFF87171),
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hesabını Sil',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Bu işlem geri alınamaz. Tüm verilerin kalıcı olarak silinecektir.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
       content: Column(
@@ -1112,60 +1290,132 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(8),
+              color: isDark ? const Color(0xFF2A1F1A) : const Color(0xFFFFF3F0),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: const Color(0xFF7C2D12).withOpacity(0.45),
+              ),
             ),
-            child: const Text(
-              'Bu işlem geri alınamaz. Tüm okuma geçmişiniz, lig puanlarınız ve kişisel verileriniz kalıcı olarak silinecek.',
-              style: TextStyle(fontSize: 13),
+            child: Text(
+              'Okuma geçmişin, favorilerin ve ilerleme durumun dahil tüm verilerin silinecektir. Hesabını silmek istediğine emin misin?',
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                color: theme.colorScheme.onSurface,
+              ),
             ),
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'Onaylamak için aşağıya "SİL" yazın:',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          const SizedBox(height: 18),
+          Text(
+            'Onay metni',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 8),
           TextField(
             controller: _controller,
             autofocus: true,
             textCapitalization: TextCapitalization.characters,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              hintText: 'SİL',
-              isDense: true,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
             ),
-            onChanged: (v) => setState(() => _canDelete = v.trim() == 'SİL'),
+            decoration: InputDecoration(
+              hintText: 'Sil',
+              hintStyle: TextStyle(
+                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+                fontWeight: FontWeight.w600,
+              ),
+              filled: true,
+              fillColor: theme.colorScheme.surfaceContainerHighest,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 18,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: BorderSide(
+                  color: theme.colorScheme.outline.withOpacity(0.7),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: const BorderSide(color: Color(0xFFF87171)),
+              ),
+            ),
+            onChanged: (v) => setState(() => _canDelete = v.trim() == 'Sil'),
           ),
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: _loading ? null : () => Navigator.pop(context, false),
-          child: const Text('Vazgeç'),
-        ),
-        FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: Colors.red),
-          onPressed: (_canDelete && !_loading)
-              ? () {
-                  setState(() => _loading = true);
-                  Navigator.pop(context, true);
-                }
-              : null,
-          child: _loading
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : const Text('Hesabı Kalıcı Sil'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                onPressed: _loading ? null : () => Navigator.pop(context, false),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(56),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                      side: BorderSide(
+                        color: theme.colorScheme.outline.withOpacity(0.75),
+                      ),
+                      backgroundColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                ),
+                child: const Text('Vazgeç'),
+              ),
+            ),
+                const SizedBox(width: 18),
+                Expanded(
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFFDC2626),
+                      disabledBackgroundColor: const Color(0xFF3A3D39),
+                      minimumSize: const Size.fromHeight(56),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                ),
+                onPressed: (_canDelete && !_loading)
+                    ? () {
+                        setState(() => _loading = true);
+                        Navigator.pop(context, true);
+                      }
+                    : null,
+                child: _loading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Kalıcı Olarak Sil'),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -1183,10 +1433,10 @@ class _SectionLabel extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.w700,
           color: Theme.of(context).colorScheme.onSurfaceVariant,
-          letterSpacing: 1.2,
+          letterSpacing: 0.4,
         ),
       ),
     );
@@ -1203,9 +1453,16 @@ class _MenuCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.7),
+        ),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
         ],
       ),
       child: Column(children: children),
@@ -1216,7 +1473,344 @@ class _MenuCard extends StatelessWidget {
 class _MenuDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return const Divider(height: 1, indent: 56);
+    return Divider(
+      height: 1,
+      indent: 72,
+      endIndent: 18,
+      color: Theme.of(context).colorScheme.outline.withOpacity(0.7),
+    );
+  }
+}
+
+class _ProfileHeroCard extends StatelessWidget {
+  const _ProfileHeroCard({
+    required this.userName,
+    required this.userEmail,
+    required this.initial,
+    required this.isPremium,
+    required this.providerLabel,
+    required this.dailyGoal,
+    this.onPremiumTap,
+  });
+
+  final String userName;
+  final String userEmail;
+  final String initial;
+  final bool isPremium;
+  final String providerLabel;
+  final int dailyGoal;
+  final VoidCallback? onPremiumTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            if (isDark) const Color(0xFF181914) else const Color(0xFFF7FAF6),
+            if (isDark) const Color(0xFF22261F) else const Color(0xFFF0F7F0),
+            AppColors.primary.withOpacity(0.18),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.06)
+              : theme.colorScheme.outline.withOpacity(0.7),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(isDark ? 0.14 : 0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.08)
+                        : theme.colorScheme.outline.withOpacity(0.55),
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    initial,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            userName,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: colorScheme.onSurface,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (isPremium) ...[
+                          const SizedBox(width: 8),
+                          const PremiumBadge(size: PremiumBadgeSize.small),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      userEmail,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _HeroInfoChip(
+                icon: Icons.local_fire_department_outlined,
+                label: '$dailyGoal paragraf hedefi',
+              ),
+              _HeroInfoChip(
+                icon: Icons.verified_user_outlined,
+                label: providerLabel,
+              ),
+              _HeroInfoChip(
+                icon: isPremium ? Icons.workspace_premium : Icons.bolt_outlined,
+                label: isPremium ? 'Premium aktif' : 'Ücretsiz plan',
+              ),
+            ],
+          ),
+          if (!isPremium && onPremiumTap != null) ...[
+            const SizedBox(height: 14),
+            InkWell(
+              onTap: onPremiumTap,
+              borderRadius: BorderRadius.circular(18),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.18)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.workspace_premium, color: AppColors.primary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Premium ile reklamsız okumaya ve tüm kitaplara geç.',
+                        style: TextStyle(
+                          color: colorScheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Icon(
+                      Icons.arrow_forward_rounded,
+                      color: AppColors.primary,
+                    ),
+                  ],
+                ),
+                ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroInfoChip extends StatelessWidget {
+  const _HeroInfoChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withOpacity(0.06)
+            : theme.colorScheme.surfaceContainerHighest.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(isDark ? 0.18 : 0.5),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.primary),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileQuickStat extends StatelessWidget {
+  const _ProfileQuickStat({
+    required this.width,
+    required this.icon,
+    required this.iconColor,
+    required this.value,
+    required this.label,
+  });
+
+  final double width;
+  final IconData icon;
+  final Color iconColor;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(0.7),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: iconColor, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotificationStatusPill extends StatelessWidget {
+  const _NotificationStatusPill({
+    required this.label,
+    required this.isEnabled,
+  });
+
+  final String label;
+  final bool isEnabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isEnabled
+            ? AppColors.primary.withOpacity(0.14)
+            : theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: isEnabled
+              ? AppColors.primary
+              : theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
   }
 }
 

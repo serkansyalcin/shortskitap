@@ -42,11 +42,29 @@ class AuthService {
   Future<UserModel?> getMe() async {
     try {
       final res = await _client.get('/me');
-      return UserModel.fromJson(
-          res.data['data'] as Map<String, dynamic>);
+      return UserModel.fromJson(res.data['data'] as Map<String, dynamic>);
     } catch (_) {
       return null;
     }
+  }
+
+  Future<UserModel> updateMe({
+    String? name,
+    int? dailyGoal,
+    String? preferredTheme,
+    int? preferredFontSize,
+  }) async {
+    final payload = <String, dynamic>{};
+
+    if (name != null) payload['name'] = name;
+    if (dailyGoal != null) payload['daily_goal'] = dailyGoal;
+    if (preferredTheme != null) payload['preferred_theme'] = preferredTheme;
+    if (preferredFontSize != null) {
+      payload['preferred_font_size'] = preferredFontSize;
+    }
+
+    final res = await _client.put('/me', data: payload);
+    return UserModel.fromJson(res.data['data'] as Map<String, dynamic>);
   }
 
   Future<void> deleteAccount() async {

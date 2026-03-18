@@ -117,7 +117,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             const SizedBox(height: 26),
                             const Center(
                               child: BrandLogo(
-                                variant: BrandLogoVariant.dark,
+                                variant: BrandLogoVariant.light,
                                 height: 74,
                               ),
                             ),

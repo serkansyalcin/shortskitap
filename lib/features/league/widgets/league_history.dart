@@ -23,8 +23,7 @@ class LeagueHistory extends ConsumerWidget {
           return const _HistoryEmptyState(
             icon: Icons.auto_awesome_motion_rounded,
             title: 'Henüz tamamlanan sezon yok',
-            subtitle:
-                'İlk sezonun bittiğinde geçmiş burada birikmeye başlayacak.',
+            subtitle: 'İlk sezonun bittiğinde geçmiş burada birikmeye başlayacak.',
           );
         }
 
@@ -46,12 +45,14 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final result = entry['result'] as String?;
     final tone = switch (result) {
       'promoted' => const Color(0xFF4ADE80),
       'demoted' => const Color(0xFFF87171),
       'stayed' => const Color(0xFFFBBF24),
-      _ => Colors.white70,
+      _ => theme.colorScheme.onSurfaceVariant,
     };
     final label = switch (result) {
       'promoted' => 'Terfi ettin',
@@ -63,9 +64,9 @@ class _HistoryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF151515),
+        color: isDark ? const Color(0xFF151515) : theme.cardColor,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFF262626)),
+        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
       ),
       child: Row(
         children: [
@@ -89,8 +90,8 @@ class _HistoryCard extends StatelessWidget {
               children: [
                 Text(
                   entry['season'] as String? ?? 'Sezon',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.w800,
                     fontSize: 16,
                   ),
@@ -98,7 +99,10 @@ class _HistoryCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   entry['tier_label'] as String? ?? '',
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),
@@ -109,8 +113,8 @@ class _HistoryCard extends StatelessWidget {
             children: [
               Text(
                 '${entry['weekly_xp']} XP',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                 ),
@@ -128,7 +132,10 @@ class _HistoryCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '#${entry['rank']} sıra',
-                  style: const TextStyle(color: Colors.white54, fontSize: 11),
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ],
@@ -152,6 +159,8 @@ class _HistoryEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -163,8 +172,8 @@ class _HistoryEmptyState extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: theme.colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -172,7 +181,10 @@ class _HistoryEmptyState extends StatelessWidget {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70, height: 1.5),
+              style: TextStyle(
+                color: theme.colorScheme.onSurfaceVariant,
+                height: 1.5,
+              ),
             ),
           ],
         ),

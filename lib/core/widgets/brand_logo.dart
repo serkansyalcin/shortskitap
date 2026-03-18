@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum BrandLogoVariant { dark, light, web }
+enum BrandLogoVariant { auto, dark, light, web }
 
 class BrandLogo extends StatelessWidget {
   final BrandLogoVariant variant;
@@ -9,13 +9,17 @@ class BrandLogo extends StatelessWidget {
 
   const BrandLogo({
     super.key,
-    this.variant = BrandLogoVariant.light,
+    this.variant = BrandLogoVariant.auto,
     this.height = 44,
     this.fit = BoxFit.contain,
   });
 
-  String get _assetPath {
+  String _assetPath(BuildContext context) {
     switch (variant) {
+      case BrandLogoVariant.auto:
+        return Theme.of(context).brightness == Brightness.dark
+            ? 'assets/images/logo-dark.png'
+            : 'assets/images/logo-white.png';
       case BrandLogoVariant.dark:
         return 'assets/images/logo-dark.png';
       case BrandLogoVariant.web:
@@ -30,7 +34,7 @@ class BrandLogo extends StatelessWidget {
     return SizedBox(
       height: height,
       child: Image.asset(
-        _assetPath,
+        _assetPath(context),
         fit: fit,
       ),
     );

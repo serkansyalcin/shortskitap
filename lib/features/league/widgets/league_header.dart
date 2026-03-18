@@ -13,6 +13,8 @@ class LeagueHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final membership = status.membership;
     final season = status.season;
     final tierColor = Color(
@@ -29,10 +31,13 @@ class LeagueHeader extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [tierColor.withValues(alpha: 0.30), const Color(0xFF151515)],
+          colors: [
+            tierColor.withValues(alpha: isDark ? 0.30 : 0.24),
+            isDark ? const Color(0xFF151515) : const Color(0xFFF8F4EA),
+          ],
         ),
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: tierColor.withValues(alpha: 0.35)),
+        border: Border.all(color: tierColor.withValues(alpha: isDark ? 0.35 : 0.24)),
         boxShadow: [
           BoxShadow(
             color: tierColor.withValues(alpha: 0.16),
@@ -49,12 +54,14 @@ class LeagueHeader extends StatelessWidget {
               if (showBackButton)
                 IconButton(
                   onPressed: () => Navigator.of(context).maybePop(),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.arrow_back_rounded,
-                    color: Colors.white,
+                    color: theme.colorScheme.onSurface,
                   ),
                   style: IconButton.styleFrom(
-                    backgroundColor: Colors.white.withValues(alpha: 0.10),
+                    backgroundColor: isDark
+                        ? Colors.white.withValues(alpha: 0.10)
+                        : Colors.white.withValues(alpha: 0.68),
                   ),
                 )
               else
@@ -66,16 +73,20 @@ class LeagueHeader extends StatelessWidget {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.10),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.10)
+                      : Colors.white.withValues(alpha: 0.62),
                   borderRadius: BorderRadius.circular(999),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.12),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.12)
+                        : Colors.white.withValues(alpha: 0.72),
                   ),
                 ),
                 child: Text(
                   'Sezon ${season.number} · ${season.daysRemaining} gün kaldı',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -91,9 +102,15 @@ class LeagueHeader extends StatelessWidget {
               width: 86,
               height: 86,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.white.withValues(alpha: 0.52),
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.12)
+                      : Colors.white.withValues(alpha: 0.68),
+                ),
               ),
               alignment: Alignment.center,
               child: Text(
@@ -106,8 +123,8 @@ class LeagueHeader extends StatelessWidget {
           Text(
             membership.tierLabel,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              color: theme.colorScheme.onSurface,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -115,17 +132,23 @@ class LeagueHeader extends StatelessWidget {
           Text(
             'Grup ${membership.groupNumber} · ${membership.groupSize} okuyucu',
             textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFF101010).withValues(alpha: 0.74),
+              color: isDark
+                  ? const Color(0xFF101010).withValues(alpha: 0.74)
+                  : Colors.white.withValues(alpha: 0.72),
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : theme.colorScheme.outline.withOpacity(0.5),
+              ),
             ),
             child: Column(
               children: [
@@ -177,8 +200,8 @@ class LeagueHeader extends StatelessWidget {
                             : membership.isInDemotionZone
                             ? 'Düşme hattından çık'
                             : 'Biraz daha yüksel',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -207,7 +230,9 @@ class LeagueHeader extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: progressToPromotion,
                     minHeight: 8,
-                    backgroundColor: Colors.white.withValues(alpha: 0.08),
+                    backgroundColor: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : theme.colorScheme.outline.withOpacity(0.28),
                     color: membership.isInDemotionZone
                         ? const Color(0xFFF87171)
                         : tierColor,
@@ -237,12 +262,20 @@ class _HeaderMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.white.withValues(alpha: 0.56),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : theme.colorScheme.outline.withOpacity(0.45),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,8 +286,8 @@ class _HeaderMetric extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
               fontWeight: FontWeight.w800,
               fontSize: 16,
             ),
@@ -264,8 +297,8 @@ class _HeaderMetric extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white70,
+            style: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant,
               fontSize: 11,
               fontWeight: FontWeight.w600,
             ),

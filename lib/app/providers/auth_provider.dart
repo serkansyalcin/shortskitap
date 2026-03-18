@@ -90,6 +90,31 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<bool> updateProfile({
+    String? name,
+    int? dailyGoal,
+    String? preferredTheme,
+    int? preferredFontSize,
+  }) async {
+    try {
+      final user = await _service.updateMe(
+        name: name,
+        dailyGoal: dailyGoal,
+        preferredTheme: preferredTheme,
+        preferredFontSize: preferredFontSize,
+      );
+      state = AuthState.authenticated(user);
+      return true;
+    } catch (e) {
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        user: state.user,
+        error: e.toString(),
+      );
+      return false;
+    }
+  }
+
   void updateUser(UserModel user) {
     state = AuthState.authenticated(user);
   }

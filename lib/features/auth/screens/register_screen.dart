@@ -367,7 +367,7 @@ class _RegisterHero extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 22),
-        const BrandLogo(variant: BrandLogoVariant.dark, height: 56),
+        const BrandLogo(variant: BrandLogoVariant.light, height: 56),
         const SizedBox(height: 24),
         Text(
           'KitapLig hesabını aç',

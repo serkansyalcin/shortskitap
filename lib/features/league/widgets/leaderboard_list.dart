@@ -12,6 +12,7 @@ class LeaderboardList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final boardAsync = ref.watch(leaderboardProvider);
 
     return boardAsync.when(
@@ -27,13 +28,13 @@ class LeaderboardList extends ConsumerWidget {
               Icon(
                 Icons.cloud_off_rounded,
                 size: 42,
-                color: Colors.white.withValues(alpha: 0.72),
+                color: theme.colorScheme.onSurfaceVariant,
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Liderlik tablosu yüklenemedi',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -121,12 +122,15 @@ class _LeagueSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF181818),
+        color: isDark ? const Color(0xFF181818) : theme.cardColor,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFF2B2B2B)),
+        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
       ),
       child: Row(
         children: [
@@ -144,10 +148,10 @@ class _LeagueSummaryCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Bu haftaki konumun',
                   style: TextStyle(
-                    color: Colors.white70,
+                    color: theme.colorScheme.onSurfaceVariant,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -155,8 +159,8 @@ class _LeagueSummaryCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '#${membership.rank} sıradasın · ${membership.weeklyXp} XP',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.w800,
                     fontSize: 16,
                   ),
@@ -183,21 +187,24 @@ class _LeaderboardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     final borderColor = entry.isMe
         ? const Color(0xFFFBBF24)
         : isPromotionZone
         ? const Color(0xFF4ADE80)
         : isDemotionZone
         ? const Color(0xFFF87171)
-        : const Color(0xFF262626);
+        : theme.colorScheme.outline.withOpacity(isDark ? 0.8 : 0.7);
 
     final background = entry.isMe
-        ? const Color(0xFF201A08)
+        ? (isDark ? const Color(0xFF201A08) : const Color(0xFFFFF6DE))
         : isPromotionZone
-        ? const Color(0xFF102014)
+        ? (isDark ? const Color(0xFF102014) : const Color(0xFFEFFBF1))
         : isDemotionZone
-        ? const Color(0xFF231212)
-        : const Color(0xFF151515);
+        ? (isDark ? const Color(0xFF231212) : const Color(0xFFFFF0F0))
+        : (isDark ? const Color(0xFF151515) : theme.cardColor);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -222,7 +229,7 @@ class _LeaderboardTile extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Colors.white,
+                          color: theme.colorScheme.onSurface,
                           fontWeight: entry.isMe
                               ? FontWeight.w800
                               : FontWeight.w700,
@@ -273,10 +280,10 @@ class _LeaderboardTile extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              const Text(
+              Text(
                 'Haftalık XP',
                 style: TextStyle(
-                  color: Colors.white54,
+                  color: theme.colorScheme.onSurfaceVariant,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
@@ -284,8 +291,8 @@ class _LeaderboardTile extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 '${entry.weeklyXp}',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface,
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
                 ),
@@ -309,7 +316,7 @@ class _LeaderboardTile extends StatelessWidget {
     return switch (result) {
       'promoted' => const Color(0xFF4ADE80),
       'demoted' => const Color(0xFFF87171),
-      _ => Colors.white70,
+      _ => Colors.grey.shade500,
     };
   }
 }
@@ -321,37 +328,45 @@ class _RankBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (rank == 1)
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    if (rank == 1) {
       return const Icon(
         Icons.workspace_premium,
         color: Color(0xFFFBBF24),
         size: 30,
       );
-    if (rank == 2)
+    }
+    if (rank == 2) {
       return const Icon(
         Icons.workspace_premium,
         color: Color(0xFFD1D5DB),
         size: 30,
       );
-    if (rank == 3)
+    }
+    if (rank == 3) {
       return const Icon(
         Icons.workspace_premium,
         color: Color(0xFFB45309),
         size: 30,
       );
+    }
 
     return Container(
       width: 42,
       height: 42,
       decoration: BoxDecoration(
-        color: const Color(0xFF1F1F1F),
+        color: isDark
+            ? const Color(0xFF1F1F1F)
+            : theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(14),
       ),
       alignment: Alignment.center,
       child: Text(
         '$rank',
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: theme.colorScheme.onSurface,
           fontWeight: FontWeight.w800,
         ),
       ),
@@ -400,6 +415,8 @@ class _LeagueEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -411,8 +428,8 @@ class _LeagueEmptyState extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: theme.colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -420,7 +437,10 @@ class _LeagueEmptyState extends StatelessWidget {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70, height: 1.5),
+              style: TextStyle(
+                color: theme.colorScheme.onSurfaceVariant,
+                height: 1.5,
+              ),
             ),
           ],
         ),

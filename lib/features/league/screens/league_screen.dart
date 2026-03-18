@@ -66,7 +66,10 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
       return child;
     }
 
-    return Scaffold(backgroundColor: const Color(0xFF090909), body: child);
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: child,
+    );
   }
 }
 
@@ -85,12 +88,16 @@ class _LeagueContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF0E1712), Color(0xFF0A0A0A)],
+          colors: isDark
+              ? const [Color(0xFF0E1712), Color(0xFF0A0A0A)]
+              : const [Color(0xFFF7FAF5), Color(0xFFF0F5EF)],
         ),
       ),
       child: SafeArea(
@@ -125,12 +132,14 @@ class _LeagueContent extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF111111),
+                    color: theme.cardColor,
                     borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: const Color(0xFF262626)),
-                    boxShadow: const [
+                    border: Border.all(
+                      color: theme.colorScheme.outline.withOpacity(0.75),
+                    ),
+                    boxShadow: [
                       BoxShadow(
-                        color: Color(0x33000000),
+                        color: Colors.black.withOpacity(isDark ? 0.2 : 0.06),
                         blurRadius: 26,
                         offset: Offset(0, 16),
                       ),
@@ -180,12 +189,16 @@ class _LeagueErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF0E1712), Color(0xFF0A0A0A)],
+          colors: isDark
+              ? const [Color(0xFF0E1712), Color(0xFF0A0A0A)]
+              : const [Color(0xFFF7FAF5), Color(0xFFF0F5EF)],
         ),
       ),
       child: SafeArea(
@@ -195,9 +208,11 @@ class _LeagueErrorState extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
-                color: const Color(0xFF111111),
+                color: theme.cardColor,
                 borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: const Color(0xFF262626)),
+                border: Border.all(
+                  color: theme.colorScheme.outline.withOpacity(0.75),
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -221,7 +236,9 @@ class _LeagueErrorState extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: Theme.of(
                       context,
-                    ).textTheme.titleLarge?.copyWith(color: Colors.white),
+                    ).textTheme.titleLarge?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -230,7 +247,7 @@ class _LeagueErrorState extends StatelessWidget {
                         : 'Bağlantını kontrol edip tekrar denersen lig ekranı yenilenecek.',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white70,
+                      color: theme.colorScheme.onSurfaceVariant,
                       height: 1.5,
                     ),
                   ),

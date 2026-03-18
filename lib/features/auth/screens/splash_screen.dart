@@ -60,10 +60,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
           const _SplashBackdrop(),
@@ -86,15 +88,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                     },
                     child: Column(
                       children: [
-                        const BrandLogo(
-                          variant: BrandLogoVariant.light,
-                          height: 72,
-                        ),
+                        const BrandLogo(height: 72),
                         const SizedBox(height: 24),
                         Text(
                           'Kısa paragraflarla daha çok oku.',
                           style: textTheme.headlineLarge?.copyWith(
-                            color: AppColors.lightText,
+                            color: theme.colorScheme.onSurface,
                             height: 1.05,
                           ),
                           textAlign: TextAlign.center,
@@ -103,7 +102,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         Text(
                           'Okuma ritmini kur, kategorilerini keşfet, ligde yüksel.',
                           style: textTheme.bodyLarge?.copyWith(
-                            color: AppColors.lightTextSecondary,
+                            color: theme.colorScheme.onSurfaceVariant,
                             height: 1.55,
                           ),
                           textAlign: TextAlign.center,
@@ -115,16 +114,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                             vertical: 9,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.spotifyPanel.withValues(
-                              alpha: 0.92,
-                            ),
+                            color: isDark
+                                ? AppColors.spotifyPanel.withValues(alpha: 0.92)
+                                : Colors.white.withValues(alpha: 0.82),
                             borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: AppColors.outline),
+                            border: Border.all(
+                              color: isDark
+                                  ? AppColors.outline
+                                  : theme.colorScheme.outline.withOpacity(0.75),
+                            ),
                           ),
                           child: Text(
                             'Okuma alışkanlığını hafiflet, sürekliliği büyüt',
                             style: textTheme.bodySmall?.copyWith(
-                              color: AppColors.lightTextSecondary,
+                            color: theme.colorScheme.onSurfaceVariant,
                               fontWeight: FontWeight.w700,
                             ),
                             textAlign: TextAlign.center,
@@ -153,7 +156,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       Text(
                         'Hazırlanıyor',
                         style: textTheme.bodySmall?.copyWith(
-                          color: AppColors.lightTextSecondary,
+                          color: theme.colorScheme.onSurfaceVariant,
                           letterSpacing: 0.4,
                         ),
                       ),
@@ -174,18 +177,27 @@ class _SplashBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return IgnorePointer(
       child: Stack(
         children: [
           Container(
-            decoration: const BoxDecoration(gradient: AppColors.heroGradient),
+            decoration: BoxDecoration(
+              gradient: isDark
+                  ? AppColors.heroGradient
+                  : const LinearGradient(
+                      colors: [Color(0xFFF7F8F4), Color(0xFFEFF6F0)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+            ),
           ),
           Positioned(
             top: -120,
             left: -60,
             child: _SplashGlow(
               size: 240,
-              color: AppColors.accent.withValues(alpha: 0.14),
+              color: AppColors.accent.withValues(alpha: isDark ? 0.14 : 0.10),
             ),
           ),
           Positioned(
@@ -193,7 +205,7 @@ class _SplashBackdrop extends StatelessWidget {
             right: -44,
             child: _SplashGlow(
               size: 280,
-              color: AppColors.primary.withValues(alpha: 0.20),
+              color: AppColors.primary.withValues(alpha: isDark ? 0.20 : 0.14),
             ),
           ),
           Positioned(
@@ -206,7 +218,7 @@ class _SplashBackdrop extends StatelessWidget {
                 borderRadius: BorderRadius.circular(40),
                 gradient: LinearGradient(
                   colors: [
-                    Colors.white.withValues(alpha: 0.08),
+                    Colors.white.withValues(alpha: isDark ? 0.08 : 0.34),
                     Colors.transparent,
                   ],
                   begin: Alignment.topCenter,
