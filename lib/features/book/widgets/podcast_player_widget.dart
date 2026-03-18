@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
@@ -17,11 +19,21 @@ class _PodcastSectionWidgetState extends State<PodcastSectionWidget> {
   final AudioPlayer _player = AudioPlayer();
   int? _activeIndex;
   bool _isLoading = false;
+  double _volume = 1;
+  double _lastAudibleVolume = 1;
+  StreamSubscription<PlayerState>? _playerStateSubscription;
 
   @override
   void initState() {
     super.initState();
     _initSession();
+    _player.setVolume(_volume);
+    _playerStateSubscription = _player.playerStateStream.listen((state) {
+      if (!mounted) return;
+      if (state.processingState == ProcessingState.completed) {
+        setState(() => _activeIndex = null);
+      }
+    });
   }
 
   Future<void> _initSession() async {
@@ -31,6 +43,7 @@ class _PodcastSectionWidgetState extends State<PodcastSectionWidget> {
 
   @override
   void dispose() {
+    _playerStateSubscription?.cancel();
     _player.dispose();
     super.dispose();
   }
@@ -72,6 +85,29 @@ class _PodcastSectionWidgetState extends State<PodcastSectionWidget> {
     setState(() => _activeIndex = null);
   }
 
+  Future<void> _setVolume(double value) async {
+    final clamped = value.clamp(0.0, 1.0);
+    await _player.setVolume(clamped);
+    if (!mounted) return;
+
+    setState(() {
+      _volume = clamped;
+      if (clamped > 0) {
+        _lastAudibleVolume = clamped;
+      }
+    });
+  }
+
+  Future<void> _toggleMute() async {
+    if (_volume == 0) {
+      await _setVolume(_lastAudibleVolume <= 0 ? 0.6 : _lastAudibleVolume);
+      return;
+    }
+
+    _lastAudibleVolume = _volume;
+    await _setVolume(0);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.podcasts.isEmpty) return const SizedBox.shrink();
@@ -100,7 +136,11 @@ class _PodcastSectionWidgetState extends State<PodcastSectionWidget> {
                   ),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.podcasts_rounded, color: Colors.white, size: 18),
+                child: const Icon(
+                  Icons.podcasts_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 10),
               Column(
@@ -138,8 +178,11 @@ class _PodcastSectionWidgetState extends State<PodcastSectionWidget> {
             isActive: isActive,
             isLoading: isActive && _isLoading,
             player: _player,
+            volume: _volume,
             onTap: () => _playPause(i),
             onStop: _stop,
+            onVolumeChanged: _setVolume,
+            onMuteToggle: _toggleMute,
           );
         }),
       ],
@@ -152,16 +195,22 @@ class _PodcastTile extends StatefulWidget {
   final bool isActive;
   final bool isLoading;
   final AudioPlayer player;
+  final double volume;
   final VoidCallback onTap;
   final VoidCallback onStop;
+  final ValueChanged<double> onVolumeChanged;
+  final VoidCallback onMuteToggle;
 
   const _PodcastTile({
     required this.podcast,
     required this.isActive,
     required this.isLoading,
     required this.player,
+    required this.volume,
     required this.onTap,
     required this.onStop,
+    required this.onVolumeChanged,
+    required this.onMuteToggle,
   });
 
   @override
@@ -180,8 +229,8 @@ class _PodcastTileState extends State<_PodcastTile> {
       decoration: BoxDecoration(
         color: widget.isActive
             ? (isDark
-                ? AppColors.primary.withOpacity(0.15)
-                : AppColors.primary.withOpacity(0.06))
+                  ? AppColors.primary.withOpacity(0.15)
+                  : AppColors.primary.withOpacity(0.06))
             : colorScheme.surfaceContainerHighest.withOpacity(0.4),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
@@ -247,15 +296,20 @@ class _PodcastTileState extends State<_PodcastTile> {
                               Icon(
                                 Icons.access_time_rounded,
                                 size: 11,
-                                color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+                                color: colorScheme.onSurfaceVariant.withOpacity(
+                                  0.7,
+                                ),
                               ),
                               const SizedBox(width: 3),
                               Text(
                                 widget.podcast.durationFormatted,
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: colorScheme.onSurfaceVariant.withOpacity(0.7),
-                                  fontFeatures: const [FontFeature.tabularFigures()],
+                                  color: colorScheme.onSurfaceVariant
+                                      .withOpacity(0.7),
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
                                 ),
                               ),
                             ],
@@ -299,6 +353,9 @@ class _PodcastTileState extends State<_PodcastTile> {
                       position: position,
                       total: total,
                       player: widget.player,
+                      volume: widget.volume,
+                      onVolumeChanged: widget.onVolumeChanged,
+                      onMuteToggle: widget.onMuteToggle,
                     );
                   },
                 );
@@ -333,7 +390,10 @@ class _PlayButton extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: isActive
               ? LinearGradient(
-                  colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
+                  colors: [
+                    AppColors.primary,
+                    AppColors.primary.withOpacity(0.8),
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
@@ -380,11 +440,17 @@ class _ProgressBar extends StatelessWidget {
   final Duration position;
   final Duration total;
   final AudioPlayer player;
+  final double volume;
+  final ValueChanged<double> onVolumeChanged;
+  final VoidCallback onMuteToggle;
 
   const _ProgressBar({
     required this.position,
     required this.total,
     required this.player,
+    required this.volume,
+    required this.onVolumeChanged,
+    required this.onMuteToggle,
   });
 
   String _fmt(Duration d) {
@@ -399,6 +465,11 @@ class _ProgressBar extends StatelessWidget {
     final progress = (total.inMilliseconds > 0)
         ? (position.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0)
         : 0.0;
+    final volumeIcon = volume == 0
+        ? Icons.volume_off_rounded
+        : volume < 0.5
+        ? Icons.volume_down_rounded
+        : Icons.volume_up_rounded;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
@@ -418,13 +489,14 @@ class _ProgressBar extends StatelessWidget {
               value: progress,
               onChanged: (v) {
                 if (total.inMilliseconds > 0) {
-                  player.seek(Duration(
-                    milliseconds: (v * total.inMilliseconds).round(),
-                  ));
+                  player.seek(
+                    Duration(milliseconds: (v * total.inMilliseconds).round()),
+                  );
                 }
               },
             ),
           ),
+          const SizedBox(height: 4),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Row(
@@ -445,6 +517,61 @@ class _ProgressBar extends StatelessWidget {
                     color: colorScheme.onSurfaceVariant,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: colorScheme.surface.withOpacity(0.28),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  onPressed: onMuteToggle,
+                  icon: Icon(volumeIcon, size: 20),
+                  color: volume == 0
+                      ? colorScheme.onSurfaceVariant
+                      : AppColors.primary,
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.primary.withOpacity(
+                      volume == 0 ? 0.08 : 0.14,
+                    ),
+                    minimumSize: const Size(38, 38),
+                    padding: EdgeInsets.zero,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.volume_down_rounded,
+                  size: 18,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                Expanded(
+                  child: SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 3,
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 6,
+                      ),
+                      overlayShape: const RoundSliderOverlayShape(
+                        overlayRadius: 14,
+                      ),
+                      activeTrackColor: AppColors.primary,
+                      inactiveTrackColor: AppColors.primary.withOpacity(0.18),
+                      thumbColor: AppColors.primary,
+                      overlayColor: AppColors.primary.withOpacity(0.12),
+                    ),
+                    child: Slider(value: volume, onChanged: onVolumeChanged),
+                  ),
+                ),
+                Icon(
+                  Icons.volume_up_rounded,
+                  size: 18,
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ],
             ),
