@@ -43,6 +43,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     final authState = ref.read(authProvider);
     final settings = ref.read(settingsProvider);
 
+    if (authState.status == AuthStatus.unknown) {
+      Future.delayed(const Duration(milliseconds: 250), _navigate);
+      return;
+    }
+
     if (authState.status == AuthStatus.authenticated) {
       context.go('/home');
     } else if (!settings.onboardingDone) {

@@ -12,10 +12,7 @@ class LeagueMiniCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     if (authState.status != AuthStatus.authenticated) {
-      return const SizedBox(
-        height: 72,
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-      );
+      return const SizedBox.shrink();
     }
 
     final leagueAsync = ref.watch(myLeagueProvider);

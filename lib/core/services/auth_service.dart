@@ -18,12 +18,19 @@ class AuthService {
   }
 
   Future<({UserModel user, String token})> register(
-      String name, String email, String password) async {
+    String name,
+    String email,
+    String password, {
+    required bool acceptTerms,
+    required bool acceptPrivacyPolicy,
+  }) async {
     final res = await _client.post('/auth/register', data: {
       'name': name,
       'email': email,
       'password': password,
       'password_confirmation': password,
+      'accept_terms': acceptTerms,
+      'accept_privacy_policy': acceptPrivacyPolicy,
     });
     final data = res.data['data'] as Map<String, dynamic>;
     final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
@@ -50,6 +57,7 @@ class AuthService {
 
   Future<UserModel> updateMe({
     String? name,
+    String? email,
     int? dailyGoal,
     String? preferredTheme,
     int? preferredFontSize,
@@ -57,6 +65,7 @@ class AuthService {
     final payload = <String, dynamic>{};
 
     if (name != null) payload['name'] = name;
+    if (email != null) payload['email'] = email;
     if (dailyGoal != null) payload['daily_goal'] = dailyGoal;
     if (preferredTheme != null) payload['preferred_theme'] = preferredTheme;
     if (preferredFontSize != null) {

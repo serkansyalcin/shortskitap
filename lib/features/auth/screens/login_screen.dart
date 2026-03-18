@@ -60,12 +60,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final returnTo = GoRouterState.of(context).uri.queryParameters['returnTo'];
     final readingIntent = returnTo?.startsWith('/read/') == true;
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
           const _AuthBackdrop(),
@@ -90,16 +93,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 26),
                       Container(
                         padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: AppColors.spotifyPanel,
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(color: AppColors.outline),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.32),
-                              blurRadius: 34,
-                              offset: const Offset(0, 18),
+                          decoration: BoxDecoration(
+                            color: theme.cardColor,
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: colorScheme.outline.withOpacity(0.7),
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: isDark ? 0.32 : 0.08,
+                                ),
+                                blurRadius: 34,
+                                offset: const Offset(0, 18),
+                              ),
                           ],
                         ),
                         child: Column(
@@ -108,14 +115,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             Text(
                               'Hesabına giriş yap',
                               style: textTheme.titleLarge?.copyWith(
-                                color: AppColors.lightText,
+                                color: colorScheme.onSurface,
                               ),
                             ),
                             const SizedBox(height: 8),
                             Text(
                               'Okuma geçmişin, lig puanların ve premium erişimin hesabında.',
                               style: textTheme.bodyMedium?.copyWith(
-                                color: AppColors.lightTextSecondary,
+                                color: colorScheme.onSurfaceVariant,
                                 height: 1.55,
                               ),
                             ),
@@ -269,11 +276,21 @@ class _AuthBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return IgnorePointer(
       child: Stack(
         children: [
           Container(
-            decoration: const BoxDecoration(gradient: AppColors.heroGradient),
+            decoration: BoxDecoration(
+              gradient: isDark
+                  ? AppColors.heroGradient
+                  : const LinearGradient(
+                      colors: [AppColors.lightBackground, Color(0xFFF1F7F0)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+            ),
           ),
           Positioned(
             top: -110,
@@ -329,7 +346,10 @@ class _AuthHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -337,9 +357,9 @@ class _AuthHero extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: AppColors.spotifyPanel.withValues(alpha: 0.92),
+            color: theme.cardColor.withOpacity(isDark ? 0.92 : 0.98),
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: AppColors.outline),
+            border: Border.all(color: colorScheme.outline.withOpacity(0.7)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -353,25 +373,28 @@ class _AuthHero extends StatelessWidget {
               Text(
                 label,
                 style: textTheme.bodySmall?.copyWith(
-                  color: AppColors.lightTextSecondary,
-                  fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
         const SizedBox(height: 22),
-        const BrandLogo(height: 56),
+        BrandLogo(
+          variant: isDark ? BrandLogoVariant.dark : BrandLogoVariant.light,
+          height: 56,
+        ),
         const SizedBox(height: 24),
         Text(
           title,
-          style: textTheme.displayMedium?.copyWith(color: AppColors.lightText),
+          style: textTheme.displayMedium?.copyWith(color: colorScheme.onSurface),
         ),
         const SizedBox(height: 10),
         Text(
           subtitle,
           style: textTheme.bodyLarge?.copyWith(
-            color: AppColors.lightTextSecondary,
+            color: colorScheme.onSurfaceVariant,
             height: 1.55,
           ),
         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../app/theme/app_colors.dart';
 
 enum PremiumBadgeSize { small, medium, large }
@@ -16,9 +17,9 @@ class PremiumBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (iconSize, fontSize, padH, padV) = switch (size) {
-      PremiumBadgeSize.small  => (10.0, 9.0,  5.0, 2.0),
+      PremiumBadgeSize.small => (10.0, 9.0, 5.0, 2.0),
       PremiumBadgeSize.medium => (13.0, 11.0, 7.0, 3.0),
-      PremiumBadgeSize.large  => (16.0, 13.0, 10.0, 4.0),
+      PremiumBadgeSize.large => (16.0, 13.0, 10.0, 4.0),
     };
 
     return Container(
@@ -41,7 +42,11 @@ class PremiumBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('👑', style: TextStyle(fontSize: iconSize)),
+          Icon(
+            Icons.workspace_premium_rounded,
+            size: iconSize + 2,
+            color: Colors.white,
+          ),
           if (showLabel) ...[
             const SizedBox(width: 3),
             Text(
@@ -60,7 +65,6 @@ class PremiumBadge extends StatelessWidget {
   }
 }
 
-/// Crown-only icon (e.g. next to a username in a leaderboard)
 class PremiumCrownIcon extends StatelessWidget {
   final double size;
 
@@ -80,16 +84,16 @@ class PremiumCrownIcon extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: Center(
-        child: Text(
-          '👑',
-          style: TextStyle(fontSize: size * 0.75),
+        child: Icon(
+          Icons.workspace_premium_rounded,
+          size: size * 0.75,
+          color: Colors.white,
         ),
       ),
     );
   }
 }
 
-/// Upgrade CTA banner — shown in profile/settings for non-premium users
 class UpgradeBanner extends StatelessWidget {
   final VoidCallback onTap;
 
@@ -119,7 +123,11 @@ class UpgradeBanner extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Text('👑', style: TextStyle(fontSize: 36)),
+            const Icon(
+              Icons.workspace_premium_rounded,
+              size: 36,
+              color: Colors.white,
+            ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(

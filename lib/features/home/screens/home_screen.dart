@@ -8,6 +8,8 @@ import '../../../app/providers/library_provider.dart';
 import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/models/user_model.dart';
+import '../../../core/services/subscription_service.dart';
 import '../../../core/services/notification_permission_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../league/screens/league_screen.dart';
@@ -24,6 +26,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedIndex = 0;
+  String? _discoverCategory;
 
   @override
   Widget build(BuildContext context) {
@@ -35,20 +38,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: IndexedStack(
         index: isAuthenticated ? _selectedIndex : guestSelectedIndex,
         children: isAuthenticated
-            ? [
-                _HomeTab(
-                  onOpenDiscover: () => setState(() => _selectedIndex = 1),
+              ? [
+                  _HomeTab(
+                  onOpenDiscover: (category) => setState(() {
+                    _discoverCategory = category;
+                    _selectedIndex = 1;
+                  }),
+                  ),
+                _DiscoverTab(
+                  selectedCategory: _discoverCategory,
+                  onCategoryChanged: (category) {
+                    _discoverCategory = category;
+                  },
                 ),
-                const _DiscoverTab(),
                 const _LeagueTab(),
                 const _LibraryTab(),
                 const _ProfileTab(),
               ]
             : [
                 _HomeTab(
-                  onOpenDiscover: () => setState(() => _selectedIndex = 1),
+                  onOpenDiscover: (category) => setState(() {
+                    _discoverCategory = category;
+                    _selectedIndex = 1;
+                  }),
                 ),
-                const _DiscoverTab(),
+                _DiscoverTab(
+                  selectedCategory: _discoverCategory,
+                  onCategoryChanged: (category) {
+                    _discoverCategory = category;
+                  },
+                ),
               ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -114,14 +133,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class _HomeTab extends ConsumerWidget {
+class _HomeTab extends ConsumerStatefulWidget {
   const _HomeTab({required this.onOpenDiscover});
 
-  final VoidCallback onOpenDiscover;
+  final ValueChanged<String?> onOpenDiscover;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authProvider).user;
+  ConsumerState<_HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends ConsumerState<_HomeTab> {
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+    final isAuthenticated = authState.isAuthenticated;
     final progressAsync = ref.watch(allProgressProvider);
     final featuredAsync = ref.watch(featuredBooksProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
@@ -129,7 +169,9 @@ class _HomeTab extends ConsumerWidget {
 
     return SafeArea(
       child: Scrollbar(
+        controller: _scrollController,
         child: SingleChildScrollView(
+          controller: _scrollController,
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
           child: Column(
@@ -197,7 +239,7 @@ class _HomeTab extends ConsumerWidget {
                       icon: Icons.explore_rounded,
                       title: 'Keşfet',
                       subtitle: 'Yeni kitaplar',
-                      onTap: onOpenDiscover,
+                      onTap: () => widget.onOpenDiscover(null),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -214,11 +256,13 @@ class _HomeTab extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
 
-            // League mini card
-            const LeagueMiniCard(),
-            const SizedBox(height: 20),
+            if (isAuthenticated) ...[
+              const LeagueMiniCard(),
+              const SizedBox(height: 20),
+            ],
 
             // Continue reading card
+            if (isAuthenticated)
             progressAsync.when(
               data: (progress) {
                 final recent = progress.isNotEmpty ? progress.first : null;
@@ -268,10 +312,11 @@ class _HomeTab extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Devam Et',
+                                'Kaldığın Yerden Devam Et',
                                 style: TextStyle(
                                   color: Colors.white70,
                                   fontSize: 12,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -329,7 +374,7 @@ class _HomeTab extends ConsumerWidget {
               error: (_, __) => const SizedBox.shrink(),
             ),
 
-            const SizedBox(height: 24),
+            if (isAuthenticated) const SizedBox(height: 24),
 
             categoriesAsync.when(
               data: (categories) {
@@ -349,7 +394,7 @@ class _HomeTab extends ConsumerWidget {
                           ),
                         ),
                         TextButton(
-                          onPressed: onOpenDiscover,
+                          onPressed: () => widget.onOpenDiscover(null),
                           child: const Text(
                             'Tümü',
                             style: TextStyle(color: AppColors.primary),
@@ -367,7 +412,7 @@ class _HomeTab extends ConsumerWidget {
                         itemBuilder: (context, index) {
                           final category = categories[index];
                           return InkWell(
-                            onTap: onOpenDiscover,
+                            onTap: () => widget.onOpenDiscover(category.slug),
                             borderRadius: BorderRadius.circular(999),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
@@ -423,7 +468,7 @@ class _HomeTab extends ConsumerWidget {
                           ),
                         ),
                         TextButton(
-                          onPressed: onOpenDiscover,
+                          onPressed: () => widget.onOpenDiscover(null),
                           child: const Text(
                             'Tümü',
                             style: TextStyle(color: AppColors.primary),
@@ -593,7 +638,13 @@ class _HomeActionButton extends StatelessWidget {
 }
 
 class _DiscoverTab extends ConsumerStatefulWidget {
-  const _DiscoverTab();
+  const _DiscoverTab({
+    this.selectedCategory,
+    this.onCategoryChanged,
+  });
+
+  final String? selectedCategory;
+  final ValueChanged<String?>? onCategoryChanged;
 
   @override
   ConsumerState<_DiscoverTab> createState() => _DiscoverTabState();
@@ -601,6 +652,20 @@ class _DiscoverTab extends ConsumerStatefulWidget {
 
 class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
   String? _selectedCategory;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedCategory = widget.selectedCategory;
+  }
+
+  @override
+  void didUpdateWidget(covariant _DiscoverTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedCategory != widget.selectedCategory) {
+      _selectedCategory = widget.selectedCategory;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -680,15 +745,18 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
 
                     return GestureDetector(
                       onTap: () {
+                        String? nextCategory;
                         setState(() {
                           if (isAllTab) {
-                            _selectedCategory = null;
+                            nextCategory = null;
                           } else if (isSelected) {
-                            _selectedCategory = null;
+                            nextCategory = null;
                           } else {
-                            _selectedCategory = category!.slug;
+                            nextCategory = category!.slug;
                           }
+                          _selectedCategory = nextCategory;
                         });
+                        widget.onCategoryChanged?.call(nextCategory);
                       },
                       child: Container(
                         margin: const EdgeInsets.only(right: 8),
@@ -772,6 +840,7 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
                           TextButton(
                             onPressed: () {
                               setState(() => _selectedCategory = null);
+                              widget.onCategoryChanged?.call(null);
                             },
                             child: const Text('Temizle'),
                           ),
@@ -1065,6 +1134,213 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
     }
   }
 
+  String _planLabel(SubscriptionStatus? status) {
+    if (status == null) return 'Premium erişim';
+    if ((status.planLabel ?? '').trim().isNotEmpty) return status.planLabel!;
+
+    return switch (status.planType) {
+      'monthly' => 'Aylık plan',
+      'yearly' => 'Yıllık plan',
+      'lifetime' => 'Ömür boyu plan',
+      _ => 'Premium erişim',
+    };
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return '';
+
+    final local = date.toLocal();
+    final months = <int, String>{
+      1: 'Ocak',
+      2: 'Şubat',
+      3: 'Mart',
+      4: 'Nisan',
+      5: 'Mayıs',
+      6: 'Haziran',
+      7: 'Temmuz',
+      8: 'Ağustos',
+      9: 'Eylül',
+      10: 'Ekim',
+      11: 'Kasım',
+      12: 'Aralık',
+    };
+
+    return '${local.day} ${months[local.month]} ${local.year}';
+  }
+
+  String _premiumStartedText(UserModel? user, SubscriptionStatus? status) {
+    final startedAt = _formatDate(status?.startedAt);
+    if (startedAt.isNotEmpty) return startedAt;
+
+    if (user?.isPremium == true) {
+      return 'Satın alma tarihi kayıtlı değil';
+    }
+
+    return 'Premium aktif değil';
+  }
+
+  String _premiumExpiresText(UserModel? user, SubscriptionStatus? status) {
+    if (status?.isLifetime == true) {
+      return 'Süresiz erişim';
+    }
+
+    final subscriptionExpiry = _formatDate(status?.expiresAt);
+    if (subscriptionExpiry.isNotEmpty) return subscriptionExpiry;
+
+    final userExpiry = _formatDate(user?.premiumExpiresAt);
+    if (userExpiry.isNotEmpty) return userExpiry;
+
+    if (user?.isPremium == true) {
+      return 'Bitiş tarihi tanımlanmamış';
+    }
+
+    return 'Premium aktif değil';
+  }
+
+  Future<void> _showPremiumDetailsModal(
+    BuildContext context,
+    UserModel? user,
+    SubscriptionStatus? status,
+  ) async {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final planLabel = _planLabel(status);
+    final startedAt = _premiumStartedText(user, status);
+    final expiresAt = _premiumExpiresText(user, status);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: theme.cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 64,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: colorScheme.outline.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Text(
+                    'Premium bilgisi',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Premium erişimin',
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Planın ve erişim tarihlerin burada görünüyor.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.4,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    gradient: LinearGradient(
+                      colors: theme.brightness == Brightness.dark
+                          ? const [Color(0xFF171A17), Color(0xFF111311)]
+                          : const [Color(0xFFF7FBF7), Color(0xFFEFF8F0)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    border: Border.all(
+                      color: AppColors.primary.withOpacity(0.16),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      _PremiumDetailRow(
+                        icon: Icons.workspace_premium_rounded,
+                        label: 'Plan',
+                        value: planLabel,
+                      ),
+                      const SizedBox(height: 14),
+                      _PremiumDetailRow(
+                        icon: Icons.calendar_month_rounded,
+                        label: 'Başlangıç tarihi',
+                        value: startedAt,
+                      ),
+                      const SizedBox(height: 14),
+                      _PremiumDetailRow(
+                        icon: Icons.event_available_rounded,
+                        label: status?.isLifetime == true ? 'Erişim' : 'Bitiş tarihi',
+                        value: expiresAt,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.verified_rounded, color: AppColors.primary, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Reklamsız okuma, premium kitaplara erişim ve üyelik ayrıcalıkların şu anda aktif.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 1.45,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
@@ -1074,6 +1350,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
     final cardColor = theme.cardColor;
     final colorScheme = theme.colorScheme;
     final isPremium = ref.watch(isPremiumProvider);
+    final subscriptionStatus = ref.watch(subscriptionProvider).valueOrNull;
     final startedBooks = progress
         .where(
           (item) =>
@@ -1117,8 +1394,14 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                   ? user!.name[0].toUpperCase()
                   : '?',
               isPremium: isPremium,
-              providerLabel: _providerLabel(user?.provider),
               dailyGoal: user?.dailyGoal ?? 10,
+              startedBooks: startedBooks,
+              completedBooks: completedBooks,
+              favoriteCount: favorites.length,
+              readParagraphs: readParagraphs,
+              onPremiumDetailsTap: isPremium
+                  ? () => _showPremiumDetailsModal(context, user, subscriptionStatus)
+                  : null,
               onPremiumTap: isPremium ? null : () => context.push('/premium'),
             ),
 
@@ -1682,8 +1965,12 @@ class _ProfileHeroCard extends StatelessWidget {
     required this.userEmail,
     required this.initial,
     required this.isPremium,
-    required this.providerLabel,
     required this.dailyGoal,
+    required this.startedBooks,
+    required this.completedBooks,
+    required this.favoriteCount,
+    required this.readParagraphs,
+    this.onPremiumDetailsTap,
     this.onPremiumTap,
   });
 
@@ -1691,8 +1978,12 @@ class _ProfileHeroCard extends StatelessWidget {
   final String userEmail;
   final String initial;
   final bool isPremium;
-  final String providerLabel;
   final int dailyGoal;
+  final int startedBooks;
+  final int completedBooks;
+  final int favoriteCount;
+  final int readParagraphs;
+  final VoidCallback? onPremiumDetailsTap;
   final VoidCallback? onPremiumTap;
 
   @override
@@ -1700,6 +1991,9 @@ class _ProfileHeroCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
+    final summaryText = readParagraphs > 0
+        ? 'Toplam $readParagraphs paragraf okudun. Ritim iyi gidiyor.'
+        : 'Okuma yolculuğun yeni başlıyor. İlk kitabını seçip başlayabilirsin.';
 
     return Container(
       width: double.infinity,
@@ -1776,7 +2070,12 @@ class _ProfileHeroCard extends StatelessWidget {
                         ),
                         if (isPremium) ...[
                           const SizedBox(width: 8),
-                          const PremiumBadge(size: PremiumBadgeSize.small),
+                          GestureDetector(
+                            onTap: onPremiumDetailsTap,
+                            child: const PremiumBadge(
+                              size: PremiumBadgeSize.small,
+                            ),
+                          ),
                         ],
                       ],
                     ),
@@ -1794,6 +2093,15 @@ class _ProfileHeroCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          Text(
+            summaryText,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.45,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 14),
           Wrap(
             spacing: 8,
@@ -1802,10 +2110,6 @@ class _ProfileHeroCard extends StatelessWidget {
               _HeroInfoChip(
                 icon: Icons.local_fire_department_outlined,
                 label: '$dailyGoal paragraf hedefi',
-              ),
-              _HeroInfoChip(
-                icon: Icons.verified_user_outlined,
-                label: providerLabel,
               ),
               _HeroInfoChip(
                 icon: isPremium ? Icons.workspace_premium : Icons.bolt_outlined,
@@ -1849,7 +2153,7 @@ class _ProfileHeroCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                ),
+              ),
             ),
           ],
         ],
@@ -1890,6 +2194,117 @@ class _HeroInfoChip extends StatelessWidget {
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: theme.colorScheme.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PremiumDetailRow extends StatelessWidget {
+  const _PremiumDetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Row(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(icon, color: AppColors.primary, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroMetricTile extends StatelessWidget {
+  const _HeroMetricTile({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withOpacity(0.05)
+            : theme.colorScheme.surfaceContainerHighest.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(isDark ? 0.16 : 0.45),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: AppColors.primary),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ],

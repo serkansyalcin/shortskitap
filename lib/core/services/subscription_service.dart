@@ -31,6 +31,7 @@ class SubscriptionStatus {
   final bool isPremium;
   final String? planType;
   final String? planLabel;
+  final DateTime? startedAt;
   final DateTime? expiresAt;
   final bool isLifetime;
 
@@ -38,6 +39,7 @@ class SubscriptionStatus {
     required this.isPremium,
     this.planType,
     this.planLabel,
+    this.startedAt,
     this.expiresAt,
     this.isLifetime = false,
   });
@@ -46,6 +48,7 @@ class SubscriptionStatus {
     : isPremium = false,
       planType = null,
       planLabel = null,
+      startedAt = null,
       expiresAt = null,
       isLifetime = false;
 
@@ -55,6 +58,9 @@ class SubscriptionStatus {
       isPremium: json['is_premium'] == true,
       planType: sub?['plan_type'] as String?,
       planLabel: sub?['plan_label'] as String?,
+      startedAt: sub?['started_at'] != null
+          ? DateTime.tryParse(sub!['started_at'] as String)
+          : null,
       expiresAt: sub?['expires_at'] != null
           ? DateTime.tryParse(sub!['expires_at'] as String)
           : null,

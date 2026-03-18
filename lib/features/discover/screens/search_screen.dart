@@ -80,7 +80,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Farklı anahtar kelimeler deneyin',
+                          'Ama merak etmeyin, kütüphanemizi her gün büyütüyoruz 🚀',
                           style: TextStyle(color: textSecondary, fontSize: 14),
                         ),
                       ],

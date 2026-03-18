@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/providers/auth_provider.dart';
 import '../../../app/theme/app_colors.dart';
@@ -21,6 +23,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _loading = false;
   bool _obscure = true;
   String? _error;
+  bool _acceptTerms = false;
+  bool _acceptPrivacyPolicy = false;
 
   @override
   void dispose() {
@@ -52,6 +56,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           _nameCtrl.text.trim(),
           _emailCtrl.text.trim(),
           _passwordCtrl.text,
+          acceptTerms: _acceptTerms,
+          acceptPrivacyPolicy: _acceptPrivacyPolicy,
         );
 
     if (!mounted) return;
@@ -66,12 +72,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final returnTo = GoRouterState.of(context).uri.queryParameters['returnTo'];
     final readingIntent = returnTo?.startsWith('/read/') == true;
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
           const _RegisterBackdrop(),
@@ -88,16 +97,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       const SizedBox(height: 26),
                       Container(
                         padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: AppColors.spotifyPanel,
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(color: AppColors.outline),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.32),
-                              blurRadius: 34,
-                              offset: const Offset(0, 18),
+                          decoration: BoxDecoration(
+                            color: theme.cardColor,
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: colorScheme.outline.withOpacity(0.7),
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: isDark ? 0.32 : 0.08,
+                                ),
+                                blurRadius: 34,
+                                offset: const Offset(0, 18),
+                              ),
                           ],
                         ),
                         child: Column(
@@ -106,14 +119,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             Text(
                               'Yeni hesabını oluştur',
                               style: textTheme.titleLarge?.copyWith(
-                                color: AppColors.lightText,
+                                color: colorScheme.onSurface,
                               ),
                             ),
                             const SizedBox(height: 8),
                             Text(
                               'Bir dakika sürer. Hemen kitapları keşfetmeye başla.',
                               style: textTheme.bodyMedium?.copyWith(
-                                color: AppColors.lightTextSecondary,
+                                color: colorScheme.onSurfaceVariant,
                                 height: 1.55,
                               ),
                             ),
@@ -183,6 +196,107 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                       return null;
                                     },
                                   ),
+                                  const SizedBox(height: 16),
+                                  Container(
+                                    padding: const EdgeInsets.all(14),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.surfaceContainerHighest
+                                          .withOpacity(0.45),
+                                      borderRadius: BorderRadius.circular(18),
+                                      border: Border.all(
+                                        color: colorScheme.outline.withOpacity(
+                                          0.55,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        CheckboxListTile(
+                                          value: _acceptTerms,
+                                          onChanged: (value) {
+                                            setState(
+                                              () => _acceptTerms = value ?? false,
+                                            );
+                                          },
+                                          contentPadding: EdgeInsets.zero,
+                                          controlAffinity:
+                                              ListTileControlAffinity.leading,
+                                          title: RichText(
+                                            text: TextSpan(
+                                              style: TextStyle(
+                                                color: colorScheme.onSurface,
+                                                fontSize: 14,
+                                              ),
+                                              children: [
+                                                const TextSpan(
+                                                  text:
+                                                      'Kullanım Koşulları\'nı okudum ve kabul ediyorum. ',
+                                                ),
+                                                TextSpan(
+                                                  text: 'Aç',
+                                                  style: const TextStyle(
+                                                    color: AppColors.primary,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                  recognizer:
+                                                      TapGestureRecognizer()
+                                                        ..onTap = () {
+                                                          launchUrl(
+                                                            Uri.parse(
+                                                              'https://kitaplig.com/kullanim-kosullari',
+                                                            ),
+                                                          );
+                                                        },
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        CheckboxListTile(
+                                          value: _acceptPrivacyPolicy,
+                                          onChanged: (value) {
+                                            setState(
+                                              () => _acceptPrivacyPolicy =
+                                                  value ?? false,
+                                            );
+                                          },
+                                          contentPadding: EdgeInsets.zero,
+                                          controlAffinity:
+                                              ListTileControlAffinity.leading,
+                                          title: RichText(
+                                            text: TextSpan(
+                                              style: TextStyle(
+                                                color: colorScheme.onSurface,
+                                                fontSize: 14,
+                                              ),
+                                              children: [
+                                                const TextSpan(
+                                                  text:
+                                                      'Gizlilik Politikası\'nı okudum ve kabul ediyorum. ',
+                                                ),
+                                                TextSpan(
+                                                  text: 'Aç',
+                                                  style: const TextStyle(
+                                                    color: AppColors.primary,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                  recognizer:
+                                                      TapGestureRecognizer()
+                                                        ..onTap = () {
+                                                          launchUrl(
+                                                            Uri.parse(
+                                                              'https://kitaplig.com/gizlilik-politikasi',
+                                                            ),
+                                                          );
+                                                        },
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -220,7 +334,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             ],
                             const SizedBox(height: 22),
                             ElevatedButton(
-                              onPressed: _loading ? null : _submit,
+                              onPressed: (_loading ||
+                                      !_acceptTerms ||
+                                      !_acceptPrivacyPolicy)
+                                  ? null
+                                  : _submit,
                               child: _loading
                                   ? const SizedBox(
                                       width: 20,
@@ -279,11 +397,21 @@ class _RegisterBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return IgnorePointer(
       child: Stack(
         children: [
           Container(
-            decoration: const BoxDecoration(gradient: AppColors.heroGradient),
+            decoration: BoxDecoration(
+              gradient: isDark
+                  ? AppColors.heroGradient
+                  : const LinearGradient(
+                      colors: [AppColors.lightBackground, Color(0xFFF1F7F0)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+            ),
           ),
           Positioned(
             top: -120,
@@ -333,7 +461,10 @@ class _RegisterHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -341,9 +472,9 @@ class _RegisterHero extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: AppColors.spotifyPanel.withValues(alpha: 0.92),
+            color: theme.cardColor.withOpacity(isDark ? 0.92 : 0.98),
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: AppColors.outline),
+            border: Border.all(color: colorScheme.outline.withOpacity(0.7)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -359,7 +490,7 @@ class _RegisterHero extends StatelessWidget {
                     ? 'Okumaya başlamak için hesap oluştur'
                     : 'KitapLig ile okumaya başla',
                 style: textTheme.bodySmall?.copyWith(
-                  color: AppColors.lightTextSecondary,
+                  color: colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -367,11 +498,14 @@ class _RegisterHero extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 22),
-        const BrandLogo(height: 56),
+        BrandLogo(
+          variant: isDark ? BrandLogoVariant.dark : BrandLogoVariant.light,
+          height: 56,
+        ),
         const SizedBox(height: 24),
         Text(
           'KitapLig hesabını aç',
-          style: textTheme.displayMedium?.copyWith(color: AppColors.lightText),
+          style: textTheme.displayMedium?.copyWith(color: colorScheme.onSurface),
         ),
         const SizedBox(height: 10),
         Text(
@@ -379,7 +513,7 @@ class _RegisterHero extends StatelessWidget {
               ? 'Bir hesap oluştur, hemen kitabın içine geç.'
               : 'Paragraf paragraf oku, günlük hedefini tut, ligde arkadaşlarınla yarış.',
           style: textTheme.bodyLarge?.copyWith(
-            color: AppColors.lightTextSecondary,
+            color: colorScheme.onSurfaceVariant,
             height: 1.55,
           ),
         ),

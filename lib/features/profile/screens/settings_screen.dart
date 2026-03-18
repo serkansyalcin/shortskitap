@@ -27,17 +27,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   int _selectedTab = 0;
   String _appVersion = '';
   late final TextEditingController _nameController;
+  late final TextEditingController _emailController;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController();
+    _emailController = TextEditingController();
     _loadData();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -74,6 +77,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final user = ref.read(authProvider).user;
     if (user != null && _nameController.text != user.name) {
       _nameController.text = user.name;
+    }
+    if (user != null && _emailController.text != user.email) {
+      _emailController.text = user.email;
     }
   }
 
@@ -155,13 +161,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _saveProfile() async {
     final user = ref.read(authProvider).user;
     final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
 
-    if (user == null || name.isEmpty) {
+    if (user == null || name.isEmpty || email.isEmpty) {
       return;
     }
 
     setState(() => _profileSaving = true);
-    final ok = await ref.read(authProvider.notifier).updateProfile(name: name);
+    final ok = await ref.read(authProvider.notifier).updateProfile(
+      name: name,
+      email: email,
+    );
 
     if (!mounted) {
       return;
@@ -240,16 +250,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   const SizedBox(height: 18),
                   TextField(
                     controller: _nameController,
-                    textInputAction: TextInputAction.done,
+                    textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(
                       labelText: 'Ad Soyad',
                       prefixIcon: Icon(Icons.badge_outlined),
                     ),
                   ),
                   const SizedBox(height: 14),
-                  TextFormField(
-                    initialValue: user?.email ?? '',
-                    enabled: false,
+                  TextField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.done,
                     decoration: const InputDecoration(
                       labelText: 'E-posta Adresi',
                       prefixIcon: Icon(Icons.alternate_email_rounded),
@@ -257,7 +268,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'E-posta adresi şu an yalnızca görüntülenebilir. Güncelleme desteği yakında eklenebilir.',
+                    '',
                     style: TextStyle(
                       fontSize: 12,
                       height: 1.4,
@@ -550,7 +561,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   title: 'Geri Bildirim Gönder',
                   color: AppColors.primary,
                   onTap: () => _launchUrl(
-                    'mailto:destek@kitaplig.com?subject=KitapLig%20Geri%20Bildirim',
+                    'mailto:serkan.syalcin@khotmail.com?subject=KitapLig%20Geri%20Bildirim',
                   ),
                 ),
               ],

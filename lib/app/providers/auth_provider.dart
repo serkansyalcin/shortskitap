@@ -61,9 +61,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> register(String name, String email, String password) async {
+  Future<bool> register(
+    String name,
+    String email,
+    String password, {
+    required bool acceptTerms,
+    required bool acceptPrivacyPolicy,
+  }) async {
     try {
-      final result = await _service.register(name, email, password);
+      final result = await _service.register(
+        name,
+        email,
+        password,
+        acceptTerms: acceptTerms,
+        acceptPrivacyPolicy: acceptPrivacyPolicy,
+      );
       state = AuthState.authenticated(result.user);
       return true;
     } catch (e) {
@@ -92,6 +104,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<bool> updateProfile({
     String? name,
+    String? email,
     int? dailyGoal,
     String? preferredTheme,
     int? preferredFontSize,
@@ -99,6 +112,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final user = await _service.updateMe(
         name: name,
+        email: email,
         dailyGoal: dailyGoal,
         preferredTheme: preferredTheme,
         preferredFontSize: preferredFontSize,
@@ -115,8 +129,49 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<bool> refreshMe() async {
+    try {
+      final user = await _service.getMe();
+      if (user == null) {
+        await ApiClient.clearToken();
+        state = const AuthState.unauthenticated();
+        return false;
+      }
+
+      final currentUser = state.user;
+      if (currentUser != null && _isSameUser(currentUser, user)) {
+        return true;
+      }
+
+      state = AuthState.authenticated(user);
+      return true;
+    } catch (e) {
+      state = AuthState(
+        status: state.status,
+        user: state.user,
+        error: e.toString(),
+      );
+      return false;
+    }
+  }
+
   void updateUser(UserModel user) {
     state = AuthState.authenticated(user);
+  }
+
+  bool _isSameUser(UserModel a, UserModel b) {
+    return a.id == b.id &&
+        a.name == b.name &&
+        a.email == b.email &&
+        a.avatarUrl == b.avatarUrl &&
+        a.provider == b.provider &&
+        a.isPremium == b.isPremium &&
+        a.premiumExpiresAt == b.premiumExpiresAt &&
+        a.dailyGoal == b.dailyGoal &&
+        a.preferredTheme == b.preferredTheme &&
+        a.preferredFontSize == b.preferredFontSize &&
+        a.termsAcceptedAt == b.termsAcceptedAt &&
+        a.privacyPolicyAcceptedAt == b.privacyPolicyAcceptedAt;
   }
 }
 
