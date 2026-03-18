@@ -7,9 +7,11 @@ import 'package:share_plus/share_plus.dart';
 import '../../../app/providers/auth_provider.dart';
 import '../../../app/providers/books_provider.dart';
 import '../../../app/providers/library_provider.dart';
+import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/book_model.dart';
+import '../../../core/models/progress_model.dart';
 import '../../../features/subscription/widgets/premium_badge.dart';
 import '../widgets/podcast_player_widget.dart';
 
@@ -30,6 +32,7 @@ class BookDetailScreen extends ConsumerWidget {
       body: bookAsync.when(
         data: (book) {
           final podcastsAsync = ref.watch(podcastsProvider(book.id));
+          final progressAsync = ref.watch(bookProgressProvider(book.id));
           final accentColor = _resolveAccentColor(book.category?.color);
 
           return CustomScrollView(
@@ -84,6 +87,22 @@ class BookDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 16),
                       _BookActionStrip(book: book, accentColor: accentColor),
                       const SizedBox(height: 24),
+                      progressAsync.when(
+                        data: (progress) => Column(
+                          children: [
+                            _PrimaryReadingCard(
+                              progress: progress,
+                              bookId: book.id,
+                              isPremiumBook: book.isPremium,
+                              hasPremiumAccess: isPremium,
+                              accentColor: accentColor,
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, error) => const SizedBox.shrink(),
+                      ),
                       podcastsAsync.when(
                         data: (podcasts) => podcasts.isEmpty
                             ? const SizedBox.shrink()
@@ -110,12 +129,6 @@ class BookDetailScreen extends ConsumerWidget {
                           ],
                         ),
                         error: (_, error) => const SizedBox.shrink(),
-                      ),
-                      _ActionCard(
-                        bookId: book.id,
-                        isPremiumBook: book.isPremium,
-                        hasPremiumAccess: isPremium,
-                        accentColor: accentColor,
                       ),
                     ],
                   ),
@@ -601,13 +614,15 @@ class _ContentCard extends StatelessWidget {
   }
 }
 
-class _ActionCard extends StatelessWidget {
+class _PrimaryReadingCard extends StatelessWidget {
+  final ProgressModel? progress;
   final int bookId;
   final bool isPremiumBook;
   final bool hasPremiumAccess;
   final Color accentColor;
 
-  const _ActionCard({
+  const _PrimaryReadingCard({
+    required this.progress,
     required this.bookId,
     required this.isPremiumBook,
     required this.hasPremiumAccess,
@@ -618,6 +633,12 @@ class _ActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final locked = isPremiumBook && !hasPremiumAccess;
+    final hasProgress = progress != null;
+    final progressValue = ((progress?.completionPercentage ?? 0) / 100).clamp(
+      0.0,
+      1.0,
+    );
+    final lastParagraph = progress?.lastParagraphOrder;
 
     return Container(
       width: double.infinity,
@@ -638,7 +659,11 @@ class _ActionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            locked ? 'Bu eser premium kütüphanede yer alıyor' : 'Okumaya hazır',
+            locked
+                ? 'Bu eser premium kütüphanede yer alıyor'
+                : hasProgress
+                ? 'Okumaya devam et'
+                : 'Okumaya başla',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -649,13 +674,50 @@ class _ActionCard extends StatelessWidget {
           Text(
             locked
                 ? 'Tüm bölümlere erişmek için premium üyelik açabilir ya da kısa önizleme ile başlayabilirsin.'
-                : 'Temiz bir okuma deneyimi için hikâye kartları ve podcast burada seni bekliyor.',
+                : hasProgress
+                ? lastParagraph != null
+                      ? '$lastParagraph. paragraftan devam edebilirsin.'
+                      : 'Kaldığın yer seni bekliyor.'
+                : 'İlk paragraftan başlayıp hikâyeye hemen girebilirsin.',
             style: TextStyle(
               fontSize: 13.5,
               height: 1.6,
               color: colorScheme.onSurfaceVariant,
             ),
           ),
+          if (!locked && hasProgress) ...[
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Text(
+                  '%${progress!.completionPercentage.toStringAsFixed(0)} tamamlandı',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${progress!.totalParagraphsRead} paragraf okundu',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: progressValue,
+                minHeight: 8,
+                backgroundColor: Colors.white.withValues(alpha: 0.08),
+                valueColor: AlwaysStoppedAnimation<Color>(accentColor),
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           if (locked) ...[
             ElevatedButton.icon(
@@ -695,7 +757,7 @@ class _ActionCard extends StatelessWidget {
                 extra: {'isPremium': isPremiumBook},
               ),
               icon: const Icon(Icons.play_arrow_rounded, size: 22),
-              label: const Text('Okumaya Başla'),
+              label: Text(hasProgress ? 'Okumaya Devam Et' : 'Okumaya Başla'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: accentColor,
                 foregroundColor: Colors.white,
@@ -748,7 +810,7 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            isFavorite ? 'Kütüphanene eklendi' : 'Hızlı işlemler',
+            isFavorite ? 'Favorilere eklendi' : 'Kitap işlemleri',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
@@ -758,8 +820,8 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
           const SizedBox(height: 4),
           Text(
             isFavorite
-                ? 'Bu kitap favorilerinde görünecek.'
-                : 'Kaydet, paylaş ve daha sonra kaldığın yerden devam et.',
+                ? 'İstersen buradan paylaşabilir veya okumaya geçebilirsin.'
+                : 'Kaydet ya da paylaş.',
             style: TextStyle(
               fontSize: 12.5,
               height: 1.45,
