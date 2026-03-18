@@ -2,10 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/book_model.dart';
 import '../../core/models/category_model.dart';
 import '../../core/models/paragraph_model.dart';
+import '../../core/models/podcast_model.dart';
 import '../../core/services/book_service.dart';
 import '../../core/services/offline_cache_service.dart';
+import '../../core/services/podcast_service.dart';
 
 final bookServiceProvider = Provider<BookService>((ref) => BookService());
+final podcastServiceProvider = Provider<PodcastService>((ref) => PodcastService());
 
 final categoriesProvider = FutureProvider<List<CategoryModel>>((ref) {
   return ref.read(bookServiceProvider).getCategories();
@@ -51,6 +54,11 @@ final searchProvider =
     FutureProvider.family<List<BookModel>, String>((ref, query) {
   if (query.trim().isEmpty) return Future.value([]);
   return ref.read(bookServiceProvider).search(query);
+});
+
+final podcastsProvider =
+    FutureProvider.family<List<PodcastModel>, int>((ref, bookId) {
+  return ref.read(podcastServiceProvider).getPodcasts(bookId);
 });
 
 final paragraphsProvider =
