@@ -167,6 +167,8 @@ class _PodcastSectionWidgetState extends State<PodcastSectionWidget> {
             ],
           ),
         ),
+        _SpoilerNotice(),
+        const SizedBox(height: 12),
 
         // Podcast list
         ...List.generate(widget.podcasts.length, (i) {
@@ -186,6 +188,53 @@ class _PodcastSectionWidgetState extends State<PodcastSectionWidget> {
           );
         }),
       ],
+    );
+  }
+}
+
+class _SpoilerNotice extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF3B2A12)
+            : const Color(0xFFFFF4DB),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFFF2B94B).withOpacity(isDark ? 0.45 : 0.7),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 1),
+            child: Icon(
+              Icons.warning_amber_rounded,
+              size: 18,
+              color: Color(0xFFF2B94B),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Dikkat: Bu podcast spoiler içerebilir. Kitabı okumadan dinlemek, hikâyenin sürprizlerini kaçırmanıza neden olabilir.',
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.45,
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
