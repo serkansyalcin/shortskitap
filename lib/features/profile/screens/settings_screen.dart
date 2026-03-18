@@ -298,6 +298,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 ...[
+                  ('system', 'Sistem', Icons.brightness_auto_rounded),
                   ('light', 'Açık', Icons.wb_sunny_rounded),
                   ('dark', 'Koyu', Icons.dark_mode_rounded),
                   ('sepia', 'Sepya', Icons.auto_awesome_rounded),

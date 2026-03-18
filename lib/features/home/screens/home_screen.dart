@@ -35,14 +35,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: IndexedStack(
         index: isAuthenticated ? _selectedIndex : guestSelectedIndex,
         children: isAuthenticated
-            ? const [
-                _HomeTab(),
-                _DiscoverTab(),
-                _LeagueTab(),
-                _LibraryTab(),
-                _ProfileTab(),
+            ? [
+                _HomeTab(
+                  onOpenDiscover: () => setState(() => _selectedIndex = 1),
+                ),
+                const _DiscoverTab(),
+                const _LeagueTab(),
+                const _LibraryTab(),
+                const _ProfileTab(),
               ]
-            : const [_HomeTab(), _DiscoverTab()],
+            : [
+                _HomeTab(
+                  onOpenDiscover: () => setState(() => _selectedIndex = 1),
+                ),
+                const _DiscoverTab(),
+              ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: isAuthenticated ? _selectedIndex : guestSelectedIndex,
@@ -108,21 +115,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class _HomeTab extends ConsumerWidget {
-  const _HomeTab();
+  const _HomeTab({required this.onOpenDiscover});
+
+  final VoidCallback onOpenDiscover;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).user;
     final progressAsync = ref.watch(allProgressProvider);
     final featuredAsync = ref.watch(featuredBooksProvider);
+    final categoriesAsync = ref.watch(categoriesProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: Scrollbar(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // Greeting
             Row(
               children: [
@@ -168,6 +180,39 @@ class _HomeTab extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 12),
+
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: colorScheme.outline.withOpacity(0.7),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _HomeActionButton(
+                      icon: Icons.explore_rounded,
+                      title: 'Keşfet',
+                      subtitle: 'Yeni kitaplar',
+                      onTap: onOpenDiscover,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _HomeActionButton(
+                      icon: Icons.search_rounded,
+                      title: 'Ara',
+                      subtitle: 'Yazar veya kitap',
+                      onTap: () => context.push('/home/search'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
 
             // League mini card
             const LeagueMiniCard(),
@@ -286,6 +331,79 @@ class _HomeTab extends ConsumerWidget {
 
             const SizedBox(height: 24),
 
+            categoriesAsync.when(
+              data: (categories) {
+                if (categories.isEmpty) return const SizedBox.shrink();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Hızlı Kategoriler',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: onOpenDiscover,
+                          child: const Text(
+                            'Tümü',
+                            style: TextStyle(color: AppColors.primary),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      height: 42,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: categories.length.clamp(0, 10),
+                        separatorBuilder: (_, __) => const SizedBox(width: 10),
+                        itemBuilder: (context, index) {
+                          final category = categories[index];
+                          return InkWell(
+                            onTap: onOpenDiscover,
+                            borderRadius: BorderRadius.circular(999),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(
+                                  color: colorScheme.outline.withOpacity(0.55),
+                                ),
+                              ),
+                              child: Text(
+                                category.name,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+
+            const SizedBox(height: 24),
+
             // Featured Books
             featuredAsync.when(
               data: (books) {
@@ -305,7 +423,7 @@ class _HomeTab extends ConsumerWidget {
                           ),
                         ),
                         TextButton(
-                          onPressed: () {},
+                          onPressed: onOpenDiscover,
                           child: const Text(
                             'Tümü',
                             style: TextStyle(color: AppColors.primary),
@@ -390,6 +508,82 @@ class _HomeTab extends ConsumerWidget {
                 child: CircularProgressIndicator(color: AppColors.primary),
               ),
               error: (_, __) => const SizedBox.shrink(),
+            ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeActionButton extends StatelessWidget {
+  const _HomeActionButton({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest.withOpacity(0.75),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: colorScheme.outline.withOpacity(0.55)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: AppColors.primary, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.arrow_forward_rounded,
+              color: colorScheme.onSurfaceVariant,
+              size: 18,
             ),
           ],
         ),

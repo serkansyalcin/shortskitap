@@ -67,6 +67,7 @@ class KitapLigApp extends ConsumerWidget {
       darkTheme: AppTheme.dark,
       themeMode: switch (settings.theme) {
         'dark' => ThemeMode.dark,
+        'system' => ThemeMode.system,
         'sepia' => ThemeMode.light,
         _ => ThemeMode.light,
       },

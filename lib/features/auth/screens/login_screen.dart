@@ -361,7 +361,7 @@ class _AuthHero extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 22),
-        const BrandLogo(variant: BrandLogoVariant.light, height: 56),
+        const BrandLogo(height: 56),
         const SizedBox(height: 24),
         Text(
           title,

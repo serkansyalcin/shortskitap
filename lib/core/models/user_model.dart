@@ -29,7 +29,7 @@ class UserModel {
         provider: json['provider'] as String? ?? 'email',
         isPremium: json['is_premium'] == true,
         dailyGoal: json['daily_goal'] as int? ?? 10,
-        preferredTheme: json['preferred_theme'] as String? ?? 'light',
+        preferredTheme: json['preferred_theme'] as String? ?? 'system',
         preferredFontSize: json['preferred_font_size'] as int? ?? 16,
       );
 

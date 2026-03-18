@@ -62,7 +62,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _finish() async {
-    await ref.read(settingsProvider.notifier).setTheme('light');
+    await ref.read(settingsProvider.notifier).setTheme('system');
     await ref.read(settingsProvider.notifier).setDailyGoal(_selectedGoal);
     await ref.read(settingsProvider.notifier).completeOnboarding();
     if (mounted) context.go('/home');
@@ -71,10 +71,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final viewportHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
           const _OnboardingBackdrop(),
@@ -99,28 +100,27 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   vertical: 9,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.06),
+                                  color: theme.brightness == Brightness.dark
+                                      ? Colors.white.withValues(alpha: 0.06)
+                                      : colorScheme.surface.withOpacity(0.78),
                                   borderRadius: BorderRadius.circular(999),
                                   border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.08),
+                                    color: theme.brightness == Brightness.dark
+                                        ? Colors.white.withValues(alpha: 0.08)
+                                        : colorScheme.outline.withOpacity(0.55),
                                   ),
                                 ),
                                 child: Text(
                                   '3 adımda sana uygun bir başlangıç',
                                   style: theme.textTheme.bodySmall?.copyWith(
-                                    color: AppColors.lightTextSecondary,
+                                    color: colorScheme.onSurfaceVariant,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ),
                             ),
                             const SizedBox(height: 26),
-                            const Center(
-                              child: BrandLogo(
-                                variant: BrandLogoVariant.light,
-                                height: 74,
-                              ),
-                            ),
+                            const Center(child: BrandLogo(height: 74)),
                             const SizedBox(height: 24),
                             _HeroPanel(selectedGoal: _selectedGoal),
                           ],
@@ -204,14 +204,38 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       _AnimatedSection(
                         visibility: _visibility(1460, viewportHeight),
                         child: Container(
-                          padding: const EdgeInsets.all(20),
+                          padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: AppColors.spotifyPanel,
-                            borderRadius: BorderRadius.circular(28),
-                            border: Border.all(color: AppColors.outline),
+                            gradient: LinearGradient(
+                              colors: _canFinish
+                                  ? [
+                                      theme.colorScheme.surface,
+                                      AppColors.primary.withOpacity(
+                                        theme.brightness == Brightness.dark
+                                            ? 0.16
+                                            : 0.10,
+                                      ),
+                                    ]
+                                  : [
+                                      theme.colorScheme.surface,
+                                      theme.colorScheme.surfaceContainerHighest,
+                                    ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(32),
+                            border: Border.all(
+                              color: _canFinish
+                                  ? AppColors.primary.withOpacity(0.38)
+                                  : theme.colorScheme.outline.withOpacity(0.7),
+                            ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.28),
+                                color: Colors.black.withValues(
+                                  alpha: theme.brightness == Brightness.dark
+                                      ? 0.28
+                                      : 0.08,
+                                ),
                                 blurRadius: 32,
                                 offset: const Offset(0, 18),
                               ),
@@ -219,10 +243,43 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           ),
                           child: Column(
                             children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 7,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _canFinish
+                                      ? AppColors.primary.withOpacity(0.14)
+                                      : theme.colorScheme.surfaceContainerHighest
+                                          .withOpacity(0.9),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: _canFinish
+                                        ? AppColors.primary.withOpacity(0.28)
+                                        : theme.colorScheme.outline.withOpacity(
+                                            0.5,
+                                          ),
+                                  ),
+                                ),
+                                child: Text(
+                                  _canFinish
+                                      ? 'Son adım hazır'
+                                      : '1 adım kaldı',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: _canFinish
+                                        ? AppColors.primary
+                                        : theme.colorScheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
                               Text(
                                 'Kitap okumayı sevdiren Lig',
                                 style: theme.textTheme.titleLarge?.copyWith(
-                                  color: AppColors.lightText,
+                                  color: theme.colorScheme.onSurface,
+                                  fontWeight: FontWeight.w800,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -232,14 +289,41 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     ? 'Başlangıcın hazır. Şimdi sana uygun kitapları keşfetmeye geçebilirsin.'
                                     : 'Devam etmek için en az 2 kategori seç.',
                                 style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: AppColors.lightTextSecondary,
+                                  color: theme.colorScheme.onSurfaceVariant,
                                   height: 1.55,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
-                              const SizedBox(height: 18),
-                              ElevatedButton(
-                                onPressed: _canFinish ? _finish : null,
+                              const SizedBox(height: 22),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: _canFinish ? _finish : null,
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 18,
+                                    ),
+                                    backgroundColor: _canFinish
+                                        ? AppColors.primary
+                                        : null,
+                                    foregroundColor: _canFinish
+                                        ? Colors.black
+                                        : null,
+                                    disabledBackgroundColor: theme
+                                        .colorScheme
+                                        .surfaceContainerHighest,
+                                    disabledForegroundColor: theme
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                    elevation: _canFinish ? 10 : 0,
+                                    shadowColor: _canFinish
+                                        ? AppColors.primary.withOpacity(0.32)
+                                        : Colors.transparent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(22),
+                                    ),
+                                  ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -257,6 +341,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     ],
                                   ],
                                 ),
+                              ),
                               ),
                             ],
                           ),
@@ -306,11 +391,21 @@ class _OnboardingBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return IgnorePointer(
       child: Stack(
         children: [
           Container(
-            decoration: const BoxDecoration(gradient: AppColors.heroGradient),
+            decoration: BoxDecoration(
+              gradient: isDark
+                  ? AppColors.heroGradient
+                  : const LinearGradient(
+                      colors: [AppColors.lightBackground, Color(0xFFF1F7F0)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+            ),
           ),
           Positioned(
             top: -120,
@@ -369,16 +464,20 @@ class _HeroPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.spotifyPanel.withValues(alpha: 0.94),
+        color: isDark
+            ? AppColors.spotifyPanel.withValues(alpha: 0.94)
+            : colorScheme.surface.withOpacity(0.94),
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: colorScheme.outline.withOpacity(0.7)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.30),
+            color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.08),
             blurRadius: 36,
             offset: const Offset(0, 18),
           ),
@@ -389,7 +488,7 @@ class _HeroPanel extends StatelessWidget {
           Text(
             'Kitap okumayı sevdiren Lig',
             style: theme.textTheme.headlineLarge?.copyWith(
-              color: AppColors.lightText,
+              color: colorScheme.onSurface,
               height: 1.08,
             ),
             textAlign: TextAlign.center,
@@ -398,7 +497,7 @@ class _HeroPanel extends StatelessWidget {
           Text(
             'Kısa paragraflarla okumaya daha kolay başla, ritmini koru ve lig motivasyonuyla istikrar kazan.',
             style: theme.textTheme.bodyLarge?.copyWith(
-              color: AppColors.lightTextSecondary,
+              color: colorScheme.onSurfaceVariant,
               height: 1.6,
             ),
             textAlign: TextAlign.center,
@@ -407,9 +506,15 @@ class _HeroPanel extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.04),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.04)
+                  : colorScheme.surfaceContainerHighest.withOpacity(0.6),
               borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : colorScheme.outline.withOpacity(0.5),
+              ),
             ),
             child: Column(
               children: [
@@ -432,7 +537,7 @@ class _HeroPanel extends StatelessWidget {
                       child: Text(
                         'Her paragraf yeni bir adım',
                         style: theme.textTheme.titleMedium?.copyWith(
-                          color: AppColors.lightText,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -442,7 +547,7 @@ class _HeroPanel extends StatelessWidget {
                 Text(
                   'Dikkatini dağıtmayan kısa paragraflarla okumak daha hafif hissettirir ve günlük alışkanlık kurmayı kolaylaştıır.',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.lightTextSecondary,
+                    color: colorScheme.onSurfaceVariant,
                     height: 1.6,
                   ),
                 ),
@@ -512,16 +617,18 @@ class _FeatureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: AppColors.spotifyPanel,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: colorScheme.outline.withOpacity(0.7)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.28),
+            color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.08),
             blurRadius: 28,
             offset: const Offset(0, 16),
           ),
@@ -557,7 +664,7 @@ class _FeatureCard extends StatelessWidget {
                 Text(
                   title,
                   style: theme.textTheme.titleLarge?.copyWith(
-                    color: AppColors.lightText,
+                    color: colorScheme.onSurface,
                     height: 1.15,
                   ),
                 ),
@@ -565,7 +672,7 @@ class _FeatureCard extends StatelessWidget {
                 Text(
                   description,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.lightTextSecondary,
+                    color: colorScheme.onSurfaceVariant,
                     height: 1.6,
                   ),
                 ),
@@ -594,16 +701,18 @@ class _SectionPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: AppColors.spotifyPanel,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: colorScheme.outline.withOpacity(0.7)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.26),
+            color: Colors.black.withValues(alpha: isDark ? 0.26 : 0.08),
             blurRadius: 28,
             offset: const Offset(0, 16),
           ),
@@ -632,14 +741,14 @@ class _SectionPanel extends StatelessWidget {
                     Text(
                       title,
                       style: theme.textTheme.titleLarge?.copyWith(
-                        color: AppColors.lightText,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppColors.lightTextSecondary,
+                        color: colorScheme.onSurfaceVariant,
                         height: 1.55,
                       ),
                     ),
@@ -708,6 +817,8 @@ class _GoalChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Material(
       color: Colors.transparent,
@@ -720,10 +831,16 @@ class _GoalChip extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
           decoration: BoxDecoration(
             gradient: selected ? AppColors.brandGradient : null,
-            color: selected ? null : AppColors.spotifyPanelHigh,
+            color: selected
+                ? null
+                : (isDark
+                    ? AppColors.spotifyPanelHigh
+                    : colorScheme.surfaceContainerHighest),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: selected ? AppColors.primaryLight : AppColors.outline,
+              color: selected
+                  ? AppColors.primaryLight
+                  : colorScheme.outline.withOpacity(0.7),
               width: selected ? 1.6 : 1.2,
             ),
             boxShadow: selected
@@ -748,14 +865,14 @@ class _GoalChip extends StatelessWidget {
                   child: Container(
                     width: 22,
                     height: 22,
-                    decoration: const BoxDecoration(
-                      color: Colors.black,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.black : Colors.white,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.check_rounded,
                       size: 14,
-                      color: Colors.white,
+                      color: isDark ? Colors.white : Colors.black,
                     ),
                   ),
                 ),
@@ -766,14 +883,14 @@ class _GoalChip extends StatelessWidget {
                 style: theme.textTheme.displayMedium?.copyWith(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
-                  color: selected ? Colors.black : AppColors.lightText,
+                  color: selected ? Colors.black : colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 'paragraf',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: selected ? Colors.black87 : AppColors.lightText,
+                  color: selected ? Colors.black87 : colorScheme.onSurface,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -782,7 +899,7 @@ class _GoalChip extends StatelessWidget {
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: selected
                       ? Colors.black87
-                      : AppColors.lightTextSecondary,
+                      : colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -808,6 +925,9 @@ class _InterestChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final visual = CategoryVisuals.resolve(name: label);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     return InkWell(
       onTap: onTap,
@@ -816,10 +936,16 @@ class _InterestChip extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? visual.tint : AppColors.spotifyPanelHigh,
+          color: selected
+              ? visual.tint
+              : (isDark
+                  ? AppColors.spotifyPanelHigh
+                  : colorScheme.surfaceContainerHighest),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: selected ? visual.accent : AppColors.outline,
+            color: selected
+                ? visual.accent
+                : colorScheme.outline.withOpacity(0.7),
           ),
         ),
         child: Row(
@@ -837,14 +963,14 @@ class _InterestChip extends StatelessWidget {
               child: Icon(
                 visual.icon,
                 size: 18,
-                color: selected ? visual.accent : AppColors.lightText,
+                color: selected ? visual.accent : colorScheme.onSurface,
               ),
             ),
             const SizedBox(width: 10),
             Text(
               label,
-              style: const TextStyle(
-                color: AppColors.lightText,
+              style: TextStyle(
+                color: colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
               ),
             ),

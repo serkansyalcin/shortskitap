@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../app/providers/auth_provider.dart';
 import '../../core/models/progress_model.dart';
 import '../../core/services/progress_service.dart' as svc;
 
@@ -6,11 +7,19 @@ final progressServiceProvider =
     Provider<svc.ProgressService>((ref) => svc.ProgressService());
 
 final allProgressProvider = FutureProvider<List<ProgressModel>>((ref) {
+  final auth = ref.watch(authProvider);
+  if (!auth.isAuthenticated) {
+    return Future.value(const <ProgressModel>[]);
+  }
   return ref.read(progressServiceProvider).getProgress();
 });
 
 final bookProgressProvider =
     FutureProvider.family<ProgressModel?, int>((ref, bookId) {
+  final auth = ref.watch(authProvider);
+  if (!auth.isAuthenticated) {
+    return Future.value(null);
+  }
   return ref.read(progressServiceProvider).getBookProgress(bookId);
 });
 

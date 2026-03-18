@@ -8,7 +8,7 @@ class UserSettings {
   final int dailyGoal;
 
   const UserSettings({
-    this.theme = 'light',
+    this.theme = 'system',
     this.fontSize = 16,
     this.onboardingDone = false,
     this.dailyGoal = 10,
@@ -36,7 +36,7 @@ class SettingsNotifier extends StateNotifier<UserSettings> {
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     state = UserSettings(
-      theme: prefs.getString('theme') ?? 'light',
+      theme: prefs.getString('theme') ?? 'system',
       fontSize: prefs.getInt('font_size') ?? 16,
       onboardingDone: prefs.getBool('onboarding_done') ?? false,
       dailyGoal: prefs.getInt('daily_goal') ?? 10,
