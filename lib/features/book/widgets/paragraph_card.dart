@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../app/theme/app_colors.dart';
@@ -9,6 +10,8 @@ class ParagraphCard extends StatefulWidget {
   final bool isCurrent;
   final int total;
   final double fontSize;
+  final String fontFamily;
+  final double lineHeight;
   final Color textColor;
   final Color dividerColor;
   final Color accentColor;
@@ -20,6 +23,8 @@ class ParagraphCard extends StatefulWidget {
     required this.isCurrent,
     required this.total,
     required this.fontSize,
+    required this.fontFamily,
+    required this.lineHeight,
     required this.textColor,
     required this.dividerColor,
     required this.accentColor,
@@ -46,9 +51,9 @@ class _ParagraphCardState extends State<ParagraphCard>
   }
 
   @override
-  void didUpdateWidget(ParagraphCard old) {
-    super.didUpdateWidget(old);
-    if (widget.isCurrent && !old.isCurrent) {
+  void didUpdateWidget(ParagraphCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isCurrent && !oldWidget.isCurrent) {
       _anim.forward(from: 0.6);
     }
   }
@@ -83,12 +88,12 @@ class _ParagraphCardState extends State<ParagraphCard>
     return Center(
       child: Text(
         widget.paragraph.content,
-        style: TextStyle(
-          fontSize: widget.fontSize,
-          height: 1.85,
+        style: _bodyStyle(
           color: widget.textColor,
+          fontSize: widget.fontSize,
+          height: widget.lineHeight,
           fontWeight: FontWeight.w400,
-          letterSpacing: 0.1,
+          letterSpacing: 0.08,
         ),
         textAlign: TextAlign.left,
       ),
@@ -102,22 +107,22 @@ class _ParagraphCardState extends State<ParagraphCard>
         children: [
           Text(
             '"',
-            style: TextStyle(
+            style: _bodyStyle(
+              color: widget.accentColor.withValues(alpha: 0.20),
               fontSize: 80,
-              color: widget.accentColor.withOpacity(0.20),
               height: 0.8,
-              fontFamily: 'Georgia',
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             widget.paragraph.content,
-            style: TextStyle(
-              fontSize: widget.fontSize,
-              height: 1.9,
+            style: _bodyStyle(
               color: widget.textColor,
-              fontStyle: FontStyle.italic,
+              fontSize: widget.fontSize,
+              height: widget.lineHeight + 0.08,
               fontWeight: FontWeight.w500,
+              fontStyle: FontStyle.italic,
             ),
             textAlign: TextAlign.center,
           ),
@@ -133,12 +138,59 @@ class _ParagraphCardState extends State<ParagraphCard>
         children: [
           Container(width: 60, height: 1, color: widget.dividerColor),
           const SizedBox(height: 12),
-          Text('⁂', style: TextStyle(fontSize: 24, color: widget.mutedColor)),
+          Text(
+            '§',
+            style: _bodyStyle(
+              color: widget.mutedColor,
+              fontSize: 24,
+              height: 1,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 12),
           Container(width: 60, height: 1, color: widget.dividerColor),
         ],
       ),
     );
+  }
+
+  TextStyle _bodyStyle({
+    required Color color,
+    required double fontSize,
+    required double height,
+    required FontWeight fontWeight,
+    FontStyle fontStyle = FontStyle.normal,
+    double? letterSpacing,
+  }) {
+    switch (widget.fontFamily) {
+      case 'classic':
+        return GoogleFonts.lora(
+          color: color,
+          fontSize: fontSize,
+          height: height,
+          fontWeight: fontWeight,
+          fontStyle: fontStyle,
+          letterSpacing: letterSpacing,
+        );
+      case 'editorial':
+        return GoogleFonts.crimsonText(
+          color: color,
+          fontSize: fontSize,
+          height: height,
+          fontWeight: fontWeight,
+          fontStyle: fontStyle,
+          letterSpacing: letterSpacing,
+        );
+      default:
+        return GoogleFonts.dmSans(
+          color: color,
+          fontSize: fontSize,
+          height: height,
+          fontWeight: fontWeight,
+          fontStyle: fontStyle,
+          letterSpacing: letterSpacing,
+        );
+    }
   }
 
   void _showBottomSheet(BuildContext context) {
@@ -164,8 +216,14 @@ class _ParagraphCardState extends State<ParagraphCard>
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.share_rounded, color: AppColors.primary),
-                title: const Text('Paylaş', style: TextStyle(color: Colors.white)),
+                leading: const Icon(
+                  Icons.share_rounded,
+                  color: AppColors.primary,
+                ),
+                title: const Text(
+                  'Paylaş',
+                  style: TextStyle(color: Colors.white),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   _shareParagraph();
@@ -176,7 +234,10 @@ class _ParagraphCardState extends State<ParagraphCard>
                   Icons.bookmark_add_outlined,
                   color: AppColors.primary,
                 ),
-                title: const Text('Yer imi ekle', style: TextStyle(color: Colors.white)),
+                title: const Text(
+                  'Yer imi ekle',
+                  style: TextStyle(color: Colors.white),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(

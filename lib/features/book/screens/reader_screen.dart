@@ -1,13 +1,17 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import '../../../app/providers/books_provider.dart';
 import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/settings_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/models/paragraph_model.dart';
 import '../../../core/platform/platform_support.dart';
 import '../../../features/subscription/widgets/ad_banner.dart';
 import '../widgets/paragraph_card.dart';
@@ -39,7 +43,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   Timer? _controlsTimer;
   String? _readerThemeOverride;
   double? _readerFontSizeOverride;
-
+  String? _readerFontFamilyOverride;
+  double? _readerLineHeightOverride;
 
   @override
   void initState() {
@@ -120,6 +125,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final readerTheme = _readerThemeOverride ?? settings.theme;
     final readerFontSize =
         _readerFontSizeOverride ?? settings.fontSize.toDouble();
+    final readerFontFamily = _readerFontFamilyOverride ?? 'classic';
+    final readerLineHeight = _readerLineHeightOverride ?? 1.8;
     final palette = _paletteForTheme(readerTheme);
 
     if (widget.bookIsPremium && !isPremium) {
@@ -148,30 +155,41 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
             return Stack(
               children: [
-                // ── PageView ─────────────────────────────────────────────
-                PageView.builder(
-                  controller: _pageController,
-                  scrollDirection: Axis.vertical,
-                  physics: const PageScrollPhysics(),
-                  itemCount: items.length,
-                  onPageChanged: _onPageChanged,
-                  itemBuilder: (ctx, index) {
-                    final item = items[index];
-                    if (item is _AdItem) return _AdPage(palette: palette);
-                    return ParagraphCard(
-                      paragraph: (item as _ParagraphItem).paragraph,
-                      isCurrent: index == _currentIndex,
-                      total: paragraphs.length,
-                      fontSize: readerFontSize,
-                      textColor: palette.text,
-                      dividerColor: palette.divider,
-                      accentColor: palette.accent,
-                      mutedColor: palette.muted,
-                    );
-                  },
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        palette.background,
+                        palette.background.withValues(alpha: 0.98),
+                      ],
+                    ),
+                  ),
+                  child: PageView.builder(
+                    controller: _pageController,
+                    scrollDirection: Axis.vertical,
+                    physics: const PageScrollPhysics(),
+                    itemCount: items.length,
+                    onPageChanged: _onPageChanged,
+                    itemBuilder: (ctx, index) {
+                      final item = items[index];
+                      if (item is _AdItem) return _AdPage(palette: palette);
+                      return ParagraphCard(
+                        paragraph: (item as _ParagraphItem).paragraph,
+                        isCurrent: index == _currentIndex,
+                        total: paragraphs.length,
+                        fontSize: readerFontSize,
+                        fontFamily: readerFontFamily,
+                        lineHeight: readerLineHeight,
+                        textColor: palette.text,
+                        dividerColor: palette.divider,
+                        accentColor: palette.accent,
+                        mutedColor: palette.muted,
+                      );
+                    },
+                  ),
                 ),
-
-                // ── Top bar (Positioned must be direct child of Stack) ──
                 Positioned(
                   top: 0,
                   left: 0,
@@ -181,14 +199,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     duration: const Duration(milliseconds: 220),
                     child: _ReaderTopBar(
                       readerTheme: readerTheme,
+                      fontFamily: readerFontFamily,
                       onBack: () => context.pop(),
                       onSettings: () =>
                           _showReaderSettings(context, readerTheme),
                     ),
                   ),
                 ),
-
-                // ── Bottom bar ─────────────────────────────────────────
                 Positioned(
                   bottom: 0,
                   left: 0,
@@ -200,6 +217,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       readerTheme: readerTheme,
                       current: _currentIndex + 1,
                       total: items.length,
+                      fontFamily: readerFontFamily,
                       onPrev: _currentIndex > 0 ? _goPrev : null,
                       onNext: _currentIndex < items.length - 1
                           ? () => _goNext(items.length)
@@ -207,7 +225,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     ),
                   ),
                 ),
-
               ],
             );
           },
@@ -222,10 +239,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Text(
-                    'Yüklenemedi: $e',
-                    textAlign: TextAlign.center,
-                  ),
+                  child: Text('Yüklenemedi: $e', textAlign: TextAlign.center),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
@@ -241,7 +255,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
-  List<dynamic> _buildItemList(List paragraphs, bool isPremium) {
+  List<dynamic> _buildItemList(
+    List<ParagraphModel> paragraphs,
+    bool isPremium,
+  ) {
     if (isPremium) {
       return paragraphs.map((p) => _ParagraphItem(p)).toList();
     }
@@ -257,142 +274,247 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   void _showReaderSettings(BuildContext context, String readerTheme) {
     final settings = ref.read(settingsProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1C1C1E),
+      backgroundColor: const Color(0xFF151515),
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Handle
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const Text(
-                'Okuma Ayarları',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Tema',
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13,
-                  color: Colors.white70,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: ['light', 'dark', 'sepia'].map((t) {
-                  final labels = {
-                    'light': '☀️ Açık',
-                    'dark': '🌙 Koyu',
-                    'sepia': '🍂 Sepya',
-                  };
-                  final isSelected = (_readerThemeOverride ?? readerTheme) == t;
-                  return Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        _readerThemeOverride = t;
-                        setModalState(() {});
-                        if (mounted) setState(() {});
-                      },
+        builder: (ctx, setModalState) {
+          final activeTheme = _readerThemeOverride ?? readerTheme;
+          final activeFontSize =
+              _readerFontSizeOverride ?? settings.fontSize.toDouble();
+          final activeFontFamily = _readerFontFamilyOverride ?? 'classic';
+          final activeLineHeight = _readerLineHeightOverride ?? 1.8;
+
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
                       child: Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        width: 42,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 20),
                         decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.primary
-                              : Colors.white.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Okuma Ayarları',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tipografi ve sayfa hissini kendine göre ayarla.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.white.withValues(alpha: 0.68),
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    _ReaderSettingsSection(
+                      title: 'Tema',
+                      child: Row(
+                        children: ['light', 'dark', 'sepia'].map((t) {
+                          final labels = {
+                            'light': 'Açık',
+                            'dark': 'Koyu',
+                            'sepia': 'Sepya',
+                          };
+                          final icons = {
+                            'light': Icons.light_mode_rounded,
+                            'dark': Icons.dark_mode_rounded,
+                            'sepia': Icons.auto_stories_rounded,
+                          };
+                          return Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                right: t == 'sepia' ? 0 : 8,
+                              ),
+                              child: _ReaderOptionChip(
+                                label: labels[t]!,
+                                icon: icons[t]!,
+                                selected: activeTheme == t,
+                                onTap: () {
+                                  _readerThemeOverride = t;
+                                  setModalState(() {});
+                                  if (mounted) setState(() {});
+                                },
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    _ReaderSettingsSection(
+                      title: 'Yazı Stili',
+                      child: Column(
+                        children: [
+                          _FontChoiceTile(
+                            title: 'Klasik',
+                            subtitle: 'Roman hissi, sıcak ve dengeli',
+                            sampleStyle: GoogleFonts.lora(
+                              color: Colors.white,
+                              fontSize: 18,
+                            ),
+                            selected: activeFontFamily == 'classic',
+                            onTap: () {
+                              _readerFontFamilyOverride = 'classic';
+                              setModalState(() {});
+                              if (mounted) setState(() {});
+                            },
+                          ),
+                          const SizedBox(height: 10),
+                          _FontChoiceTile(
+                            title: 'Editoryal',
+                            subtitle: 'Daha edebi ve dergi benzeri görünüm',
+                            sampleStyle: GoogleFonts.crimsonText(
+                              color: Colors.white,
+                              fontSize: 20,
+                            ),
+                            selected: activeFontFamily == 'editorial',
+                            onTap: () {
+                              _readerFontFamilyOverride = 'editorial';
+                              setModalState(() {});
+                              if (mounted) setState(() {});
+                            },
+                          ),
+                          const SizedBox(height: 10),
+                          _FontChoiceTile(
+                            title: 'Modern',
+                            subtitle: 'Temiz, çağdaş ve çok okunaklı',
+                            sampleStyle: GoogleFonts.dmSans(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            selected: activeFontFamily == 'modern',
+                            onTap: () {
+                              _readerFontFamilyOverride = 'modern';
+                              setModalState(() {});
+                              if (mounted) setState(() {});
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    _ReaderSettingsSection(
+                      title: 'Önizleme',
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(18),
                           border: Border.all(
-                            color: isSelected
-                                ? AppColors.primary
-                                : Colors.transparent,
+                            color: colorScheme.primary.withValues(alpha: 0.15),
                           ),
                         ),
                         child: Text(
-                          labels[t]!,
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.white70,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                          'Denizin üzerinde ağır ağır ilerleyen kadırga, yeni günün sessizliğini taşıyordu.',
+                          style: _previewTextStyle(
+                            family: activeFontFamily,
+                            color: Colors.white.withValues(alpha: 0.94),
+                            fontSize: activeFontSize,
+                            height: activeLineHeight,
                           ),
-                          textAlign: TextAlign.center,
                         ),
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Font Boyutu',
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13,
-                  color: Colors.white70,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Text(
-                    'A',
-                    style: TextStyle(fontSize: 12, color: Colors.white54),
-                  ),
-                  Expanded(
-                    child: SliderTheme(
-                      data: SliderTheme.of(ctx).copyWith(
-                        activeTrackColor: AppColors.primary,
-                        thumbColor: AppColors.primary,
-                        overlayColor: AppColors.primary.withOpacity(0.12),
-                        inactiveTrackColor: Colors.white24,
-                        trackHeight: 3,
-                        thumbShape:
-                            const RoundSliderThumbShape(enabledThumbRadius: 7),
-                      ),
-                      child: Slider(
-                        value: _readerFontSizeOverride ??
-                            settings.fontSize.toDouble(),
-                        min: 12,
-                        max: 22,
-                        divisions: 5,
-                        onChanged: (v) {
-                          _readerFontSizeOverride = v;
-                          setModalState(() {});
-                          if (mounted) setState(() {});
-                        },
+                    const SizedBox(height: 18),
+                    _ReaderSettingsSection(
+                      title: 'Font Boyutu',
+                      child: _ReaderSliderRow(
+                        leading: 'A',
+                        trailing: 'A',
+                        trailingSize: 23,
+                        valueLabel: '${activeFontSize.toStringAsFixed(0)} pt',
+                        child: SliderTheme(
+                          data: SliderTheme.of(ctx).copyWith(
+                            activeTrackColor: AppColors.primary,
+                            thumbColor: AppColors.primary,
+                            overlayColor: AppColors.primary.withValues(
+                              alpha: 0.12,
+                            ),
+                            inactiveTrackColor: Colors.white24,
+                            trackHeight: 4,
+                            thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 7,
+                            ),
+                          ),
+                          child: Slider(
+                            value: activeFontSize,
+                            min: 14,
+                            max: 26,
+                            divisions: 6,
+                            onChanged: (v) {
+                              _readerFontSizeOverride = v;
+                              setModalState(() {});
+                              if (mounted) setState(() {});
+                            },
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  const Text(
-                    'A',
-                    style: TextStyle(fontSize: 22, color: Colors.white),
-                  ),
-                ],
+                    const SizedBox(height: 18),
+                    _ReaderSettingsSection(
+                      title: 'Satır Aralığı',
+                      child: _ReaderSliderRow(
+                        leading: 'Sık',
+                        trailing: 'Rahat',
+                        trailingSize: 12,
+                        valueLabel: activeLineHeight.toStringAsFixed(2),
+                        child: SliderTheme(
+                          data: SliderTheme.of(ctx).copyWith(
+                            activeTrackColor: AppColors.accent,
+                            thumbColor: AppColors.accent,
+                            overlayColor: AppColors.accent.withValues(
+                              alpha: 0.12,
+                            ),
+                            inactiveTrackColor: Colors.white24,
+                            trackHeight: 4,
+                            thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 7,
+                            ),
+                          ),
+                          child: Slider(
+                            value: activeLineHeight,
+                            min: 1.55,
+                            max: 2.1,
+                            divisions: 5,
+                            onChanged: (v) {
+                              _readerLineHeightOverride = v;
+                              setModalState(() {});
+                              if (mounted) setState(() {});
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -401,7 +523,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     return switch (theme) {
       'light' => const _ReaderPalette(
         background: Color(0xFFF8F5EE),
-        text: Color(0xFF1A1A1A),
+        text: Color(0xFF1F1B16),
         muted: Color(0xFF7A746B),
         divider: Color(0xFFD9D3C8),
         accent: AppColors.primary,
@@ -424,21 +546,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 }
 
-// ── Page item types ───────────────────────────────────────────────────────────
-
 class _ParagraphItem {
-  final dynamic paragraph;
+  final ParagraphModel paragraph;
   const _ParagraphItem(this.paragraph);
 }
 
 class _AdItem {}
 
-// ── Ad page ───────────────────────────────────────────────────────────────────
-//
-// Replaces the broken Spacer-in-Column-in-Center pattern.
-
 class _AdPage extends StatelessWidget {
   final _ReaderPalette palette;
+
   const _AdPage({super.key, required this.palette});
 
   @override
@@ -446,15 +563,11 @@ class _AdPage extends StatelessWidget {
     return SizedBox.expand(
       child: ColoredBox(
         color: palette.background,
-        child: const Center(
-          child: AdBannerWidget(position: 'reader_banner'),
-        ),
+        child: const Center(child: AdBannerWidget(position: 'reader_banner')),
       ),
     );
   }
 }
-
-// ── Premium gate ──────────────────────────────────────────────────────────────
 
 class _PremiumGateScreen extends StatelessWidget {
   final VoidCallback onUpgrade;
@@ -481,7 +594,11 @@ class _PremiumGateScreen extends StatelessWidget {
               const SizedBox(height: 12),
               const Text(
                 'Bu kitabı okumak için KitapLig Premium üyeliği gerekiyor.\nAylık ₺14,99 ile sınırsız erişim sağlayın.',
-                style: TextStyle(fontSize: 15, color: Colors.black54, height: 1.6),
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.black54,
+                  height: 1.6,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
@@ -522,18 +639,15 @@ class _PremiumGateScreen extends StatelessWidget {
   }
 }
 
-// ── Top bar ───────────────────────────────────────────────────────────────────
-//
-// NOTE: This widget must NOT return Positioned — the caller places it inside
-// a Positioned widget at the Stack level.
-
 class _ReaderTopBar extends StatelessWidget {
   final String readerTheme;
+  final String fontFamily;
   final VoidCallback onBack;
   final VoidCallback onSettings;
 
   const _ReaderTopBar({
     required this.readerTheme,
+    required this.fontFamily,
     required this.onBack,
     required this.onSettings,
   });
@@ -545,9 +659,9 @@ class _ReaderTopBar extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.fromLTRB(
-        8,
+        14,
         MediaQuery.of(context).padding.top + 8,
-        8,
+        14,
         12,
       ),
       decoration: BoxDecoration(
@@ -555,21 +669,43 @@ class _ReaderTopBar extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.black.withOpacity(isDark ? 0.4 : 0.1),
+            Colors.black.withValues(alpha: isDark ? 0.4 : 0.08),
             Colors.transparent,
           ],
         ),
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: onBack,
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: iconColor, size: 20),
+          _TopBarButton(
+            icon: Icons.arrow_back_ios_new_rounded,
+            color: iconColor,
+            onTap: onBack,
           ),
           const Spacer(),
-          IconButton(
-            onPressed: onSettings,
-            icon: Icon(Icons.tune_rounded, color: iconColor, size: 20),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: isDark ? 0.08 : 0.52),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              switch (fontFamily) {
+                'editorial' => 'Editoryal',
+                'modern' => 'Modern',
+                _ => 'Klasik',
+              },
+              style: TextStyle(
+                color: iconColor.withValues(alpha: 0.82),
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          _TopBarButton(
+            icon: Icons.tune_rounded,
+            color: iconColor,
+            onTap: onSettings,
           ),
         ],
       ),
@@ -577,12 +713,11 @@ class _ReaderTopBar extends StatelessWidget {
   }
 }
 
-// ── Bottom bar ────────────────────────────────────────────────────────────────
-
 class _ReaderBottomBar extends StatelessWidget {
   final String readerTheme;
   final int current;
   final int total;
+  final String fontFamily;
   final VoidCallback? onPrev;
   final VoidCallback? onNext;
 
@@ -590,6 +725,7 @@ class _ReaderBottomBar extends StatelessWidget {
     required this.readerTheme,
     required this.current,
     required this.total,
+    required this.fontFamily,
     this.onPrev,
     this.onNext,
   });
@@ -613,7 +749,7 @@ class _ReaderBottomBar extends StatelessWidget {
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
           colors: [
-            Colors.black.withOpacity(isDark ? 0.4 : 0.1),
+            Colors.black.withValues(alpha: isDark ? 0.4 : 0.08),
             Colors.transparent,
           ],
         ),
@@ -621,21 +757,18 @@ class _ReaderBottomBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Progress bar
           ClipRRect(
             borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: Colors.white24,
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accent),
               minHeight: 2.5,
             ),
           ),
           const SizedBox(height: 8),
-          // Counter + nav arrows
           Row(
             children: [
-              // Prev button
               _NavArrow(
                 icon: Icons.keyboard_arrow_up_rounded,
                 color: arrowColor,
@@ -643,12 +776,24 @@ class _ReaderBottomBar extends StatelessWidget {
                 onTap: onPrev,
               ),
               const SizedBox(width: 4),
-              // Next button
               _NavArrow(
                 icon: Icons.keyboard_arrow_down_rounded,
                 color: arrowColor,
                 enabled: onNext != null,
                 onTap: onNext,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                switch (fontFamily) {
+                  'editorial' => 'Editoryal',
+                  'modern' => 'Modern',
+                  _ => 'Klasik',
+                },
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const Spacer(),
               Text(
@@ -696,7 +841,7 @@ class _NavArrow extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
+            color: Colors.white.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: color, size: 20),
@@ -705,8 +850,6 @@ class _NavArrow extends StatelessWidget {
     );
   }
 }
-
-// ── Palette & data ────────────────────────────────────────────────────────────
 
 class _ReaderPalette {
   final Color background;
@@ -722,4 +865,264 @@ class _ReaderPalette {
     required this.divider,
     required this.accent,
   });
+}
+
+class _TopBarButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _TopBarButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: Icon(icon, color: color, size: 19),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReaderSettingsSection extends StatelessWidget {
+  final String title;
+  final Widget child;
+
+  const _ReaderSettingsSection({required this.title, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.045),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Colors.white70,
+            ),
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _ReaderOptionChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ReaderOptionChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected
+          ? AppColors.primary.withValues(alpha: 0.22)
+          : Colors.white.withValues(alpha: 0.06),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: selected ? AppColors.primaryLight : Colors.white70,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected ? Colors.white : Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FontChoiceTile extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final TextStyle sampleStyle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FontChoiceTile({
+    required this.title,
+    required this.subtitle,
+    required this.sampleStyle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected
+          ? AppColors.accent.withValues(alpha: 0.16)
+          : Colors.white.withValues(alpha: 0.04),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: sampleStyle),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.4,
+                        color: Colors.white.withValues(alpha: 0.66),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selected ? AppColors.primary : Colors.transparent,
+                  border: Border.all(
+                    color: selected ? AppColors.primary : Colors.white24,
+                    width: 1.5,
+                  ),
+                ),
+                child: selected
+                    ? const Icon(
+                        Icons.check_rounded,
+                        size: 14,
+                        color: Colors.white,
+                      )
+                    : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReaderSliderRow extends StatelessWidget {
+  final String leading;
+  final String trailing;
+  final double trailingSize;
+  final String valueLabel;
+  final Widget child;
+
+  const _ReaderSliderRow({
+    required this.leading,
+    required this.trailing,
+    required this.trailingSize,
+    required this.valueLabel,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Text(
+              leading,
+              style: const TextStyle(fontSize: 12, color: Colors.white54),
+            ),
+            Expanded(child: child),
+            Text(
+              trailing,
+              style: TextStyle(fontSize: trailingSize, color: Colors.white),
+            ),
+          ],
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            valueLabel,
+            style: const TextStyle(
+              color: Colors.white54,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+TextStyle _previewTextStyle({
+  required String family,
+  required Color color,
+  required double fontSize,
+  required double height,
+}) {
+  switch (family) {
+    case 'editorial':
+      return GoogleFonts.crimsonText(
+        color: color,
+        fontSize: fontSize,
+        height: height,
+      );
+    case 'modern':
+      return GoogleFonts.dmSans(
+        color: color,
+        fontSize: fontSize,
+        height: height,
+      );
+    default:
+      return GoogleFonts.lora(color: color, fontSize: fontSize, height: height);
+  }
 }
