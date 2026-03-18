@@ -4,7 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/paragraph_model.dart';
 
-class ParagraphCard extends StatelessWidget {
+class ParagraphCard extends StatefulWidget {
   final ParagraphModel paragraph;
   final bool isCurrent;
   final int total;
@@ -27,18 +27,54 @@ class ParagraphCard extends StatelessWidget {
   });
 
   @override
+  State<ParagraphCard> createState() => _ParagraphCardState();
+}
+
+class _ParagraphCardState extends State<ParagraphCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _anim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+      value: widget.isCurrent ? 1.0 : 0.6,
+    );
+    if (widget.isCurrent) _anim.forward();
+  }
+
+  @override
+  void didUpdateWidget(ParagraphCard old) {
+    super.didUpdateWidget(old);
+    if (widget.isCurrent && !old.isCurrent) {
+      _anim.forward(from: 0.6);
+    }
+  }
+
+  @override
+  void dispose() {
+    _anim.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onLongPress: () => _showBottomSheet(context),
-      child: Container(
-        width: double.infinity,
-        height: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 80),
-        child: switch (paragraph.type) {
-          ParagraphType.sceneBreak => _buildSceneBreak(),
-          ParagraphType.quote => _buildQuote(),
-          _ => _buildText(),
-        },
+      child: SizedBox.expand(
+        child: FadeTransition(
+          opacity: _anim,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 80),
+            child: switch (widget.paragraph.type) {
+              ParagraphType.sceneBreak => _buildSceneBreak(),
+              ParagraphType.quote => _buildQuote(),
+              _ => _buildText(),
+            },
+          ),
+        ),
       ),
     );
   }
@@ -46,12 +82,13 @@ class ParagraphCard extends StatelessWidget {
   Widget _buildText() {
     return Center(
       child: Text(
-        paragraph.content,
+        widget.paragraph.content,
         style: TextStyle(
-          fontSize: fontSize,
-          height: 1.8,
-          color: textColor,
+          fontSize: widget.fontSize,
+          height: 1.85,
+          color: widget.textColor,
           fontWeight: FontWeight.w400,
+          letterSpacing: 0.1,
         ),
         textAlign: TextAlign.left,
       ),
@@ -67,18 +104,18 @@ class ParagraphCard extends StatelessWidget {
             '"',
             style: TextStyle(
               fontSize: 80,
-              color: accentColor.withValues(alpha: 0.20),
+              color: widget.accentColor.withOpacity(0.20),
               height: 0.8,
               fontFamily: 'Georgia',
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            paragraph.content,
+            widget.paragraph.content,
             style: TextStyle(
-              fontSize: fontSize,
+              fontSize: widget.fontSize,
               height: 1.9,
-              color: textColor,
+              color: widget.textColor,
               fontStyle: FontStyle.italic,
               fontWeight: FontWeight.w500,
             ),
@@ -94,11 +131,11 @@ class ParagraphCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 60, height: 1, color: dividerColor),
+          Container(width: 60, height: 1, color: widget.dividerColor),
           const SizedBox(height: 12),
-          Text('⁂', style: TextStyle(fontSize: 24, color: mutedColor)),
+          Text('⁂', style: TextStyle(fontSize: 24, color: widget.mutedColor)),
           const SizedBox(height: 12),
-          Container(width: 60, height: 1, color: dividerColor),
+          Container(width: 60, height: 1, color: widget.dividerColor),
         ],
       ),
     );
@@ -107,6 +144,7 @@ class ParagraphCard extends StatelessWidget {
   void _showBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: const Color(0xFF1C1C1E),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -121,13 +159,13 @@ class ParagraphCard extends StatelessWidget {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: Colors.white24,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.share, color: AppColors.primary),
-                title: const Text('Paylaş'),
+                leading: const Icon(Icons.share_rounded, color: AppColors.primary),
+                title: const Text('Paylaş', style: TextStyle(color: Colors.white)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _shareParagraph();
@@ -138,7 +176,7 @@ class ParagraphCard extends StatelessWidget {
                   Icons.bookmark_add_outlined,
                   color: AppColors.primary,
                 ),
-                title: const Text('Yer imi ekle'),
+                title: const Text('Yer imi ekle', style: TextStyle(color: Colors.white)),
                 onTap: () {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -155,7 +193,7 @@ class ParagraphCard extends StatelessWidget {
 
   void _shareParagraph() {
     Share.share(
-      '"${paragraph.content}"\n\n— KitapLig uygulamasından',
+      '"${widget.paragraph.content}"\n\n— KitapLig uygulamasından',
       subject: 'KitapLig',
     );
   }

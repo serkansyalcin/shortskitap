@@ -12,13 +12,10 @@ import '../../../core/platform/platform_support.dart';
 import '../../../features/subscription/widgets/ad_banner.dart';
 import '../widgets/paragraph_card.dart';
 
-/// Every N paragraphs, an ad slot is inserted for non-premium users.
 const _adEveryN = 5;
 
 class ReaderScreen extends ConsumerStatefulWidget {
   final int bookId;
-
-  /// Optional flag passed from BookDetailScreen via route `extra`.
   final bool bookIsPremium;
 
   const ReaderScreen({
@@ -31,7 +28,8 @@ class ReaderScreen extends ConsumerStatefulWidget {
   ConsumerState<ReaderScreen> createState() => _ReaderScreenState();
 }
 
-class _ReaderScreenState extends ConsumerState<ReaderScreen> {
+class _ReaderScreenState extends ConsumerState<ReaderScreen>
+    with SingleTickerProviderStateMixin {
   late PageController _pageController;
   int _currentIndex = 0;
   Timer? _debounce;
@@ -42,10 +40,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   String? _readerThemeOverride;
   double? _readerFontSizeOverride;
 
+
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
+
     if (PlatformSupport.supportsImmersiveUi) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     }
@@ -94,6 +94,24 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     _startControlsTimer();
   }
 
+  void _goNext(int total) {
+    if (_currentIndex < total - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 380),
+        curve: Curves.easeInOutCubic,
+      );
+    }
+  }
+
+  void _goPrev() {
+    if (_currentIndex > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 380),
+        curve: Curves.easeInOutCubic,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final paragraphsAsync = ref.watch(paragraphsProvider(widget.bookId));
@@ -102,9 +120,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final readerTheme = _readerThemeOverride ?? settings.theme;
     final readerFontSize =
         _readerFontSizeOverride ?? settings.fontSize.toDouble();
-    final readerPalette = _paletteForTheme(readerTheme);
+    final palette = _paletteForTheme(readerTheme);
 
-    // Gate: if book is premium and user is not premium, redirect to paywall
     if (widget.bookIsPremium && !isPremium) {
       return _PremiumGateScreen(
         onUpgrade: () => context.push('/premium'),
@@ -115,79 +132,86 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     return GestureDetector(
       onTap: _showControlsTemporarily,
       child: Scaffold(
-        backgroundColor: readerPalette.background,
+        backgroundColor: palette.background,
         body: paragraphsAsync.when(
           data: (paragraphs) {
             if (paragraphs.isEmpty) {
-              return const Center(child: Text('Bu kitapta henüz içerik yok.'));
+              return Center(
+                child: Text(
+                  'Bu kitapta henüz içerik yok.',
+                  style: TextStyle(color: palette.text),
+                ),
+              );
             }
 
-            // Build a list of page items: paragraphs + ad slots for non-premium
             final items = _buildItemList(paragraphs, isPremium);
 
             return Stack(
               children: [
+                // ── PageView ─────────────────────────────────────────────
                 PageView.builder(
                   controller: _pageController,
                   scrollDirection: Axis.vertical,
+                  physics: const PageScrollPhysics(),
                   itemCount: items.length,
                   onPageChanged: _onPageChanged,
                   itemBuilder: (ctx, index) {
                     final item = items[index];
-                    if (item is _AdItem) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Spacer(),
-                            const AdBannerWidget(position: 'reader_banner'),
-                            const Spacer(),
-                          ],
-                        ),
-                      );
-                    }
-                    final para = item as _ParagraphItem;
+                    if (item is _AdItem) return _AdPage(palette: palette);
                     return ParagraphCard(
-                      paragraph: para.paragraph,
+                      paragraph: (item as _ParagraphItem).paragraph,
                       isCurrent: index == _currentIndex,
                       total: paragraphs.length,
                       fontSize: readerFontSize,
-                      textColor: readerPalette.text,
-                      dividerColor: readerPalette.divider,
-                      accentColor: readerPalette.accent,
-                      mutedColor: readerPalette.muted,
+                      textColor: palette.text,
+                      dividerColor: palette.divider,
+                      accentColor: palette.accent,
+                      mutedColor: palette.muted,
                     );
                   },
                 ),
 
-                AnimatedOpacity(
-                  opacity: _showControls ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 200),
-                  child: _ReaderTopBar(
-                    readerTheme: readerTheme,
-                    onBack: () => context.pop(),
-                    onSettings: () => _showReaderSettings(context, readerTheme),
+                // ── Top bar (Positioned must be direct child of Stack) ──
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: AnimatedOpacity(
+                    opacity: _showControls ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 220),
+                    child: _ReaderTopBar(
+                      readerTheme: readerTheme,
+                      onBack: () => context.pop(),
+                      onSettings: () =>
+                          _showReaderSettings(context, readerTheme),
+                    ),
                   ),
                 ),
 
+                // ── Bottom bar ─────────────────────────────────────────
                 Positioned(
                   bottom: 0,
                   left: 0,
                   right: 0,
                   child: AnimatedOpacity(
                     opacity: _showControls ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 200),
+                    duration: const Duration(milliseconds: 220),
                     child: _ReaderBottomBar(
                       readerTheme: readerTheme,
                       current: _currentIndex + 1,
                       total: items.length,
+                      onPrev: _currentIndex > 0 ? _goPrev : null,
+                      onNext: _currentIndex < items.length - 1
+                          ? () => _goNext(items.length)
+                          : null,
                     ),
                   ),
                 ),
+
               ],
             );
           },
-          loading: () => const Center(
+          loading: () => Center(
             child: CircularProgressIndicator(color: AppColors.primary),
           ),
           error: (e, _) => Center(
@@ -196,7 +220,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               children: [
                 const Icon(Icons.error_outline, size: 48, color: Colors.red),
                 const SizedBox(height: 16),
-                Text('Yüklenemedi: $e'),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    'Yüklenemedi: $e',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () =>
@@ -218,7 +248,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final items = <dynamic>[];
     for (var i = 0; i < paragraphs.length; i++) {
       items.add(_ParagraphItem(paragraphs[i]));
-      // Insert an ad every _adEveryN paragraphs (not at the very end)
       if ((i + 1) % _adEveryN == 0 && i < paragraphs.length - 1) {
         items.add(_AdItem());
       }
@@ -230,35 +259,47 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final settings = ref.read(settingsProvider);
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF202020),
+      backgroundColor: const Color(0xFF1C1C1E),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
               const Text(
                 'Okuma Ayarları',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 17,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
               const SizedBox(height: 20),
-
               const Text(
                 'Tema',
                 style: TextStyle(
                   fontWeight: FontWeight.w500,
-                  color: Colors.white,
+                  fontSize: 13,
+                  color: Colors.white70,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Row(
                 children: ['light', 'dark', 'sepia'].map((t) {
                   final labels = {
@@ -266,6 +307,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     'dark': '🌙 Koyu',
                     'sepia': '🍂 Sepya',
                   };
+                  final isSelected = (_readerThemeOverride ?? readerTheme) == t;
                   return Expanded(
                     child: GestureDetector(
                       onTap: () {
@@ -277,19 +319,22 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         margin: const EdgeInsets.only(right: 8),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: readerTheme == t
+                          color: isSelected
                               ? AppColors.primary
-                              : Colors.white.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(10),
+                              : Colors.white.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.transparent,
+                          ),
                         ),
                         child: Text(
                           labels[t]!,
                           style: TextStyle(
-                            color: readerTheme == t
-                                ? Colors.white
-                                : Colors.white70,
+                            color: isSelected ? Colors.white : Colors.white70,
                             fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -298,35 +343,45 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 20),
-
+              const SizedBox(height: 24),
               const Text(
                 'Font Boyutu',
                 style: TextStyle(
                   fontWeight: FontWeight.w500,
-                  color: Colors.white,
+                  fontSize: 13,
+                  color: Colors.white70,
                 ),
               ),
+              const SizedBox(height: 4),
               Row(
                 children: [
                   const Text(
                     'A',
-                    style: TextStyle(fontSize: 12, color: Colors.white70),
+                    style: TextStyle(fontSize: 12, color: Colors.white54),
                   ),
                   Expanded(
-                    child: Slider(
-                      value:
-                          _readerFontSizeOverride ??
-                          settings.fontSize.toDouble(),
-                      min: 12,
-                      max: 22,
-                      divisions: 5,
-                      activeColor: AppColors.primary,
-                      onChanged: (v) {
-                        _readerFontSizeOverride = v;
-                        setModalState(() {});
-                        if (mounted) setState(() {});
-                      },
+                    child: SliderTheme(
+                      data: SliderTheme.of(ctx).copyWith(
+                        activeTrackColor: AppColors.primary,
+                        thumbColor: AppColors.primary,
+                        overlayColor: AppColors.primary.withOpacity(0.12),
+                        inactiveTrackColor: Colors.white24,
+                        trackHeight: 3,
+                        thumbShape:
+                            const RoundSliderThumbShape(enabledThumbRadius: 7),
+                      ),
+                      child: Slider(
+                        value: _readerFontSizeOverride ??
+                            settings.fontSize.toDouble(),
+                        min: 12,
+                        max: 22,
+                        divisions: 5,
+                        onChanged: (v) {
+                          _readerFontSizeOverride = v;
+                          setModalState(() {});
+                          if (mounted) setState(() {});
+                        },
+                      ),
                     ),
                   ),
                   const Text(
@@ -369,7 +424,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 }
 
-// ── Page item types ────────────────────────────────────────────────────────────
+// ── Page item types ───────────────────────────────────────────────────────────
 
 class _ParagraphItem {
   final dynamic paragraph;
@@ -377,6 +432,27 @@ class _ParagraphItem {
 }
 
 class _AdItem {}
+
+// ── Ad page ───────────────────────────────────────────────────────────────────
+//
+// Replaces the broken Spacer-in-Column-in-Center pattern.
+
+class _AdPage extends StatelessWidget {
+  final _ReaderPalette palette;
+  const _AdPage({super.key, required this.palette});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.expand(
+      child: ColoredBox(
+        color: palette.background,
+        child: const Center(
+          child: AdBannerWidget(position: 'reader_banner'),
+        ),
+      ),
+    );
+  }
+}
 
 // ── Premium gate ──────────────────────────────────────────────────────────────
 
@@ -405,11 +481,7 @@ class _PremiumGateScreen extends StatelessWidget {
               const SizedBox(height: 12),
               const Text(
                 'Bu kitabı okumak için KitapLig Premium üyeliği gerekiyor.\nAylık ₺14,99 ile sınırsız erişim sağlayın.',
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Colors.black54,
-                  height: 1.6,
-                ),
+                style: TextStyle(fontSize: 15, color: Colors.black54, height: 1.6),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
@@ -450,7 +522,10 @@ class _PremiumGateScreen extends StatelessWidget {
   }
 }
 
-// ── UI components ─────────────────────────────────────────────────────────────
+// ── Top bar ───────────────────────────────────────────────────────────────────
+//
+// NOTE: This widget must NOT return Positioned — the caller places it inside
+// a Positioned widget at the Stack level.
 
 class _ReaderTopBar extends StatelessWidget {
   final String readerTheme;
@@ -465,85 +540,80 @@ class _ReaderTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: EdgeInsets.fromLTRB(
-          8,
-          MediaQuery.of(context).padding.top + 8,
-          8,
-          12,
-        ),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              (readerTheme == 'light' || readerTheme == 'sepia')
-                  ? Colors.black.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.3),
-              Colors.transparent,
-            ],
-          ),
-        ),
-        child: Row(
-          children: [
-            IconButton(
-              onPressed: onBack,
-              icon: Icon(
-                Icons.arrow_back_ios_new,
-                color: readerTheme == 'dark' ? Colors.white : Colors.black87,
-                size: 20,
-              ),
-            ),
-            const Spacer(),
-            IconButton(
-              onPressed: onSettings,
-              icon: Icon(
-                Icons.tune,
-                color: readerTheme == 'dark' ? Colors.white : Colors.black87,
-                size: 20,
-              ),
-            ),
+    final isDark = readerTheme == 'dark';
+    final iconColor = isDark ? Colors.white : Colors.black87;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        8,
+        MediaQuery.of(context).padding.top + 8,
+        8,
+        12,
+      ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black.withOpacity(isDark ? 0.4 : 0.1),
+            Colors.transparent,
           ],
         ),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: onBack,
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: iconColor, size: 20),
+          ),
+          const Spacer(),
+          IconButton(
+            onPressed: onSettings,
+            icon: Icon(Icons.tune_rounded, color: iconColor, size: 20),
+          ),
+        ],
       ),
     );
   }
 }
 
+// ── Bottom bar ────────────────────────────────────────────────────────────────
+
 class _ReaderBottomBar extends StatelessWidget {
   final String readerTheme;
   final int current;
   final int total;
+  final VoidCallback? onPrev;
+  final VoidCallback? onNext;
 
   const _ReaderBottomBar({
     required this.readerTheme,
     required this.current,
     required this.total,
+    this.onPrev,
+    this.onNext,
   });
 
   @override
   Widget build(BuildContext context) {
     final progress = total > 0 ? current / total : 0.0;
+    final isDark = readerTheme == 'dark';
+    final textColor = isDark ? Colors.white70 : Colors.black54;
+    final arrowColor = isDark ? Colors.white54 : Colors.black38;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
-        20,
-        12,
-        20,
-        MediaQuery.of(context).padding.bottom + 12,
+        16,
+        10,
+        16,
+        MediaQuery.of(context).padding.bottom + 10,
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
           colors: [
-            (readerTheme == 'light' || readerTheme == 'sepia')
-                ? Colors.black.withValues(alpha: 0.08)
-                : Colors.black.withValues(alpha: 0.3),
+            Colors.black.withOpacity(isDark ? 0.4 : 0.1),
             Colors.transparent,
           ],
         ),
@@ -551,44 +621,92 @@ class _ReaderBottomBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '$current / $total',
-                style: TextStyle(
-                  color: readerTheme == 'dark'
-                      ? Colors.white70
-                      : Colors.black54,
-                  fontSize: 12,
-                ),
-              ),
-              Text(
-                '${(progress * 100).toStringAsFixed(1)}%',
-                style: TextStyle(
-                  color: readerTheme == 'dark'
-                      ? Colors.white70
-                      : Colors.black54,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
+          // Progress bar
           ClipRRect(
             borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: Colors.white24,
-              color: AppColors.accent,
-              minHeight: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
+              minHeight: 2.5,
             ),
+          ),
+          const SizedBox(height: 8),
+          // Counter + nav arrows
+          Row(
+            children: [
+              // Prev button
+              _NavArrow(
+                icon: Icons.keyboard_arrow_up_rounded,
+                color: arrowColor,
+                enabled: onPrev != null,
+                onTap: onPrev,
+              ),
+              const SizedBox(width: 4),
+              // Next button
+              _NavArrow(
+                icon: Icons.keyboard_arrow_down_rounded,
+                color: arrowColor,
+                enabled: onNext != null,
+                onTap: onNext,
+              ),
+              const Spacer(),
+              Text(
+                '$current / $total',
+                style: TextStyle(color: textColor, fontSize: 12),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                '${(progress * 100).toStringAsFixed(0)}%',
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 }
+
+class _NavArrow extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final bool enabled;
+  final VoidCallback? onTap;
+
+  const _NavArrow({
+    required this.icon,
+    required this.color,
+    required this.enabled,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: AnimatedOpacity(
+        opacity: enabled ? 1.0 : 0.25,
+        duration: const Duration(milliseconds: 200),
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Palette & data ────────────────────────────────────────────────────────────
 
 class _ReaderPalette {
   final Color background;
