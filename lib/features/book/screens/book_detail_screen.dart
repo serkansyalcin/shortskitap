@@ -2,8 +2,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../../../app/providers/auth_provider.dart';
 import '../../../app/providers/books_provider.dart';
+import '../../../app/providers/library_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/book_model.dart';
@@ -78,22 +81,9 @@ class BookDetailScreen extends ConsumerWidget {
                         accentColor: accentColor,
                         textSecondary: textSecondary,
                       ),
+                      const SizedBox(height: 16),
+                      _BookActionStrip(book: book, accentColor: accentColor),
                       const SizedBox(height: 24),
-                      if (book.description != null &&
-                          book.description!.isNotEmpty) ...[
-                        _ContentCard(
-                          title: 'Hakkında',
-                          child: Text(
-                            book.description!,
-                            style: TextStyle(
-                              fontSize: 14,
-                              height: 1.75,
-                              color: textSecondary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                      ],
                       podcastsAsync.when(
                         data: (podcasts) => podcasts.isEmpty
                             ? const SizedBox.shrink()
@@ -203,6 +193,8 @@ class _BookHeroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final hasDescription =
+        book.description != null && book.description!.isNotEmpty;
 
     return Container(
       decoration: BoxDecoration(
@@ -320,27 +312,70 @@ class _BookHeroCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (book.description != null &&
-                    book.description!.isNotEmpty) ...[
+                if (hasDescription) ...[
                   const SizedBox(height: 18),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.05),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _showDescriptionModal(
+                        context,
+                        title: book.title,
+                        author: book.author?.name,
+                        description: book.description!,
                       ),
-                    ),
-                    child: Text(
-                      book.description!,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        height: 1.6,
-                        color: colorScheme.onSurface.withValues(alpha: 0.84),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.05),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.menu_book_rounded,
+                                  size: 16,
+                                  color: colorScheme.onSurface,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Hakkında',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Icon(
+                                  Icons.open_in_full_rounded,
+                                  size: 16,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              book.description!,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                height: 1.6,
+                                color: colorScheme.onSurface.withValues(
+                                  alpha: 0.84,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -352,6 +387,100 @@ class _BookHeroCard extends StatelessWidget {
       ),
     );
   }
+}
+
+void _showDescriptionModal(
+  BuildContext context, {
+  required String title,
+  required String description,
+  String? author,
+}) {
+  final colorScheme = Theme.of(context).colorScheme;
+
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: colorScheme.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+    builder: (modalContext) {
+      return SafeArea(
+        top: false,
+        child: DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.72,
+          minChildSize: 0.5,
+          maxChildSize: 0.92,
+          builder: (context, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.35,
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Hakkında',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  if (author != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      author,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 18),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      child: Text(
+                        description,
+                        style: TextStyle(
+                          fontSize: 15,
+                          height: 1.8,
+                          color: colorScheme.onSurface.withValues(alpha: 0.92),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
+    },
+  );
 }
 
 class _BookCover extends StatelessWidget {
@@ -578,6 +707,224 @@ class _ActionCard extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _BookActionStrip extends ConsumerStatefulWidget {
+  final BookModel book;
+  final Color accentColor;
+
+  const _BookActionStrip({required this.book, required this.accentColor});
+
+  @override
+  ConsumerState<_BookActionStrip> createState() => _BookActionStripState();
+}
+
+class _BookActionStripState extends ConsumerState<_BookActionStrip> {
+  bool _isSubmitting = false;
+  bool? _optimisticFavorite;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final authState = ref.watch(authProvider);
+    final favorites = ref.watch(favoritesProvider).valueOrNull ?? const [];
+    final isAuthenticated = authState.isAuthenticated;
+    final isFavorite =
+        _optimisticFavorite ??
+        favorites.any((item) => item.bookId == widget.book.id);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.28),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: widget.accentColor.withValues(alpha: 0.16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isFavorite ? 'Kütüphanene eklendi' : 'Hızlı işlemler',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            isFavorite
+                ? 'Bu kitap favorilerinde görünecek.'
+                : 'Kaydet, paylaş ve daha sonra kaldığın yerden devam et.',
+            style: TextStyle(
+              fontSize: 12.5,
+              height: 1.45,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _ActionButton(
+                  icon: isFavorite
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  label: _isSubmitting
+                      ? 'Kaydediliyor...'
+                      : isFavorite
+                      ? 'Favorilerde'
+                      : 'Favoriye ekle',
+                  accentColor: widget.accentColor,
+                  emphasized: isFavorite,
+                  onTap: _isSubmitting ? null : _toggleFavorite,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ActionButton(
+                  icon: Icons.share_outlined,
+                  label: 'Paylaş',
+                  accentColor: widget.accentColor,
+                  emphasized: false,
+                  onTap: _shareBook,
+                ),
+              ),
+            ],
+          ),
+          if (!isAuthenticated) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Favoriye eklemek için giriş yapman gerekiyor.',
+              style: TextStyle(
+                fontSize: 11.5,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _toggleFavorite() async {
+    final authState = ref.read(authProvider);
+    if (!authState.isAuthenticated) {
+      if (!mounted) return;
+      final returnTo = Uri.encodeComponent('/books/${widget.book.slug}');
+      context.push('/login?returnTo=$returnTo');
+      return;
+    }
+
+    final currentFavorite =
+        _optimisticFavorite ??
+        (ref.read(favoritesProvider).valueOrNull ?? const []).any(
+          (item) => item.bookId == widget.book.id,
+        );
+    final nextFavorite = !currentFavorite;
+
+    setState(() {
+      _isSubmitting = true;
+      _optimisticFavorite = nextFavorite;
+    });
+
+    try {
+      final favorited = await ref
+          .read(favoriteServiceProvider)
+          .toggleFavorite(widget.book.id);
+      ref.invalidate(favoritesProvider);
+      if (!mounted) return;
+      setState(() => _optimisticFavorite = favorited);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            favorited
+                ? 'Kitap favorilerine eklendi.'
+                : 'Kitap favorilerinden kaldırıldı.',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _optimisticFavorite = currentFavorite);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Favori işlemi şu anda tamamlanamadı.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  void _shareBook() {
+    final author = widget.book.author?.name;
+    final shareText = StringBuffer()
+      ..writeln('${widget.book.title}${author != null ? ' - $author' : ''}')
+      ..writeln()
+      ..write('KitapLig uygulamasında bu kitaba göz at: ${widget.book.title}');
+
+    Share.share(shareText.toString(), subject: widget.book.title);
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color accentColor;
+  final bool emphasized;
+  final VoidCallback? onTap;
+
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.accentColor,
+    required this.emphasized,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: emphasized
+          ? accentColor.withValues(alpha: 0.18)
+          : colorScheme.surface.withValues(alpha: 0.5),
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: emphasized ? accentColor : colorScheme.onSurface,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

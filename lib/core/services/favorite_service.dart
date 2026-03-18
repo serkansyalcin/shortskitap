@@ -11,4 +11,10 @@ class FavoriteService {
         .map((e) => FavoriteModel.fromJson(e as Map<String, dynamic>))
         .toList();
   }
+
+  Future<bool> toggleFavorite(int bookId) async {
+    final res = await _client.post('/favorites/$bookId');
+    final data = res.data['data'] as Map<String, dynamic>;
+    return data['favorited'] == true;
+  }
 }
