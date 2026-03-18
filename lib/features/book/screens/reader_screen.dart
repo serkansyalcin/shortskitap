@@ -36,6 +36,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     with SingleTickerProviderStateMixin {
   late PageController _pageController;
   int _currentIndex = 0;
+  int _currentParagraphOrder = 1;
   Timer? _debounce;
   Timer? _sessionTimer;
   int _sessionSeconds = 0;
@@ -45,6 +46,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   double? _readerFontSizeOverride;
   String? _readerFontFamilyOverride;
   double? _readerLineHeightOverride;
+  bool _restoredInitialPage = false;
 
   @override
   void initState() {
@@ -82,14 +84,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   void _onPageChanged(int index) {
-    setState(() => _currentIndex = index);
+    final items = _lastBuiltItems;
+    final paragraphOrder = _paragraphOrderForIndex(items, index);
+    setState(() {
+      _currentIndex = index;
+      _currentParagraphOrder = paragraphOrder;
+    });
     _showControlsTemporarily();
 
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
       ref
           .read(progressSyncProvider.notifier)
-          .sync(widget.bookId, index + 1, _sessionSeconds);
+          .sync(widget.bookId, paragraphOrder, _sessionSeconds);
       _sessionSeconds = 0;
     });
   }
@@ -117,9 +124,58 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
+  List<dynamic> _lastBuiltItems = const [];
+
+  void _restoreInitialPageIfNeeded(int initialIndex) {
+    if (_restoredInitialPage) return;
+    _restoredInitialPage = true;
+    _currentIndex = initialIndex;
+    _currentParagraphOrder = _paragraphOrderForIndex(
+      _lastBuiltItems,
+      initialIndex,
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_pageController.hasClients) return;
+      _pageController.jumpToPage(initialIndex);
+      setState(() {});
+    });
+  }
+
+  int _resolveInitialIndex(List<dynamic> items, int? lastParagraphOrder) {
+    if (lastParagraphOrder == null || lastParagraphOrder <= 1) return 0;
+    for (var i = 0; i < items.length; i++) {
+      final item = items[i];
+      if (item is _ParagraphItem && item.paragraphOrder == lastParagraphOrder) {
+        return i;
+      }
+    }
+    return 0;
+  }
+
+  int _paragraphOrderForIndex(List<dynamic> items, int index) {
+    if (items.isEmpty) return 1;
+    final safeIndex = index.clamp(0, items.length - 1);
+    final item = items[safeIndex];
+    if (item is _ParagraphItem) return item.paragraphOrder;
+
+    for (var i = safeIndex - 1; i >= 0; i--) {
+      final previous = items[i];
+      if (previous is _ParagraphItem) return previous.paragraphOrder;
+    }
+
+    for (var i = safeIndex + 1; i < items.length; i++) {
+      final next = items[i];
+      if (next is _ParagraphItem) return next.paragraphOrder;
+    }
+
+    return 1;
+  }
+
   @override
   Widget build(BuildContext context) {
     final paragraphsAsync = ref.watch(paragraphsProvider(widget.bookId));
+    final progressAsync = ref.watch(bookProgressProvider(widget.bookId));
     final settings = ref.watch(settingsProvider);
     final isPremium = ref.watch(isPremiumProvider);
     final readerTheme = _readerThemeOverride ?? settings.theme;
@@ -151,7 +207,22 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               );
             }
 
+            if (progressAsync.isLoading && !progressAsync.hasValue) {
+              return Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              );
+            }
+
             final items = _buildItemList(paragraphs, isPremium);
+            _lastBuiltItems = items;
+            final lastParagraphOrder =
+                progressAsync.valueOrNull?.lastParagraphOrder;
+            final initialIndex = _resolveInitialIndex(
+              items,
+              lastParagraphOrder,
+            );
+
+            _restoreInitialPageIfNeeded(initialIndex);
 
             return Stack(
               children: [
@@ -215,8 +286,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     duration: const Duration(milliseconds: 220),
                     child: _ReaderBottomBar(
                       readerTheme: readerTheme,
-                      current: _currentIndex + 1,
-                      total: items.length,
+                      current: _currentParagraphOrder,
+                      total: paragraphs.length,
                       fontFamily: readerFontFamily,
                       onPrev: _currentIndex > 0 ? _goPrev : null,
                       onNext: _currentIndex < items.length - 1
@@ -260,11 +331,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     bool isPremium,
   ) {
     if (isPremium) {
-      return paragraphs.map((p) => _ParagraphItem(p)).toList();
+      return [
+        for (var i = 0; i < paragraphs.length; i++)
+          _ParagraphItem(paragraphs[i], i + 1),
+      ];
     }
     final items = <dynamic>[];
     for (var i = 0; i < paragraphs.length; i++) {
-      items.add(_ParagraphItem(paragraphs[i]));
+      items.add(_ParagraphItem(paragraphs[i], i + 1));
       if ((i + 1) % _adEveryN == 0 && i < paragraphs.length - 1) {
         items.add(_AdItem());
       }
@@ -548,7 +622,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
 class _ParagraphItem {
   final ParagraphModel paragraph;
-  const _ParagraphItem(this.paragraph);
+  final int paragraphOrder;
+
+  const _ParagraphItem(this.paragraph, this.paragraphOrder);
 }
 
 class _AdItem {}
@@ -556,7 +632,7 @@ class _AdItem {}
 class _AdPage extends StatelessWidget {
   final _ReaderPalette palette;
 
-  const _AdPage({super.key, required this.palette});
+  const _AdPage({required this.palette});
 
   @override
   Widget build(BuildContext context) {
