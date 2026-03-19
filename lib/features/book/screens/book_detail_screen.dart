@@ -178,7 +178,7 @@ class BookDetailScreen extends ConsumerWidget {
                                   ),
                                   const SizedBox(height: 10),
                                   SizedBox(
-                                    height: 180,
+                                    height: 200,
                                     child: ListView.separated(
                                       scrollDirection: Axis.horizontal,
                                       itemCount: characters.length,

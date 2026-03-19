@@ -11,6 +11,7 @@ import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/settings_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/providers/voiceover_provider.dart';
+import '../../../core/services/auto_voiceover_service.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/paragraph_model.dart';
 import '../../../core/platform/platform_support.dart';
@@ -50,11 +51,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _restoredInitialPage = false;
   bool _voiceoverLoading = false;
   int? _currentParagraphId;
+  late final AutoVoiceoverService _voiceoverService;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
+    _voiceoverService = ref.read(autoVoiceoverServiceProvider);
 
     if (PlatformSupport.supportsImmersiveUi) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -80,7 +83,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _debounce?.cancel();
     _sessionTimer?.cancel();
     _controlsTimer?.cancel();
-    ref.read(autoVoiceoverServiceProvider).stop();
+    _voiceoverService.stop();
     if (PlatformSupport.supportsImmersiveUi) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
@@ -102,6 +105,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
       ref
           .read(progressSyncProvider.notifier)
           .sync(widget.bookId, paragraphOrder, _sessionSeconds);
@@ -116,12 +120,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   Future<void> _triggerVoiceover(int paragraphId) async {
     if (_voiceoverLoading) return;
+    if (!mounted) return;
     setState(() => _voiceoverLoading = true);
     try {
-      await ref.read(autoVoiceoverServiceProvider).playParagraph(
-            widget.bookId,
-            paragraphId,
-          );
+      await _voiceoverService.playParagraph(widget.bookId, paragraphId);
     } finally {
       if (mounted) setState(() => _voiceoverLoading = false);
     }
@@ -129,13 +131,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   void _toggleVoiceover() {
     final voiceEnabled = ref.read(voiceoverEnabledProvider);
-    final service = ref.read(autoVoiceoverServiceProvider);
     if (voiceEnabled) {
       ref.read(voiceoverEnabledProvider.notifier).state = false;
-      service.disable();
+      _voiceoverService.disable();
     } else {
       ref.read(voiceoverEnabledProvider.notifier).state = true;
-      service.enable();
+      _voiceoverService.enable();
       if (_currentParagraphId != null) {
         _triggerVoiceover(_currentParagraphId!);
       }
@@ -863,13 +864,9 @@ class _ReaderBottomBar extends StatelessWidget {
     final textColor = isDark ? Colors.white70 : Colors.black54;
     final arrowColor = isDark ? Colors.white54 : Colors.black38;
 
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
     return Container(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        10,
-        16,
-        MediaQuery.of(context).padding.bottom + 10,
-      ),
+      padding: EdgeInsets.fromLTRB(16, 8, 16, bottomPadding + 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.bottomCenter,
@@ -894,6 +891,7 @@ class _ReaderBottomBar extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               _NavArrow(
                 icon: Icons.keyboard_arrow_up_rounded,
@@ -909,16 +907,19 @@ class _ReaderBottomBar extends StatelessWidget {
                 onTap: onNext,
               ),
               const SizedBox(width: 10),
-              Text(
-                switch (fontFamily) {
-                  'editorial' => 'Editoryal',
-                  'modern' => 'Modern',
-                  _ => 'Klasik',
-                },
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
+              Flexible(
+                child: Text(
+                  switch (fontFamily) {
+                    'editorial' => 'Editoryal',
+                    'modern' => 'Modern',
+                    _ => 'Klasik',
+                  },
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const Spacer(),

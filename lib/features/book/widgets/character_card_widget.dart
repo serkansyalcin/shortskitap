@@ -20,16 +20,19 @@ class CharacterCardWidget extends StatelessWidget {
 
     return Container(
       width: 140,
+      height: 200,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: roleColor.withValues(alpha: 0.22)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Row(
             children: [
               Container(
@@ -120,6 +123,7 @@ class CharacterCardWidget extends StatelessWidget {
             ),
           ],
         ],
+        ),
       ),
     );
   }
