@@ -7,6 +7,8 @@ class BookModel {
   final String slug;
   final AuthorModel? author;
   final CategoryModel? category;
+  final int? seriesId;
+  final int? seriesOrder;
   final String? coverImageUrl;
   final String? description;
   final String? isbn;
@@ -26,6 +28,8 @@ class BookModel {
     required this.slug,
     this.author,
     this.category,
+    this.seriesId,
+    this.seriesOrder,
     this.coverImageUrl,
     this.description,
     this.isbn,
@@ -50,6 +54,8 @@ class BookModel {
         category: json['category'] != null
             ? CategoryModel.fromJson(json['category'] as Map<String, dynamic>)
             : null,
+        seriesId: json['series_id'] as int?,
+        seriesOrder: json['series_order'] as int?,
         coverImageUrl: json['cover_image_url'] as String?,
         description: json['description'] as String?,
         isbn: json['isbn'] as String?,

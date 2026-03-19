@@ -10,6 +10,7 @@ import '../../../app/providers/books_provider.dart';
 import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/settings_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
+import '../../../app/providers/voiceover_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/paragraph_model.dart';
 import '../../../core/platform/platform_support.dart';
@@ -47,6 +48,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   String? _readerFontFamilyOverride;
   double? _readerLineHeightOverride;
   bool _restoredInitialPage = false;
+  bool _voiceoverLoading = false;
+  int? _currentParagraphId;
 
   @override
   void initState() {
@@ -77,6 +80,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _debounce?.cancel();
     _sessionTimer?.cancel();
     _controlsTimer?.cancel();
+    ref.read(autoVoiceoverServiceProvider).stop();
     if (PlatformSupport.supportsImmersiveUi) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
@@ -86,9 +90,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   void _onPageChanged(int index) {
     final items = _lastBuiltItems;
     final paragraphOrder = _paragraphOrderForIndex(items, index);
+    final item = index < items.length ? items[index] : null;
+    final paragraphId = item is _ParagraphItem ? item.paragraph.id : null;
+
     setState(() {
       _currentIndex = index;
       _currentParagraphOrder = paragraphOrder;
+      _currentParagraphId = paragraphId;
     });
     _showControlsTemporarily();
 
@@ -99,6 +107,39 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           .sync(widget.bookId, paragraphOrder, _sessionSeconds);
       _sessionSeconds = 0;
     });
+
+    final voiceEnabled = ref.read(voiceoverEnabledProvider);
+    if (voiceEnabled && paragraphId != null) {
+      _triggerVoiceover(paragraphId);
+    }
+  }
+
+  Future<void> _triggerVoiceover(int paragraphId) async {
+    if (_voiceoverLoading) return;
+    setState(() => _voiceoverLoading = true);
+    try {
+      await ref.read(autoVoiceoverServiceProvider).playParagraph(
+            widget.bookId,
+            paragraphId,
+          );
+    } finally {
+      if (mounted) setState(() => _voiceoverLoading = false);
+    }
+  }
+
+  void _toggleVoiceover() {
+    final voiceEnabled = ref.read(voiceoverEnabledProvider);
+    final service = ref.read(autoVoiceoverServiceProvider);
+    if (voiceEnabled) {
+      ref.read(voiceoverEnabledProvider.notifier).state = false;
+      service.disable();
+    } else {
+      ref.read(voiceoverEnabledProvider.notifier).state = true;
+      service.enable();
+      if (_currentParagraphId != null) {
+        _triggerVoiceover(_currentParagraphId!);
+      }
+    }
   }
 
   void _showControlsTemporarily() {
@@ -293,6 +334,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       onNext: _currentIndex < items.length - 1
                           ? () => _goNext(items.length)
                           : null,
+                      voiceoverEnabled: ref.watch(voiceoverEnabledProvider),
+                      voiceoverLoading: _voiceoverLoading,
+                      onVoiceoverToggle: _toggleVoiceover,
                     ),
                   ),
                 ),
@@ -796,6 +840,9 @@ class _ReaderBottomBar extends StatelessWidget {
   final String fontFamily;
   final VoidCallback? onPrev;
   final VoidCallback? onNext;
+  final bool voiceoverEnabled;
+  final bool voiceoverLoading;
+  final VoidCallback? onVoiceoverToggle;
 
   const _ReaderBottomBar({
     required this.readerTheme,
@@ -804,6 +851,9 @@ class _ReaderBottomBar extends StatelessWidget {
     required this.fontFamily,
     this.onPrev,
     this.onNext,
+    this.voiceoverEnabled = false,
+    this.voiceoverLoading = false,
+    this.onVoiceoverToggle,
   });
 
   @override
@@ -872,6 +922,44 @@ class _ReaderBottomBar extends StatelessWidget {
                 ),
               ),
               const Spacer(),
+              // Auto-voiceover toggle
+              GestureDetector(
+                onTap: onVoiceoverToggle,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: voiceoverEnabled
+                        ? AppColors.accent.withValues(alpha: 0.22)
+                        : Colors.white.withValues(alpha: isDark ? 0.08 : 0.18),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: voiceoverEnabled
+                          ? AppColors.accent.withValues(alpha: 0.55)
+                          : Colors.transparent,
+                    ),
+                  ),
+                  child: voiceoverLoading
+                      ? SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.accent,
+                          ),
+                        )
+                      : Icon(
+                          voiceoverEnabled
+                              ? Icons.volume_up_rounded
+                              : Icons.volume_off_rounded,
+                          size: 16,
+                          color: voiceoverEnabled
+                              ? AppColors.accent
+                              : textColor,
+                        ),
+                ),
+              ),
+              const SizedBox(width: 10),
               Text(
                 '$current / $total',
                 style: TextStyle(color: textColor, fontSize: 12),

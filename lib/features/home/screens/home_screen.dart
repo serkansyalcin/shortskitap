@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../app/providers/achievements_provider.dart';
 import '../../../app/providers/auth_provider.dart';
 import '../../../app/providers/books_provider.dart';
 import '../../../app/providers/library_provider.dart';
@@ -16,6 +17,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../league/screens/league_screen.dart';
 import '../../league/widgets/league_mini_card.dart';
 import '../../library/widgets/library_view.dart';
+import '../../profile/widgets/achievement_badge_grid.dart';
+import '../../profile/widgets/achievement_celebration_widget.dart';
 import '../../subscription/widgets/premium_badge.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -1064,6 +1067,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
   NotificationPermissionState _notificationStatus =
       NotificationPermissionState.denied;
   bool _notificationLoading = false;
+  int? _celebratingAchievementIndex;
 
   @override
   void initState() {
@@ -1411,12 +1415,16 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
         'Günlük hatırlatıcılar ve lig gelişmeleri için izni açabilirsin.',
     };
 
+    final achievementsAsync = ref.watch(earnedAchievementsProvider);
+
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             _ProfileHeroCard(
               userName: user?.name ?? 'Okuyucu',
               userEmail: user?.email ?? '',
@@ -1534,6 +1542,24 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
               ),
             ),
             const SizedBox(height: 20),
+
+            // --- Rozetler ---
+            achievementsAsync.when(
+              data: (achievements) {
+                if (achievements.isEmpty) return const SizedBox.shrink();
+                return Column(
+                  children: [
+                    AchievementBadgeGrid(
+                      achievements: achievements,
+                      earnedCount: achievements.where((a) => a.isEarned).length,
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                );
+              },
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
 
             // --- Stats ---
             Offstage(
@@ -1707,6 +1733,26 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
             const SizedBox(height: 32),
           ],
         ),
+      ),
+          // Achievement celebration overlay
+          if (_celebratingAchievementIndex != null)
+            achievementsAsync.when(
+              data: (achievements) {
+                final idx = _celebratingAchievementIndex!;
+                if (idx >= achievements.length) {
+                  return const SizedBox.shrink();
+                }
+                return AchievementCelebrationOverlay(
+                  achievement: achievements[idx],
+                  onDismiss: () => setState(
+                    () => _celebratingAchievementIndex = null,
+                  ),
+                );
+              },
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+        ],
       ),
     );
   }

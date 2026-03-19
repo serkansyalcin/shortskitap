@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
@@ -12,6 +11,7 @@ import '../../features/discover/screens/discover_screen.dart';
 import '../../features/discover/screens/search_screen.dart';
 import '../../features/book/screens/book_detail_screen.dart';
 import '../../features/book/screens/reader_screen.dart';
+import '../../features/book/screens/series_screen.dart';
 import '../../features/library/screens/library_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/settings_screen.dart';
@@ -87,6 +87,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/books/:slug',
         builder: (_, state) =>
             BookDetailScreen(slug: state.pathParameters['slug']!),
+      ),
+      GoRoute(
+        path: '/series/:seriesId',
+        builder: (_, state) => SeriesScreen(
+          seriesId: int.parse(state.pathParameters['seriesId']!),
+        ),
       ),
       GoRoute(
         path: '/read/:bookId',

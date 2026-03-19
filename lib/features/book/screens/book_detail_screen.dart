@@ -6,14 +6,18 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../app/providers/auth_provider.dart';
 import '../../../app/providers/books_provider.dart';
+import '../../../app/providers/character_provider.dart';
 import '../../../app/providers/library_provider.dart';
 import '../../../app/providers/progress_provider.dart';
+import '../../../app/providers/series_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/book_model.dart';
 import '../../../core/models/progress_model.dart';
 import '../../../features/subscription/widgets/premium_badge.dart';
+import '../widgets/character_card_widget.dart';
 import '../widgets/podcast_player_widget.dart';
+import '../widgets/series_info_widget.dart';
 
 class BookDetailScreen extends ConsumerWidget {
   final String slug;
@@ -129,6 +133,69 @@ class BookDetailScreen extends ConsumerWidget {
                           ],
                         ),
                         error: (_, error) => const SizedBox.shrink(),
+                      ),
+
+                      // Series info
+                      if (book.seriesId != null)
+                        ref.watch(seriesDetailProvider(book.seriesId!)).when(
+                          data: (series) => Column(
+                            children: [
+                              SeriesInfoWidget(
+                                series: series,
+                                currentBookOrder: book.seriesOrder,
+                                accentColor: accentColor,
+                              ),
+                              const SizedBox(height: 12),
+                              if (series.books.isNotEmpty) ...[
+                                SeriesBookListWidget(
+                                  series: series,
+                                  currentBookId: book.id,
+                                  accentColor: accentColor,
+                                ),
+                                const SizedBox(height: 20),
+                              ],
+                            ],
+                          ),
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, __) => const SizedBox.shrink(),
+                        ),
+
+                      // Characters section
+                      ref.watch(charactersProvider(book.id)).when(
+                        data: (characters) => characters.isEmpty
+                            ? const SizedBox.shrink()
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Karakterler',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: colorScheme.onSurface,
+                                      letterSpacing: -0.2,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  SizedBox(
+                                    height: 180,
+                                    child: ListView.separated(
+                                      scrollDirection: Axis.horizontal,
+                                      itemCount: characters.length,
+                                      separatorBuilder: (_, __) =>
+                                          const SizedBox(width: 10),
+                                      itemBuilder: (context, index) =>
+                                          CharacterCardWidget(
+                                        character: characters[index],
+                                        accentColor: accentColor,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                ],
+                              ),
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, __) => const SizedBox.shrink(),
                       ),
                     ],
                   ),
