@@ -81,7 +81,7 @@ flutter:
     - assets/icons/
     - assets/lottie/
 
-flutter_icons:
+flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/icons/app_icon.png"
