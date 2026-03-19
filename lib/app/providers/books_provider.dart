@@ -6,34 +6,44 @@ import '../../core/models/podcast_model.dart';
 import '../../core/services/book_service.dart';
 import '../../core/services/offline_cache_service.dart';
 import '../../core/services/podcast_service.dart';
+import 'kids_provider.dart';
 
 final bookServiceProvider = Provider<BookService>((ref) => BookService());
 final podcastServiceProvider = Provider<PodcastService>((ref) => PodcastService());
 
 final categoriesProvider = FutureProvider<List<CategoryModel>>((ref) {
-  return ref.read(bookServiceProvider).getCategories();
+  final isKids = ref.watch(kidsModeProvider);
+  return ref.read(bookServiceProvider).getCategories(isKids: isKids);
 });
 
 final featuredBooksProvider = FutureProvider<List<BookModel>>((ref) {
-  return ref.read(bookServiceProvider).getFeatured();
+  final isKids = ref.watch(kidsModeProvider);
+  return ref.read(bookServiceProvider).getFeatured(isKids: isKids);
 });
 
 class BooksFilter {
   final String? category;
   final String? sort;
   final int page;
+  final bool isKids;
 
-  const BooksFilter({this.category, this.sort, this.page = 1});
+  const BooksFilter({
+    this.category,
+    this.sort,
+    this.page = 1,
+    this.isKids = false,
+  });
 
   @override
   bool operator ==(Object other) =>
       other is BooksFilter &&
       other.category == category &&
       other.sort == sort &&
-      other.page == page;
+      other.page == page &&
+      other.isKids == isKids;
 
   @override
-  int get hashCode => Object.hash(category, sort, page);
+  int get hashCode => Object.hash(category, sort, page, isKids);
 }
 
 final booksProvider =
@@ -42,6 +52,7 @@ final booksProvider =
         category: filter.category,
         sort: filter.sort,
         page: filter.page,
+        isKids: filter.isKids,
       );
 });
 
@@ -51,9 +62,14 @@ final bookDetailProvider =
 });
 
 final searchProvider =
-    FutureProvider.family<List<BookModel>, String>((ref, query) {
-  if (query.trim().isEmpty) return Future.value([]);
-  return ref.read(bookServiceProvider).search(query);
+    FutureProvider.family<List<BookModel>, String>((ref, query) async {
+  if (query.trim().isEmpty) return [];
+  final books = await ref.read(bookServiceProvider).search(query);
+  final isKids = ref.read(kidsModeProvider);
+  if (isKids) {
+      return books.where((b) => b.isKids).toList();
+  }
+  return books;
 });
 
 final podcastsProvider =

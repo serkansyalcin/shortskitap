@@ -7,6 +7,7 @@ import '../../../app/providers/books_provider.dart';
 import '../../../app/providers/library_provider.dart';
 import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
+import '../../../app/providers/kids_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/services/subscription_service.dart';
@@ -177,6 +178,25 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+            // Kids Mode Toggle
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                FilterChip(
+                  label: const Text('🧒 Çocuk Modu'),
+                  selected: ref.watch(kidsModeProvider),
+                  onSelected: (val) => ref.read(kidsModeProvider.notifier).state = val,
+                  backgroundColor: colorScheme.surfaceContainerHighest,
+                  selectedColor: Colors.pink.shade100,
+                  checkmarkColor: Colors.pink.shade700,
+                  labelStyle: TextStyle(
+                    color: ref.watch(kidsModeProvider) ? Colors.pink.shade700 : colorScheme.onSurface,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             // Greeting
             Row(
               children: [
@@ -185,18 +205,22 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Merhaba, ${user?.name.split(' ').first ?? 'Okuyucu'} 👋',
+                        ref.watch(kidsModeProvider)
+                           ? 'Hoş Geldin, ${user?.name.split(' ').first ?? 'Küçük Okuyucu'} 🎈'
+                           : 'Merhaba, ${user?.name.split(' ').first ?? 'Okuyucu'} 👋',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
+                          color: ref.watch(kidsModeProvider) ? Colors.pink.shade600 : colorScheme.onSurface,
                         ),
                       ),
                       Text(
-                        'Bugün okumaya devam et!',
+                        ref.watch(kidsModeProvider)
+                           ? 'Eğlenceli hikayeler seni bekliyor!'
+                           : 'Bugün okumaya devam et!',
                         style: TextStyle(
                           fontSize: 14,
-                          color: colorScheme.onSurfaceVariant,
+                          color: ref.watch(kidsModeProvider) ? Colors.pink.shade400 : colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -256,7 +280,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
             ),
             const SizedBox(height: 16),
 
-            if (isAuthenticated) ...[
+            if (isAuthenticated && !ref.watch(kidsModeProvider)) ...[
               const LeagueMiniCard(),
               const SizedBox(height: 20),
             ],
@@ -268,6 +292,10 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                 final recent = progress.isNotEmpty ? progress.first : null;
                 if (recent == null || recent.book == null)
                   return const SizedBox.shrink();
+
+                if (ref.watch(kidsModeProvider) && recent.book?.isKids != true) {
+                  return const SizedBox.shrink();
+                }
 
                 return GestureDetector(
                   onTap: () => context.push('/read/${recent.bookId}'),
@@ -379,6 +407,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
             categoriesAsync.when(
               data: (categories) {
                 if (categories.isEmpty) return const SizedBox.shrink();
+                if (ref.watch(kidsModeProvider)) return const SizedBox.shrink();
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -670,7 +699,8 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesProvider);
-    final currentFilter = BooksFilter(category: _selectedCategory);
+    final isKids = ref.watch(kidsModeProvider);
+    final currentFilter = BooksFilter(category: _selectedCategory, isKids: isKids);
     final booksAsync = ref.watch(booksProvider(currentFilter));
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;

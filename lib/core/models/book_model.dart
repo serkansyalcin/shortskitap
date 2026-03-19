@@ -15,6 +15,7 @@ class BookModel {
   final bool isPublished;
   final bool isFeatured;
   final bool isPremium;
+  final bool isKids;
   final int totalParagraphs;
   final int? estimatedReadMinutes;
   final int viewCount;
@@ -33,6 +34,7 @@ class BookModel {
     required this.isPublished,
     required this.isFeatured,
     required this.isPremium,
+    required this.isKids,
     required this.totalParagraphs,
     this.estimatedReadMinutes,
     required this.viewCount,
@@ -56,6 +58,7 @@ class BookModel {
         isPublished: json['is_published'] == true,
         isFeatured: json['is_featured'] == true,
         isPremium: json['is_premium'] == true,
+        isKids: json['is_kids'] == true,
         totalParagraphs: json['total_paragraphs'] as int? ?? 0,
         estimatedReadMinutes: json['estimated_read_minutes'] as int?,
         viewCount: json['view_count'] as int? ?? 0,

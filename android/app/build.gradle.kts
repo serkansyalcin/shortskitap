@@ -10,6 +10,12 @@ android {
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
+    packaging {
+        resources {
+            excludes += setOf("META-INF/DEPENDENCIES")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -52,8 +58,13 @@ dependencies {
     implementation("androidx.multidex:multidex:2.0.1")
 
     // com.google.crypto.tink.util.KeysDownloader optional deps referenced in release builds
-    implementation("com.google.http-client:google-http-client:1.47.0")
+    // Use the Android variant to avoid pulling Apache HttpClient (not available on Android runtime)
+    implementation("com.google.http-client:google-http-client-android:1.47.0") {
+        exclude(group = "org.apache.httpcomponents", module = "httpclient")
+        exclude(group = "org.apache.httpcomponents", module = "httpcore")
+    }
     implementation("joda-time:joda-time:2.12.7")
+    implementation("org.joda:joda-convert:2.2.3")
 }
 
 flutter {

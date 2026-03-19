@@ -10,10 +10,12 @@ class BookService {
     String? category,
     String? sort,
     int page = 1,
+    bool isKids = false,
   }) async {
     final res = await _client.get('/books', params: {
       if (category != null) 'category': category,
       if (sort != null) 'sort': sort,
+      'is_kids': isKids ? 1 : 0,
       'page': page,
       'per_page': 20,
     });
@@ -23,8 +25,10 @@ class BookService {
         .toList();
   }
 
-  Future<List<BookModel>> getFeatured() async {
-    final res = await _client.get('/books/featured');
+  Future<List<BookModel>> getFeatured({bool isKids = false}) async {
+    final res = await _client.get('/books/featured', params: {
+      'is_kids': isKids ? 1 : 0,
+    });
     final data = res.data['data'] as List<dynamic>;
     return data
         .map((e) => BookModel.fromJson(e as Map<String, dynamic>))
@@ -36,8 +40,10 @@ class BookService {
     return BookModel.fromJson(res.data['data'] as Map<String, dynamic>);
   }
 
-  Future<List<CategoryModel>> getCategories() async {
-    final res = await _client.get('/categories');
+  Future<List<CategoryModel>> getCategories({bool isKids = false}) async {
+    final res = await _client.get('/categories', params: {
+      'isKids': isKids ? 1 : 0,
+    });
     final data = res.data['data'] as List<dynamic>;
     return data
         .map((e) => CategoryModel.fromJson(e as Map<String, dynamic>))
