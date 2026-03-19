@@ -1,9 +1,10 @@
-﻿import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/providers/auth_provider.dart';
+import '../../../app/providers/kids_provider.dart';
 import '../../../app/providers/library_provider.dart';
 import '../../../app/providers/progress_provider.dart';
 import '../../../app/theme/app_colors.dart';
@@ -38,15 +39,27 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
     final progressAsync = ref.watch(allProgressProvider);
     final favoritesAsync = ref.watch(favoritesProvider);
     final bookmarksAsync = ref.watch(bookmarksProvider);
-    final allProgress = progressAsync.valueOrNull ?? const <ProgressModel>[];
+    final isKidsMode = ref.watch(kidsModeProvider);
+
+    final rawProgress = progressAsync.valueOrNull ?? const <ProgressModel>[];
+    final rawFavorites = favoritesAsync.valueOrNull ?? const <FavoriteModel>[];
+    final rawBookmarks = bookmarksAsync.valueOrNull ?? const <BookmarkModel>[];
+
+    final allProgress = isKidsMode
+        ? rawProgress.where((p) => p.book?.isKids == true).toList(growable: false)
+        : rawProgress;
     final activeProgress = allProgress
         .where((item) => !item.isCompleted)
         .toList(growable: false);
     final completedProgress = allProgress
         .where((item) => item.isCompleted)
         .toList(growable: false);
-    final favorites = favoritesAsync.valueOrNull ?? const <FavoriteModel>[];
-    final bookmarks = bookmarksAsync.valueOrNull ?? const <BookmarkModel>[];
+    final favorites = isKidsMode
+        ? rawFavorites.where((f) => f.book?.isKids == true).toList(growable: false)
+        : rawFavorites;
+    final bookmarks = isKidsMode
+        ? rawBookmarks.where((b) => b.book?.isKids == true).toList(growable: false)
+        : rawBookmarks;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -59,6 +72,14 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
               progressAsync: progressAsync,
               favoritesAsync: favoritesAsync,
               bookmarksAsync: bookmarksAsync,
+              filteredCounts: isKidsMode
+                  ? (
+                      progress: activeProgress.length,
+                      completed: completedProgress.length,
+                      favorites: favorites.length,
+                      bookmarks: bookmarks.length,
+                    )
+                  : null,
             ),
             const SizedBox(height: 14),
             AnimatedSegmentedControl<_LibraryMode>(
@@ -325,21 +346,29 @@ class _LibraryHero extends StatelessWidget {
   final AsyncValue<List<ProgressModel>> progressAsync;
   final AsyncValue<List<FavoriteModel>> favoritesAsync;
   final AsyncValue<List<BookmarkModel>> bookmarksAsync;
+  final ({int progress, int completed, int favorites, int bookmarks})? filteredCounts;
 
   const _LibraryHero({
     required this.progressAsync,
     required this.favoritesAsync,
     required this.bookmarksAsync,
+    this.filteredCounts,
   });
 
   @override
   Widget build(BuildContext context) {
-    final progressCount = progressAsync.valueOrNull?.length ?? 0;
-    final completedCount =
+    final progressCount = filteredCounts?.progress ??
+        progressAsync.valueOrNull?.length ??
+        0;
+    final completedCount = filteredCounts?.completed ??
         progressAsync.valueOrNull?.where((item) => item.isCompleted).length ??
         0;
-    final favoritesCount = favoritesAsync.valueOrNull?.length ?? 0;
-    final bookmarksCount = bookmarksAsync.valueOrNull?.length ?? 0;
+    final favoritesCount = filteredCounts?.favorites ??
+        favoritesAsync.valueOrNull?.length ??
+        0;
+    final bookmarksCount = filteredCounts?.bookmarks ??
+        bookmarksAsync.valueOrNull?.length ??
+        0;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 

@@ -4,11 +4,13 @@ import 'package:kitaplig/core/models/league_model.dart';
 class LeagueHeader extends StatelessWidget {
   final LeagueStatusModel status;
   final bool showBackButton;
+  final bool isKidsMode;
 
   const LeagueHeader({
     super.key,
     required this.status,
     required this.showBackButton,
+    this.isKidsMode = false,
   });
 
   @override
@@ -130,7 +132,7 @@ class LeagueHeader extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Grup ${membership.groupNumber} · ${membership.groupSize} okuyucu',
+            'Grup ${membership.groupNumber} · ${membership.groupSize} ${isKidsMode ? 'arkadaş' : 'okuyucu'}',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
@@ -158,7 +160,7 @@ class LeagueHeader extends StatelessWidget {
                       child: _HeaderMetric(
                         icon: Icons.flash_on_rounded,
                         label: 'Bu hafta',
-                        value: '${membership.weeklyXp} XP',
+                        value: '${membership.weeklyXp} ${isKidsMode ? 'Puan' : 'XP'}',
                         accent: const Color(0xFFFBBF24),
                       ),
                     ),
@@ -196,9 +198,9 @@ class LeagueHeader extends StatelessWidget {
                     Expanded(
                       child: Text(
                         membership.isInPromotionZone
-                            ? 'Terfi bölgesindesin'
+                            ? (isKidsMode ? 'Ödül bölgesindesin' : 'Terfi bölgesindesin')
                             : membership.isInDemotionZone
-                            ? 'Düşme hattından çık'
+                            ? (isKidsMode ? 'Daha fazla oku' : 'Düşme hattından çık')
                             : 'Biraz daha yüksel',
                         style: TextStyle(
                           color: theme.colorScheme.onSurface,
@@ -208,9 +210,9 @@ class LeagueHeader extends StatelessWidget {
                     ),
                     Text(
                       membership.isInPromotionZone
-                          ? 'Güçlü gidiyorsun'
+                          ? (isKidsMode ? 'Süpersin!' : 'Güçlü gidiyorsun')
                           : membership.isInDemotionZone
-                          ? 'Riskli alan'
+                          ? (isKidsMode ? 'Daha fazla oku' : 'Riskli alan')
                           : 'Hedefe yaklaş',
                       style: TextStyle(
                         color: membership.isInPromotionZone

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:kitaplig/app/providers/auth_provider.dart';
+import 'package:kitaplig/app/providers/kids_provider.dart';
 import 'package:kitaplig/app/providers/league_provider.dart';
 import 'package:kitaplig/core/models/league_model.dart';
 import 'package:kitaplig/core/widgets/animated_segmented_control.dart';
@@ -56,6 +57,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
           tab: _tab,
           onTabChanged: (value) => setState(() => _tab = value),
           status: status,
+          isKidsMode: ref.watch(kidsModeProvider),
         ),
       ),
     );
@@ -78,12 +80,14 @@ class _LeagueContent extends StatelessWidget {
   final _LeagueTab tab;
   final ValueChanged<_LeagueTab> onTabChanged;
   final LeagueStatusModel status;
+  final bool isKidsMode;
 
   const _LeagueContent({
     required this.embedded,
     required this.tab,
     required this.onTabChanged,
     required this.status,
+    this.isKidsMode = false,
   });
 
   @override
@@ -106,20 +110,24 @@ class _LeagueContent extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: LeagueHeader(status: status, showBackButton: !embedded),
+              child: LeagueHeader(
+                status: status,
+                showBackButton: !embedded,
+                isKidsMode: isKidsMode,
+              ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
               child: AnimatedSegmentedControl<_LeagueTab>(
                 selected: tab,
                 onChanged: onTabChanged,
-                items: const [
+                items: [
                   SegmentedItem(
                     value: _LeagueTab.leaderboard,
-                    label: 'Liderlik',
+                    label: isKidsMode ? 'Sıralama' : 'Liderlik',
                     icon: Icons.emoji_events_rounded,
                   ),
-                  SegmentedItem(
+                  const SegmentedItem(
                     value: _LeagueTab.history,
                     label: 'Geçmiş',
                     icon: Icons.history_rounded,
@@ -164,6 +172,7 @@ class _LeagueContent extends StatelessWidget {
                             key: const ValueKey('leaderboard'),
                             child: LeaderboardList(
                               membership: status.membership,
+                              isKidsMode: isKidsMode,
                             ),
                           )
                         : const KeyedSubtree(

@@ -7,8 +7,13 @@ import '../../subscription/widgets/premium_badge.dart';
 
 class LeaderboardList extends ConsumerWidget {
   final LeagueMembershipModel membership;
+  final bool isKidsMode;
 
-  const LeaderboardList({super.key, required this.membership});
+  const LeaderboardList({
+    super.key,
+    required this.membership,
+    this.isKidsMode = false,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -58,7 +63,7 @@ class LeaderboardList extends ConsumerWidget {
           );
         }
 
-        final widgets = _buildRows(entries);
+        final widgets = _buildRows(entries, isKidsMode);
 
         return ListView(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
@@ -68,20 +73,20 @@ class LeaderboardList extends ConsumerWidget {
     );
   }
 
-  List<Widget> _buildRows(List<LeaderboardEntry> entries) {
+  List<Widget> _buildRows(List<LeaderboardEntry> entries, bool isKids) {
     final rows = <Widget>[
-      _LeagueSummaryCard(membership: membership),
+      _LeagueSummaryCard(membership: membership, isKidsMode: isKids),
       const SizedBox(height: 14),
     ];
 
     for (final entry in entries) {
       if (entry.rank == membership.promotionZone + 1) {
         rows.add(
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
             child: _ZoneDivider(
-              label: 'Terfi çizgisi',
-              color: Color(0xFF4ADE80),
+              label: isKids ? 'Ödül çizgisi' : 'Terfi çizgisi',
+              color: const Color(0xFF4ADE80),
             ),
           ),
         );
@@ -89,11 +94,11 @@ class LeaderboardList extends ConsumerWidget {
 
       if (entry.rank == membership.demotionZone) {
         rows.add(
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
             child: _ZoneDivider(
-              label: 'Düşme çizgisi',
-              color: Color(0xFFF87171),
+              label: isKids ? 'Uyarı çizgisi' : 'Düşme çizgisi',
+              color: const Color(0xFFF87171),
             ),
           ),
         );
@@ -106,6 +111,7 @@ class LeaderboardList extends ConsumerWidget {
             entry: entry,
             isPromotionZone: entry.rank <= membership.promotionZone,
             isDemotionZone: entry.rank >= membership.demotionZone,
+            isKidsMode: isKids,
           ),
         ),
       );
@@ -117,8 +123,12 @@ class LeaderboardList extends ConsumerWidget {
 
 class _LeagueSummaryCard extends StatelessWidget {
   final LeagueMembershipModel membership;
+  final bool isKidsMode;
 
-  const _LeagueSummaryCard({required this.membership});
+  const _LeagueSummaryCard({
+    required this.membership,
+    this.isKidsMode = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +168,7 @@ class _LeagueSummaryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '#${membership.rank} sıradasın · ${membership.weeklyXp} XP',
+                  '#${membership.rank} sıradasın · ${membership.weeklyXp} ${isKidsMode ? 'Puan' : 'XP'}',
                   style: TextStyle(
                     color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.w800,
@@ -178,11 +188,13 @@ class _LeaderboardTile extends StatelessWidget {
   final LeaderboardEntry entry;
   final bool isPromotionZone;
   final bool isDemotionZone;
+  final bool isKidsMode;
 
   const _LeaderboardTile({
     required this.entry,
     required this.isPromotionZone,
     required this.isDemotionZone,
+    this.isKidsMode = false,
   });
 
   @override
@@ -281,7 +293,7 @@ class _LeaderboardTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                'Haftalık XP',
+                isKidsMode ? 'Haftalık puan' : 'Haftalık XP',
                 style: TextStyle(
                   color: theme.colorScheme.onSurfaceVariant,
                   fontSize: 11,
@@ -306,9 +318,9 @@ class _LeaderboardTile extends StatelessWidget {
 
   String _resultLabel(String result) {
     return switch (result) {
-      'promoted' => 'Terfi hattında',
-      'demoted' => 'Düşme hattında',
-      _ => 'Sabit bölgede',
+      'promoted' => isKidsMode ? 'Ödül bölgesinde' : 'Terfi hattında',
+      'demoted' => isKidsMode ? 'Dikkat bölgesinde' : 'Düşme hattında',
+      _ => isKidsMode ? 'Orta sırada' : 'Sabit bölgede',
     };
   }
 
