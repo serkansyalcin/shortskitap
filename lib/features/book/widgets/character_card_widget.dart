@@ -169,7 +169,7 @@ class CharacterCardWidget extends StatelessWidget {
       child: Container(
         width: 140,
         height: 200,
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
           borderRadius: BorderRadius.circular(20),
@@ -184,8 +184,8 @@ class CharacterCardWidget extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    width: 36,
-                    height: 36,
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: roleColor.withValues(alpha: 0.16),
                       shape: BoxShape.circle,
@@ -193,15 +193,15 @@ class CharacterCardWidget extends StatelessWidget {
                     child: Center(
                       child: Text(
                         character.role.emoji,
-                        style: const TextStyle(fontSize: 18),
+                        style: const TextStyle(fontSize: 16),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: Container(
                       padding:
-                          const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: roleColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(999),
@@ -209,7 +209,7 @@ class CharacterCardWidget extends StatelessWidget {
                       child: Text(
                         character.role.label,
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 8,
                           fontWeight: FontWeight.w700,
                           color: roleColor,
                         ),
@@ -220,11 +220,11 @@ class CharacterCardWidget extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
               Text(
                 character.name,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w800,
                   color: colorScheme.onSurface,
                 ),
@@ -233,27 +233,27 @@ class CharacterCardWidget extends StatelessWidget {
               ),
               if (character.description != null &&
                   character.description!.isNotEmpty) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
                   character.description!,
                   style: TextStyle(
-                    fontSize: 11.5,
-                    height: 1.45,
+                    fontSize: 10.5,
+                    height: 1.35,
                     color: colorScheme.onSurfaceVariant,
                   ),
-                  maxLines: 3,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
               if (character.traits.isNotEmpty) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: character.traits.take(3).map((trait) {
+                  spacing: 3,
+                  runSpacing: 3,
+                  children: character.traits.take(2).map((trait) {
                     return Container(
                       padding:
-                          const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                       decoration: BoxDecoration(
                         color: accentColor.withValues(alpha: 0.10),
                         borderRadius: BorderRadius.circular(999),
@@ -261,7 +261,7 @@ class CharacterCardWidget extends StatelessWidget {
                       child: Text(
                         trait,
                         style: TextStyle(
-                          fontSize: 9.5,
+                          fontSize: 8.5,
                           fontWeight: FontWeight.w600,
                           color: accentColor,
                         ),
