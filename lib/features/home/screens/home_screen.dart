@@ -20,6 +20,8 @@ import '../../library/widgets/library_view.dart';
 import '../../profile/widgets/achievement_badge_grid.dart';
 import '../../profile/widgets/achievement_celebration_widget.dart';
 import '../../subscription/widgets/premium_badge.dart';
+import '../widgets/kids_mode_exit_dialog.dart';
+import '../widgets/kids_mode_pin_set_dialog.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -188,7 +190,31 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                 FilterChip(
                   label: const Text('🧒 Çocuk Modu'),
                   selected: ref.watch(kidsModeProvider),
-                  onSelected: (val) => ref.read(kidsModeProvider.notifier).state = val,
+                  onSelected: (val) async {
+                    if (val) {
+                      ref.read(kidsModeProvider.notifier).state = true;
+                    } else {
+                      final svc = await ref.read(kidsModePinServiceProvider.future);
+                      if (!svc.hasPin()) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Çocuk modundan çıkmak için önce Profil sayfasında Ebeveyn Şifresi belirleyin.',
+                              ),
+                              duration: Duration(seconds: 4),
+                            ),
+                          );
+                        }
+                        return;
+                      }
+                      if (!context.mounted) return;
+                      final ok = await KidsModeExitDialog.show(context, verifyPin: svc.verifyPin);
+                      if (ok == true && context.mounted) {
+                        ref.read(kidsModeProvider.notifier).state = false;
+                      }
+                    }
+                  },
                   backgroundColor: colorScheme.surfaceContainerHighest,
                   selectedColor: Colors.pink.shade100,
                   checkmarkColor: Colors.pink.shade700,
@@ -199,6 +225,11 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                 ),
               ],
             ),
+            if (ref.watch(kidsModeProvider)) ...[
+              const SizedBox(height: 10),
+              _KidsModeInfoCard(),
+              const SizedBox(height: 10),
+            ],
             const SizedBox(height: 12),
             // Greeting
             Row(
@@ -664,6 +695,69 @@ class _HomeActionButton extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _KidsModeInfoCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.pink.shade50,
+            Colors.pink.shade50.withOpacity(0.6),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.pink.shade200.withOpacity(0.6)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.pink.shade100,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(Icons.shield_rounded, color: Colors.pink.shade700, size: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Güvenli Okuma Alanı',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.pink.shade800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Çocuk modu açıkken yalnızca çocuklara uygun içerikler gösterilir. '
+                  'Erişkin içeriklere erişim engellenir. Moddan çıkmak için ebeveyn şifresi gerekir.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.45,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1591,6 +1685,8 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                   subtitle: 'Tema, okuma tercihleri ve uygulama ayarları',
                   onTap: () => context.push('/home/settings'),
                 ),
+                _MenuDivider(),
+                _KidsModePinMenuItem(),
                 _MenuDivider(),
                 _MenuItem(
                   icon: Icons.logout_outlined,
@@ -2550,6 +2646,51 @@ class _StatCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _KidsModePinMenuItem extends ConsumerWidget {
+  const _KidsModePinMenuItem();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pinAsync = ref.watch(kidsModePinServiceProvider);
+    final color = const Color(0xFFE91E63);
+
+    return pinAsync.when(
+      data: (svc) => _MenuItem(
+        icon: Icons.child_care_rounded,
+        title: 'Ebeveyn Şifresi',
+        subtitle: svc.hasPin()
+            ? 'Çocuk modundan çıkmak için şifre tanımlı'
+            : 'Çocuk modundan çıkmak için şifre belirleyin',
+        color: color,
+        onTap: () async {
+          final ok = await KidsModePinSetDialog.show(
+            context,
+            onSave: (pin) async {
+              final service = await ref.read(kidsModePinServiceProvider.future);
+              await service.setPin(pin);
+              ref.invalidate(kidsModePinServiceProvider);
+            },
+          );
+          if (ok == true && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Ebeveyn şifresi kaydedildi.')),
+            );
+          }
+        },
+      ),
+      loading: () => const ListTile(
+        title: Text('Ebeveyn Şifresi'),
+        trailing: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }
