@@ -36,6 +36,8 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
@@ -47,10 +49,8 @@
 	<string>KitapLig, profil fotoğrafı çekmek için kamera erişimi istiyor.</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>KitapLig, günlük okuma hatırlatıcıları ve lig güncellemeleri için bildirim göndermek istiyor.</string>
-	<!-- AdMob App ID — replace with your real ID from AdMob dashboard -->
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-3940256099942544~1458002511</string>
-	<!-- Required by Google AdMob SDK -->
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>
