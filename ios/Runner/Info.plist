@@ -47,6 +47,8 @@
 	<string>KitapLig, profil fotoğrafınızı yüklemek için fotoğraf kütüphanenize erişmek istiyor.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>KitapLig, profil fotoğrafı çekmek için kamera erişimi istiyor.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>KitapLig, sesli kitap dinleme özelliği için mikrofon erişimi istiyor.</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>KitapLig, günlük okuma hatırlatıcıları ve lig güncellemeleri için bildirim göndermek istiyor.</string>
 	<key>GADApplicationIdentifier</key>
