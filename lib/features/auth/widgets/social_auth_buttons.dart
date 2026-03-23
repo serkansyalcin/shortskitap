@@ -11,8 +11,9 @@ import '../../../core/services/auth_service.dart';
 
 class SocialAuthButtons extends ConsumerStatefulWidget {
   final String? returnTo;
+  final bool isLogin;
 
-  const SocialAuthButtons({super.key, this.returnTo});
+  const SocialAuthButtons({super.key, this.returnTo, this.isLogin = true});
 
   @override
   ConsumerState<SocialAuthButtons> createState() => _SocialAuthButtonsState();
@@ -127,7 +128,7 @@ class _SocialAuthButtonsState extends ConsumerState<SocialAuthButtons> {
                 icon: _isLoadingGoogle
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.g_mobiledata, size: 28),
-                label: const Text('Google ile Giriş Yap'),
+                label: Text(widget.isLogin ? 'Google ile Giriş Yap' : 'Google ile Kayıt Ol'),
               ),
             ),
             if (showApple) ...[
@@ -140,7 +141,7 @@ class _SocialAuthButtonsState extends ConsumerState<SocialAuthButtons> {
                   icon: _isLoadingApple
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.apple, size: 28),
-                  label: const Text('Apple ile Giriş Yap'),
+                  label: Text(widget.isLogin ? 'Apple ile Giriş Yap' : 'Apple ile Kayıt Ol'),
                 ),
               ),
             ]

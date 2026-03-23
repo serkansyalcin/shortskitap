@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
@@ -22,24 +23,28 @@ import '../../features/profile/screens/highlights_screen.dart';
 import '../../features/league/screens/league_screen.dart';
 import '../../features/subscription/screens/paywall_screen.dart';
 
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
-  final settings = ref.watch(settingsProvider);
 
   return GoRouter(
+    navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
     redirect: (context, state) {
       final isAuthenticated = authState.status == AuthStatus.authenticated;
       final isUnknown = authState.status == AuthStatus.unknown;
       final location = state.matchedLocation;
       final returnTo = state.uri.queryParameters['returnTo'];
+      
+      final currentSettings = ref.read(settingsProvider);
 
       if (isUnknown) return location == '/splash' ? null : '/splash';
 
       final isAuthRoute = location == '/login' || location == '/register';
       final isOnboarding = location == '/onboarding';
       final isSplash = location == '/splash';
-      final needsOnboarding = !settings.onboardingDone && !isAuthenticated;
+      final needsOnboarding = !currentSettings.onboardingDone && !isAuthenticated;
       final isReadRoute = location.startsWith('/read/');
       final isProtectedRoute =
           isReadRoute ||

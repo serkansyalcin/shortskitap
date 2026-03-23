@@ -355,7 +355,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                           : 'Kayıt ol',
                                     ),
                             ),
-                            SocialAuthButtons(returnTo: returnTo),
+                            SocialAuthButtons(returnTo: returnTo, isLogin: false),
                             const SizedBox(height: 14),
                             Center(
                               child: TextButton(

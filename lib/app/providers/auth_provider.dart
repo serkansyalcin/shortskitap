@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/models/user_model.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/api/api_client.dart';
@@ -51,6 +52,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final result = await _service.login(email, password);
       state = AuthState.authenticated(result.user);
+      _syncOnboardingPrefs();
       return true;
     } catch (e) {
       state = AuthState(
@@ -77,6 +79,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         acceptPrivacyPolicy: acceptPrivacyPolicy,
       );
       state = AuthState.authenticated(result.user);
+      _syncOnboardingPrefs();
       return true;
     } catch (e) {
       state = AuthState(
@@ -157,6 +160,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   void updateUser(UserModel user) {
     state = AuthState.authenticated(user);
+    _syncOnboardingPrefs();
+  }
+
+  Future<void> _syncOnboardingPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedPrefs = prefs.getStringList('onboarding_prefs');
+      if (savedPrefs != null && savedPrefs.isNotEmpty) {
+        final savedGoal = prefs.getInt('daily_goal') ?? 10;
+        await ApiClient.instance.put('/me', data: {
+          'daily_goal': savedGoal,
+          'preferences': savedPrefs,
+        });
+        await prefs.remove('onboarding_prefs');
+        await refreshMe();
+      }
+    } catch (_) {}
   }
 
   bool _isSameUser(UserModel a, UserModel b) {
