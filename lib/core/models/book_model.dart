@@ -49,7 +49,7 @@ class BookModel {
   });
 
   factory BookModel.fromJson(Map<String, dynamic> json) => BookModel(
-    id: json['id'] as int,
+    id: _asInt(json['id']),
     title: json['title'] as String,
     slug: json['slug'] as String,
     author: json['author'] != null
@@ -58,22 +58,22 @@ class BookModel {
     category: json['category'] != null
         ? CategoryModel.fromJson(json['category'] as Map<String, dynamic>)
         : null,
-    seriesId: json['series_id'] as int?,
-    seriesOrder: json['series_order'] as int?,
+    seriesId: _asNullableInt(json['series_id']),
+    seriesOrder: _asNullableInt(json['series_order']),
     coverImageUrl: json['cover_image_url'] as String?,
     description: json['description'] as String?,
     isbn: json['isbn'] as String?,
     language: json['language'] as String? ?? 'tr',
     tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? [],
-    isPublished: json['is_published'] == true,
-    isFeatured: json['is_featured'] == true,
-    isPremium: json['is_premium'] == true,
-    isKids: json['is_kids'] == true,
-    totalParagraphs: json['total_paragraphs'] as int? ?? 0,
-    estimatedReadMinutes: json['estimated_read_minutes'] as int?,
-    viewCount: json['view_count'] as int? ?? 0,
-    rating: (json['reviews_avg_rating'] as num?)?.toDouble() ?? 0.0,
-    reviewsCount: json['reviews_count'] as int? ?? 0,
+    isPublished: _asBool(json['is_published']),
+    isFeatured: _asBool(json['is_featured']),
+    isPremium: _asBool(json['is_premium']),
+    isKids: _asBool(json['is_kids']),
+    totalParagraphs: _asInt(json['total_paragraphs']),
+    estimatedReadMinutes: _asNullableInt(json['estimated_read_minutes']),
+    viewCount: _asInt(json['view_count']),
+    rating: _asDouble(json['reviews_avg_rating']),
+    reviewsCount: _asInt(json['reviews_count']),
   );
 
   Map<String, dynamic> toJson() => {
@@ -99,4 +99,42 @@ class BookModel {
     'reviews_avg_rating': rating,
     'reviews_count': reviewsCount,
   };
+
+  static int _asInt(dynamic value, {int fallback = 0}) {
+    if (value == null) return fallback;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      return int.tryParse(value) ?? double.tryParse(value)?.toInt() ?? fallback;
+    }
+    return fallback;
+  }
+
+  static int? _asNullableInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      return int.tryParse(value) ?? double.tryParse(value)?.toInt();
+    }
+    return null;
+  }
+
+  static double _asDouble(dynamic value, {double fallback = 0.0}) {
+    if (value == null) return fallback;
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? fallback;
+    return fallback;
+  }
+
+  static bool _asBool(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      return normalized == '1' || normalized == 'true';
+    }
+    return false;
+  }
 }

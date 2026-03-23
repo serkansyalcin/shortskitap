@@ -10,6 +10,7 @@ import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/providers/kids_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/models/progress_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/widgets/category_visuals.dart';
 import '../../../core/services/subscription_service.dart';
@@ -54,9 +55,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   }),
                 ),
                 _DiscoverTab(
+                  key: ValueKey('discover-${_discoverCategory ?? 'all'}'),
                   selectedCategory: _discoverCategory,
                   onCategoryChanged: (category) {
-                    _discoverCategory = category;
+                    setState(() => _discoverCategory = category);
                   },
                 ),
                 const _LeagueTab(),
@@ -71,9 +73,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   }),
                 ),
                 _DiscoverTab(
+                  key: ValueKey('discover-${_discoverCategory ?? 'all'}'),
                   selectedCategory: _discoverCategory,
                   onCategoryChanged: (category) {
-                    _discoverCategory = category;
+                    setState(() => _discoverCategory = category);
                   },
                 ),
               ],
@@ -163,6 +166,20 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  ProgressModel? _findContinueReadingProgress(
+    List<ProgressModel> progress, {
+    required bool isKidsMode,
+  }) {
+    for (final item in progress) {
+      final book = item.book;
+      if (book == null) continue;
+      if (item.isCompleted || item.completionPercentage >= 100) continue;
+      if (isKidsMode && book.isKids != true) continue;
+      return item;
+    }
+    return null;
   }
 
   @override
@@ -288,12 +305,11 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
               if (isAuthenticated)
                 progressAsync.when(
                   data: (progress) {
-                    final recent = progress.isNotEmpty ? progress.first : null;
-                    if (recent == null || recent.book == null)
-                      return const SizedBox.shrink();
-
-                    if (ref.watch(kidsModeProvider) &&
-                        recent.book?.isKids != true) {
+                    final recent = _findContinueReadingProgress(
+                      progress,
+                      isKidsMode: ref.watch(kidsModeProvider),
+                    );
+                    if (recent == null || recent.book == null) {
                       return const SizedBox.shrink();
                     }
 
@@ -405,7 +421,18 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                   error: (_, __) => const SizedBox.shrink(),
                 ),
 
-              if (isAuthenticated) const SizedBox(height: 24),
+              if (isAuthenticated)
+                progressAsync.when(
+                  data: (progress) => _findContinueReadingProgress(
+                            progress,
+                            isKidsMode: ref.watch(kidsModeProvider),
+                          ) !=
+                          null
+                      ? const SizedBox(height: 24)
+                      : const SizedBox.shrink(),
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
 
               categoriesAsync.when(
                 data: (categories) {
@@ -738,7 +765,11 @@ class _KidsModeInfoCard extends StatelessWidget {
 }
 
 class _DiscoverTab extends ConsumerStatefulWidget {
-  const _DiscoverTab({this.selectedCategory, this.onCategoryChanged});
+  const _DiscoverTab({
+    super.key,
+    this.selectedCategory,
+    this.onCategoryChanged,
+  });
 
   final String? selectedCategory;
   final ValueChanged<String?>? onCategoryChanged;
