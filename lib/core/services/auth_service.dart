@@ -80,4 +80,28 @@ class AuthService {
     await _client.delete('/me', data: {'password': password});
     await ApiClient.clearToken();
   }
+
+  Future<void> requestPasswordReset(String email) async {
+    await _client.post('/auth/forgot-password', data: {'email': email});
+  }
+
+  Future<void> verifyResetCode(String email, String code) async {
+    await _client.post('/auth/verify-reset-code', data: {
+      'email': email,
+      'code': code,
+    });
+  }
+
+  Future<void> submitNewPassword(
+    String email,
+    String code,
+    String password,
+  ) async {
+    await _client.post('/auth/reset-password', data: {
+      'email': email,
+      'code': code,
+      'password': password,
+      'password_confirmation': password,
+    });
+  }
 }

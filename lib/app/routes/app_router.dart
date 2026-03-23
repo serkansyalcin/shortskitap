@@ -6,6 +6,9 @@ import '../../features/auth/screens/splash_screen.dart';
 import '../../features/auth/screens/onboarding_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/register_screen.dart';
+import '../../features/auth/screens/forgot_password_screen.dart';
+import '../../features/auth/screens/verify_pin_screen.dart';
+import '../../features/auth/screens/reset_password_screen.dart';
 import '../../features/home/screens/home_screen.dart';
 import '../../features/discover/screens/discover_screen.dart';
 import '../../features/discover/screens/search_screen.dart';
@@ -70,6 +73,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (_, __) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/verify-pin',
+        builder: (_, state) => VerifyPinScreen(
+          email: state.uri.queryParameters['email'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        builder: (_, state) => ResetPasswordScreen(
+          email: state.uri.queryParameters['email'] ?? '',
+          code: state.uri.queryParameters['code'] ?? '',
+        ),
+      ),
       GoRoute(
         path: '/home',
         builder: (_, __) => const HomeScreen(),
