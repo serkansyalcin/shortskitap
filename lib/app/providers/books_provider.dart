@@ -7,6 +7,7 @@ import '../../core/services/book_service.dart';
 import '../../core/services/offline_cache_service.dart';
 import '../../core/services/podcast_service.dart';
 import 'kids_provider.dart';
+import 'subscription_provider.dart';
 
 final bookServiceProvider = Provider<BookService>((ref) => BookService());
 final podcastServiceProvider = Provider<PodcastService>(
@@ -93,6 +94,9 @@ final podcastsProvider = FutureProvider.family<List<PodcastModel>, int>((
 });
 
 final downloadedBooksProvider = FutureProvider<List<BookModel>>((ref) async {
+  final isPremium = ref.watch(isPremiumProvider);
+  if (!isPremium) return const <BookModel>[];
+
   final isKids = ref.watch(kidsModeProvider);
   final books = await ref.read(offlineCacheServiceProvider).getCachedBooks();
   if (isKids) {
@@ -168,8 +172,11 @@ final paragraphsProvider = FutureProvider.family<List<ParagraphModel>, int>((
 
   try {
     final paragraphs = await service.getAllParagraphs(bookId);
-    await cache.cacheParagraphs(bookId, paragraphs);
-    ref.invalidate(bookCacheStatusProvider(bookId));
+    final isPremium = ref.read(isPremiumProvider);
+    if (isPremium) {
+      await cache.cacheParagraphs(bookId, paragraphs);
+      ref.invalidate(bookCacheStatusProvider(bookId));
+    }
     return paragraphs;
   } catch (_) {
     final cached = await cache.getCachedParagraphs(bookId);

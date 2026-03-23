@@ -873,7 +873,8 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
     );
     final isDownloaded =
         ref.watch(bookCacheStatusProvider(widget.book.id)).valueOrNull == true;
-    if (isDownloaded && !_syncedDownloadedMetadata) {
+    final isPremium = ref.watch(isPremiumProvider);
+    if (isDownloaded && !_syncedDownloadedMetadata && isPremium) {
       _syncedDownloadedMetadata = true;
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         await ref.read(offlineCacheServiceProvider).cacheBook(widget.book);
@@ -953,10 +954,10 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
                 ? Icons.downloading_rounded
                 : Icons.download_rounded,
             label: isDownloaded
-                ? 'Cihazdan kaldir'
+                ? 'Cihazdan kaldır'
                 : isDownloading
                 ? 'Kitap indiriliyor...'
-                : 'Cihaza indir ve cevrimdisi oku',
+                : 'Cihaza indir ve Çevrimdışı oku',
             accentColor: widget.accentColor,
             emphasized: isDownloaded,
             onTap: isDownloading
@@ -980,7 +981,111 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
     );
   }
 
+  void _showPremiumRequiredForDownloadModal() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: isDark ? const Color(0xFF171A17) : theme.cardColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 4,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.workspace_premium_rounded,
+                  color: AppColors.primary,
+                  size: 32,
+                ),
+              ),
+              Text(
+                'Premium Özellik',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Kitapları cihazınıza indirip çevrimdışı okumak için Kitaplig Premium abonesi olmalısınız. İstediğiniz zaman, internete ihtiyaç duymadan okuma keyfini çıkarın!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.5,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 32),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  context.push('/premium');
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text(
+                  'Premium\'u İncele',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  'Vazgeç',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _downloadBook() async {
+    final isPremium = ref.read(isPremiumProvider);
+    if (!isPremium) {
+      _showPremiumRequiredForDownloadModal();
+      return;
+    }
+
     try {
       final count = await ref
           .read(bookDownloadControllerProvider.notifier)
@@ -990,16 +1095,16 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
         SnackBar(
           content: Text(
             count > 0
-                ? 'Kitap indirildi. Artik cevrimdisi da acilabilir.'
+                ? 'Kitap indirildi. Artık çevrimdışı da açılabilir.'
                 : 'Bu kitap zaten indiriliyor.',
           ),
         ),
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('İndirme tamamlanamadı: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('İndirme işlemi sırasında bir hata oluştu. Hesabınıza giriş yaptığınızdan emin olun.')),
+      );
     }
   }
 
@@ -1076,7 +1181,7 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
     final shareText = StringBuffer()
       ..writeln('${widget.book.title}${author != null ? ' - $author' : ''}')
       ..writeln()
-      ..write('KitapLig uygulamasında bu kitaba göz at: ${widget.book.title}');
+      ..write('Kitaplig uygulamasında bu kitaba göz at: ${widget.book.title}');
 
     Share.share(shareText.toString(), subject: widget.book.title);
   }
