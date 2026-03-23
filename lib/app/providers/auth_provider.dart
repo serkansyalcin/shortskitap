@@ -82,9 +82,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       _syncOnboardingPrefs();
       return true;
     } catch (e) {
+      final errorMsg = _parseError(e);
       state = AuthState(
         status: AuthStatus.unauthenticated,
-        error: e.toString(),
+        error: errorMsg,
       );
       return false;
     }
@@ -192,6 +193,31 @@ class AuthNotifier extends StateNotifier<AuthState> {
         a.preferredFontSize == b.preferredFontSize &&
         a.termsAcceptedAt == b.termsAcceptedAt &&
         a.privacyPolicyAcceptedAt == b.privacyPolicyAcceptedAt;
+  }
+
+  String _parseError(dynamic e) {
+    if (e is DioException) {
+      final data = e.response?.data;
+      if (data is Map<String, dynamic>) {
+        if (data.containsKey('errors')) {
+          final errors = data['errors'] as Map<String, dynamic>;
+          final firstError = errors.values.first;
+          if (firstError is List && firstError.isNotEmpty) {
+            final msg = firstError.first.toString();
+            // Basit çeviriler
+            if (msg.contains('unique')) return 'Bu e-posta adresi zaten kullanımda.';
+            if (msg.contains('required')) return 'Lütfen tüm alanları doldurun.';
+            return msg;
+          }
+        }
+        if (data.containsKey('message')) {
+          final msg = data['message'].toString();
+          if (msg == 'invalid_credentials') return 'E-posta veya şifre hatalı.';
+          return msg;
+        }
+      }
+    }
+    return 'Bir hata oluştu. Lütfen tekrar deneyin.';
   }
 }
 

@@ -67,7 +67,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (success) {
       context.go(_targetAfterAuth(context));
     } else {
-      setState(() => _error = 'Kayıt tamamlanamadı. Bilgileri kontrol et.');
+      setState(() => _error = ref.read(authProvider).error);
     }
   }
 

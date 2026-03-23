@@ -55,7 +55,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (success) {
       context.go(_targetAfterAuth(context));
     } else {
-      setState(() => _error = 'E-posta veya şifre hatalı.');
+      setState(() => _error = ref.read(authProvider).error);
     }
   }
 
