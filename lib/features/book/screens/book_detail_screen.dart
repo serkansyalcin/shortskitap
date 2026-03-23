@@ -358,6 +358,17 @@ class _BookHeroCard extends StatelessWidget {
     required this.textSecondary,
   });
 
+  String _getLanguageName(String code) {
+    switch (code.toLowerCase()) {
+      case 'tr': return 'Türkçe';
+      case 'en': return 'İngilizce';
+      case 'fr': return 'Fransızca';
+      case 'de': return 'Almanca';
+      case 'ru': return 'Rusça';
+      default: return code.toUpperCase();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -471,6 +482,10 @@ class _BookHeroCard extends StatelessWidget {
                         label: '${book.rating.toStringAsFixed(1)} (${book.reviewsCount})',
                         iconColor: const Color(0xFFFFC107),
                       ),
+                    _MetaPill(
+                      icon: Icons.language_rounded,
+                      label: _getLanguageName(book.language),
+                    ),
                     _MetaPill(
                       icon: Icons.auto_stories_outlined,
                       label: '${book.totalParagraphs} paragraf',
