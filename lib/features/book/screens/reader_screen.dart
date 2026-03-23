@@ -114,18 +114,27 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
     final voiceEnabled = ref.read(voiceoverEnabledProvider);
     if (voiceEnabled && paragraphId != null) {
-      _triggerVoiceover(paragraphId);
+      _triggerVoiceover(paragraphId, index);
+
+      // Trigger preload for the next page
+      if (index + 1 < items.length) {
+        final nextItem = items[index + 1];
+        if (nextItem is _ParagraphItem) {
+           _voiceoverService.preloadNextParagraph(widget.bookId, nextItem.paragraph.id);
+        }
+      }
     }
   }
 
-  Future<void> _triggerVoiceover(int paragraphId) async {
-    if (_voiceoverLoading) return;
+  Future<void> _triggerVoiceover(int paragraphId, int index) async {
     if (!mounted) return;
     setState(() => _voiceoverLoading = true);
     try {
       await _voiceoverService.playParagraph(widget.bookId, paragraphId);
     } finally {
-      if (mounted) setState(() => _voiceoverLoading = false);
+      if (mounted && _currentIndex == index) {
+        setState(() => _voiceoverLoading = false);
+      }
     }
   }
 
@@ -138,7 +147,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       ref.read(voiceoverEnabledProvider.notifier).state = true;
       _voiceoverService.enable();
       if (_currentParagraphId != null) {
-        _triggerVoiceover(_currentParagraphId!);
+        _triggerVoiceover(_currentParagraphId!, _currentIndex);
       }
     }
   }
