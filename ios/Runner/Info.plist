@@ -45,6 +45,8 @@
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>KitapLig, profil fotoğrafınızı yüklemek için fotoğraf kütüphanenize erişmek istiyor.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>KitapLig, alıntıları galerinize kaydetmek için izin istiyor.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>KitapLig, profil fotoğrafı çekmek için kamera erişimi istiyor.</string>
 	<key>NSMicrophoneUsageDescription</key>

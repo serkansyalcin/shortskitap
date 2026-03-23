@@ -36,6 +36,9 @@ dependencies:
 
   # Sharing
   share_plus: ^10.1.4
+  screenshot: ^3.0.0
+  image_gallery_saver: ^2.0.3
+  path_provider: ^2.1.3
 
   # Animations
   lottie: ^3.3.1

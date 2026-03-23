@@ -27,11 +27,15 @@ const _adEveryN = 5;
 class ReaderScreen extends ConsumerStatefulWidget {
   final int bookId;
   final bool bookIsPremium;
+  final String? bookTitle;
+  final String? authorName;
 
   const ReaderScreen({
     super.key,
     required this.bookId,
     this.bookIsPremium = false,
+    this.bookTitle,
+    this.authorName,
   });
 
   @override
@@ -462,6 +466,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         accentColor: palette.accent,
                         mutedColor: palette.muted,
                         highlightColor: highlightColor,
+                        bookTitle: widget.bookTitle,
+                        authorName: widget.authorName,
                         onHighlight: () {
                           HighlightModal.show(
                             context,

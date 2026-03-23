@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,12 +12,19 @@ import '../../../app/providers/subscription_provider.dart';
 import '../../../app/providers/kids_provider.dart';
 import '../../../app/providers/daily_quote_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/models/daily_quote_model.dart';
 import '../../../core/models/progress_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/widgets/category_visuals.dart';
 import '../../../core/services/subscription_service.dart';
 import '../../../core/services/notification_permission_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io' if (dart.library.html) 'dart:html' as html;
+import 'dart:io' show Platform;
 import '../../league/screens/league_screen.dart';
 import '../../league/widgets/league_mini_card.dart';
 import '../../library/widgets/library_view.dart';
@@ -24,6 +32,7 @@ import '../../profile/widgets/achievement_badge_grid.dart';
 import '../../profile/widgets/achievement_celebration_widget.dart';
 import '../../profile/widgets/reading_heatmap_widget.dart';
 import '../../subscription/widgets/premium_badge.dart';
+import '../../../core/widgets/shareable_quote_overlay.dart';
 import '../widgets/kids_mode_exit_dialog.dart';
 import '../widgets/kids_mode_pin_set_dialog.dart';
 
@@ -632,11 +641,115 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
   }
 }
 
-class _DailyQuoteCard extends ConsumerWidget {
+class _DailyQuoteCard extends ConsumerStatefulWidget {
   const _DailyQuoteCard();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_DailyQuoteCard> createState() => _DailyQuoteCardState();
+}
+
+class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
+  final ScreenshotController _screenshotController = ScreenshotController();
+  bool _isSharing = false;
+
+  Future<void> _shareQuote(DailyQuoteModel quote) async {
+    if (_isSharing) return;
+
+    setState(() => _isSharing = true);
+
+    try {
+      // 1. Check Permissions (mobile only)
+      if (!kIsWeb) {
+        if (Platform.isAndroid) {
+          final status = await Permission.storage.request();
+          if (!status.isGranted) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Galeriye kaydetmek için izin vermelisiniz.')),
+              );
+            }
+            return;
+          }
+        } else if (Platform.isIOS) {
+          final status = await Permission.photos.request();
+          if (!status.isGranted) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Galeriye kaydetmek için izin vermelisiniz.')),
+              );
+            }
+            return;
+          }
+        }
+      }
+
+      // 2. Capture the branded widget
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      final image = await _screenshotController.captureFromWidget(
+        Material(
+          child: ShareableQuoteOverlay(
+            quote: quote,
+            isDark: isDark,
+          ),
+        ),
+        delay: const Duration(milliseconds: 100),
+      );
+
+      if (kIsWeb) {
+        // 3a. Web: trigger browser download via dart:html
+        // ignore: avoid_web_libraries_in_flutter
+        final blob = html.Blob([image], 'image/png');
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', 'kitaplig_quote_${quote.id}.png')
+          ..click();
+        html.Url.revokeObjectUrl(url);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Alıntı indirildi! ✨'),
+              backgroundColor: AppColors.primary,
+            ),
+          );
+        }
+      } else {
+        // 3b. Mobile: save to gallery
+        final result = await ImageGallerySaver.saveImage(
+          image,
+          quality: 100,
+          name: 'kitaplig_quote_${quote.id}',
+        );
+        if (mounted) {
+          if (result['isSuccess'] == true) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Alıntı galeriye kaydedildi! ✨'),
+                backgroundColor: AppColors.primary,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Kaydedilirken bir hata oluştu.')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Share error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Hata: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSharing = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final quoteAsync = ref.watch(dailyQuoteProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -706,16 +819,21 @@ class _DailyQuoteCard extends ConsumerWidget {
                           ),
                         ),
                         const Spacer(),
-                        IconButton(
-                          visualDensity: VisualDensity.compact,
-                          onPressed: () {
-                          },
-                          icon: Icon(
-                            Icons.ios_share_rounded,
-                            size: 18,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
+                        _isSharing 
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                            )
+                          : IconButton(
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () => _shareQuote(quote),
+                              icon: Icon(
+                                Icons.ios_share_rounded,
+                                size: 18,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
                       ],
                     ),
                     const SizedBox(height: 14),
