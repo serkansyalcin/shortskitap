@@ -10,6 +10,7 @@ class BookService {
     String? category,
     String? sort,
     int page = 1,
+    int perPage = 20,
     bool isKids = false,
   }) async {
     final res = await _client.get(
@@ -19,7 +20,7 @@ class BookService {
         if (sort != null) 'sort': sort,
         'is_kids': isKids ? 1 : 0,
         'page': page,
-        'per_page': 20,
+        'per_page': perPage,
       },
     );
     final data = res.data['data'] as List<dynamic>;

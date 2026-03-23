@@ -189,7 +189,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
     final isAuthenticated = authState.isAuthenticated;
     final progressAsync = ref.watch(allProgressProvider);
     final featuredAsync = ref.watch(featuredBooksProvider);
-    final categoriesAsync = ref.watch(categoriesProvider);
+    final categoriesAsync = ref.watch(homeQuickCategoriesProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     return SafeArea(

@@ -25,6 +25,27 @@ final categoriesProvider = FutureProvider<List<CategoryModel>>((ref) {
   return ref.read(bookServiceProvider).getCategories(isKids: isKids);
 });
 
+final homeQuickCategoriesProvider = FutureProvider<List<CategoryModel>>((
+  ref,
+) async {
+  final isKids = ref.watch(kidsModeProvider);
+  final service = ref.read(bookServiceProvider);
+
+  final categoriesFuture = service.getCategories(isKids: isKids);
+  final booksFuture = service.getBooks(isKids: isKids, perPage: 100);
+
+  final categories = await categoriesFuture;
+  final books = await booksFuture;
+  final availableSlugs = books
+      .map((book) => book.category?.slug)
+      .whereType<String>()
+      .toSet();
+
+  return categories
+      .where((category) => availableSlugs.contains(category.slug))
+      .toList(growable: false);
+});
+
 final featuredBooksProvider = FutureProvider<List<BookModel>>((ref) {
   final isKids = ref.watch(kidsModeProvider);
   return ref.read(bookServiceProvider).getFeatured(isKids: isKids);
@@ -65,6 +86,7 @@ final booksProvider = FutureProvider.family<List<BookModel>, BooksFilter>((
         category: filter.category,
         sort: filter.sort,
         page: filter.page,
+        perPage: 20,
         isKids: filter.isKids,
       );
 });

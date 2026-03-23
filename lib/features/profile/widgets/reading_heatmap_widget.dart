@@ -29,7 +29,10 @@ class _ReadingHeatmapWidgetState extends State<ReadingHeatmapWidget> {
       final mapped = <String, int>{};
 
       rawData.forEach((key, value) {
-        mapped[key] = int.tryParse(value.toString()) ?? 0;
+        final normalizedKey = _normalizeDateKey(key);
+        if (normalizedKey != null) {
+          mapped[normalizedKey] = int.tryParse(value.toString()) ?? 0;
+        }
       });
 
       if (!mounted) return;
@@ -84,6 +87,10 @@ class _ReadingHeatmapWidgetState extends State<ReadingHeatmapWidget> {
     final activeDays = _heatmapData.values.where((value) => value > 0).length;
     final totalParagraphs =
         _heatmapData.values.fold<int>(0, (sum, value) => sum + value);
+    final maxDailyCount = _heatmapData.values.fold<int>(
+      0,
+      (max, value) => value > max ? value : max,
+    );
 
     return Container(
       width: double.infinity,
@@ -156,7 +163,7 @@ class _ReadingHeatmapWidgetState extends State<ReadingHeatmapWidget> {
                           color: isFuture
                               ? theme.colorScheme.surfaceContainerHighest
                                   .withValues(alpha: 0.28)
-                              : _colorForCount(count, theme),
+                              : _colorForCount(count, theme, maxDailyCount),
                           borderRadius: BorderRadius.circular(3),
                         ),
                       );
@@ -193,7 +200,7 @@ class _ReadingHeatmapWidgetState extends State<ReadingHeatmapWidget> {
                   height: 10,
                   margin: const EdgeInsets.only(left: 4),
                   decoration: BoxDecoration(
-                    color: _colorForCount(count, theme),
+                    color: _colorForCount(count, theme, 80),
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
@@ -222,13 +229,35 @@ class _ReadingHeatmapWidgetState extends State<ReadingHeatmapWidget> {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
-  Color _colorForCount(int count, ThemeData theme) {
+  String? _normalizeDateKey(Object? rawKey) {
+    if (rawKey == null) return null;
+
+    final raw = rawKey.toString().trim();
+    if (raw.isEmpty) return null;
+    if (raw.length >= 10) {
+      final leadingDate = raw.substring(0, 10);
+      final parsedLeading = DateTime.tryParse(leadingDate);
+      if (parsedLeading != null) {
+        return _dateKey(parsedLeading);
+      }
+    }
+
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return null;
+    return _dateKey(parsed);
+  }
+
+  Color _colorForCount(int count, ThemeData theme, int maxCount) {
     if (count <= 0) {
       return theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.75);
     }
-    if (count < 10) return const Color(0xFFB8ECC7);
-    if (count < 25) return const Color(0xFF86DFA0);
-    if (count < 50) return const Color(0xFF47C96A);
+
+    final safeMax = maxCount <= 0 ? 1 : maxCount;
+    final ratio = count / safeMax;
+
+    if (ratio <= 0.25) return const Color(0xFFB8ECC7);
+    if (ratio <= 0.5) return const Color(0xFF86DFA0);
+    if (ratio <= 0.75) return const Color(0xFF47C96A);
     return const Color(0xFF19913B);
   }
 }
