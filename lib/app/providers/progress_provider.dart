@@ -32,8 +32,9 @@ class ProgressSyncState {
 
 class ProgressSyncNotifier extends StateNotifier<ProgressSyncState> {
   final svc.ProgressService _service;
+  final Ref ref;
 
-  ProgressSyncNotifier(this._service) : super(const ProgressSyncState());
+  ProgressSyncNotifier(this._service, this.ref) : super(const ProgressSyncState());
 
   Future<void> sync(int bookId, int paragraphOrder, int sessionSeconds) async {
     if (state.isSyncing) return;
@@ -42,6 +43,10 @@ class ProgressSyncNotifier extends StateNotifier<ProgressSyncState> {
       final result =
           await _service.syncProgress(bookId, paragraphOrder, sessionSeconds);
       state = ProgressSyncState(isSyncing: false, lastResult: result);
+      
+      // Invalidate providers to ensure other screens (like Library) update in real-time
+      ref.invalidate(allProgressProvider);
+      ref.invalidate(bookProgressProvider(bookId));
     } catch (_) {
       state = const ProgressSyncState(isSyncing: false);
     }
@@ -50,5 +55,5 @@ class ProgressSyncNotifier extends StateNotifier<ProgressSyncState> {
 
 final progressSyncProvider =
     StateNotifierProvider<ProgressSyncNotifier, ProgressSyncState>((ref) {
-  return ProgressSyncNotifier(ref.read(progressServiceProvider));
+  return ProgressSyncNotifier(ref.read(progressServiceProvider), ref);
 });

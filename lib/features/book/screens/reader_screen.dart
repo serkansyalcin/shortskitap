@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/providers/books_provider.dart';
+import '../../../app/providers/library_provider.dart';
 import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/settings_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
@@ -470,8 +471,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                               setState(() {
                                 _localHighlights[id] = color;
                               });
-                              // Also invalidate paragraphs to ensure backend/cache stays in sync on next load
+                              // Refresh highlight-backed surfaces after a new save.
                               ref.invalidate(paragraphsProvider(widget.bookId));
+                              ref.invalidate(highlightsProvider);
                             },
                           );
                         },

@@ -10,8 +10,8 @@ import '../../../app/providers/library_provider.dart';
 import '../../../app/providers/progress_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/book_model.dart';
-import '../../../core/models/bookmark_model.dart';
 import '../../../core/models/favorite_model.dart';
+import '../../../core/models/highlight_model.dart';
 import '../../../core/models/progress_model.dart';
 import '../../../core/widgets/animated_segmented_control.dart';
 
@@ -47,13 +47,14 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
 
     final progressAsync = ref.watch(allProgressProvider);
     final favoritesAsync = ref.watch(favoritesProvider);
-    final bookmarksAsync = ref.watch(bookmarksProvider);
+    final highlightsAsync = ref.watch(highlightsProvider);
     final downloadedAsync = ref.watch(downloadedBooksProvider);
     final isKidsMode = ref.watch(kidsModeProvider);
 
     final rawProgress = progressAsync.valueOrNull ?? const <ProgressModel>[];
     final rawFavorites = favoritesAsync.valueOrNull ?? const <FavoriteModel>[];
-    final rawBookmarks = bookmarksAsync.valueOrNull ?? const <BookmarkModel>[];
+    final rawHighlights =
+        highlightsAsync.valueOrNull ?? const <HighlightModel>[];
 
     final allProgress = isKidsMode
         ? rawProgress
@@ -71,11 +72,11 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
               .where((f) => f.book?.isKids == true)
               .toList(growable: false)
         : rawFavorites;
-    final bookmarks = isKidsMode
-        ? rawBookmarks
-              .where((b) => b.book?.isKids == true)
+    final highlights = isKidsMode
+        ? rawHighlights
+              .where((h) => h.book?.isKids == true)
               .toList(growable: false)
-        : rawBookmarks;
+        : rawHighlights;
     final downloadedBooks = downloadedAsync.valueOrNull ?? const <BookModel>[];
 
     return SafeArea(
@@ -88,7 +89,7 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
             _LibraryHero(
               progressAsync: progressAsync,
               favoritesAsync: favoritesAsync,
-              bookmarksAsync: bookmarksAsync,
+              highlightsAsync: highlightsAsync,
               downloadedAsync: downloadedAsync,
               filteredCounts: isKidsMode
                   ? (
@@ -96,7 +97,7 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
                       completed: completedProgress.length,
                       downloaded: downloadedBooks.length,
                       favorites: favorites.length,
-                      bookmarks: bookmarks.length,
+                      highlights: highlights.length,
                     )
                   : null,
             ),
@@ -159,17 +160,17 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
                   mode: _mode,
                   onRetryProgress: () => ref.invalidate(allProgressProvider),
                   onRetryFavorites: () => ref.invalidate(favoritesProvider),
-                  onRetryBookmarks: () => ref.invalidate(bookmarksProvider),
+                  onRetryHighlights: () => ref.invalidate(highlightsProvider),
                   progressAsync: progressAsync,
                   favoritesAsync: favoritesAsync,
-                  bookmarksAsync: bookmarksAsync,
+                  highlightsAsync: highlightsAsync,
                   downloadedAsync: downloadedAsync,
                   allProgress: allProgress,
                   activeProgress: activeProgress,
                   completedProgress: completedProgress,
                   downloadedBooks: downloadedBooks,
                   favorites: favorites,
-                  bookmarks: bookmarks,
+                  highlights: highlights,
                 ),
               ),
             ),
@@ -184,33 +185,33 @@ class _LibraryModeContent extends StatelessWidget {
   final _LibraryMode mode;
   final VoidCallback onRetryProgress;
   final VoidCallback onRetryFavorites;
-  final VoidCallback onRetryBookmarks;
+  final VoidCallback onRetryHighlights;
   final AsyncValue<List<ProgressModel>> progressAsync;
   final AsyncValue<List<FavoriteModel>> favoritesAsync;
-  final AsyncValue<List<BookmarkModel>> bookmarksAsync;
+  final AsyncValue<List<HighlightModel>> highlightsAsync;
   final AsyncValue<List<BookModel>> downloadedAsync;
   final List<ProgressModel> allProgress;
   final List<ProgressModel> activeProgress;
   final List<ProgressModel> completedProgress;
   final List<BookModel> downloadedBooks;
   final List<FavoriteModel> favorites;
-  final List<BookmarkModel> bookmarks;
+  final List<HighlightModel> highlights;
 
   const _LibraryModeContent({
     required this.mode,
     required this.onRetryProgress,
     required this.onRetryFavorites,
-    required this.onRetryBookmarks,
+    required this.onRetryHighlights,
     required this.progressAsync,
     required this.favoritesAsync,
-    required this.bookmarksAsync,
+    required this.highlightsAsync,
     required this.downloadedAsync,
     required this.allProgress,
     required this.activeProgress,
     required this.completedProgress,
     required this.downloadedBooks,
     required this.favorites,
-    required this.bookmarks,
+    required this.highlights,
   });
 
   @override
@@ -373,14 +374,15 @@ class _LibraryModeContent extends StatelessWidget {
             subtitle: 'İşaretlediğin paragraflara hızlıca geri dön.',
           ),
           const SizedBox(height: 10),
-          bookmarksAsync.when(
+          highlightsAsync.when(
             loading: () => const _LibraryLoadingCard(height: 220),
-            error: (_, __) => const _InlineInfoCard(
+            error: (_, __) => _LibraryErrorCard(
               title: 'Kaydedilen alıntılar yüklenemedi',
-              subtitle: 'Bu alan daha sonra tekrar denenebilir.',
+              buttonLabel: 'Tekrar dene',
+              onPressed: onRetryHighlights,
             ),
             data: (_) {
-              if (bookmarks.isEmpty) {
+              if (highlights.isEmpty) {
                 return const _InlineInfoCard(
                   title: 'Henüz kayıtlı alıntın yok',
                   subtitle:
@@ -391,12 +393,12 @@ class _LibraryModeContent extends StatelessWidget {
               final limit = mode == _LibraryMode.highlights ? 12 : 8;
               return Column(
                 children: List.generate(
-                  bookmarks.length.clamp(0, limit),
+                  highlights.length.clamp(0, limit),
                   (index) => Padding(
                     padding: EdgeInsets.only(
                       bottom: index == limit - 1 ? 0 : 12,
                     ),
-                    child: _BookmarkCard(bookmark: bookmarks[index]),
+                    child: _HighlightCard(highlight: highlights[index]),
                   ),
                 ),
               );
@@ -411,21 +413,21 @@ class _LibraryModeContent extends StatelessWidget {
 class _LibraryHero extends StatelessWidget {
   final AsyncValue<List<ProgressModel>> progressAsync;
   final AsyncValue<List<FavoriteModel>> favoritesAsync;
-  final AsyncValue<List<BookmarkModel>> bookmarksAsync;
+  final AsyncValue<List<HighlightModel>> highlightsAsync;
   final AsyncValue<List<BookModel>> downloadedAsync;
   final ({
     int progress,
     int completed,
     int downloaded,
     int favorites,
-    int bookmarks,
+    int highlights,
   })?
   filteredCounts;
 
   const _LibraryHero({
     required this.progressAsync,
     required this.favoritesAsync,
-    required this.bookmarksAsync,
+    required this.highlightsAsync,
     required this.downloadedAsync,
     this.filteredCounts,
   });
@@ -442,8 +444,8 @@ class _LibraryHero extends StatelessWidget {
         filteredCounts?.downloaded ?? downloadedAsync.valueOrNull?.length ?? 0;
     final favoritesCount =
         filteredCounts?.favorites ?? favoritesAsync.valueOrNull?.length ?? 0;
-    final bookmarksCount =
-        filteredCounts?.bookmarks ?? bookmarksAsync.valueOrNull?.length ?? 0;
+    final highlightsCount =
+        filteredCounts?.highlights ?? highlightsAsync.valueOrNull?.length ?? 0;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -533,7 +535,7 @@ class _LibraryHero extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _StatPill(label: 'Alıntı', value: '$bookmarksCount'),
+                child: _StatPill(label: 'Alıntı', value: '$highlightsCount'),
               ),
               const SizedBox(width: 10),
               const Expanded(child: SizedBox.shrink()),
@@ -963,18 +965,27 @@ class _DownloadedBookCard extends ConsumerWidget {
   }
 }
 
-class _BookmarkCard extends StatelessWidget {
-  final BookmarkModel bookmark;
+class _HighlightCard extends StatelessWidget {
+  final HighlightModel highlight;
 
-  const _BookmarkCard({required this.bookmark});
+  const _HighlightCard({required this.highlight});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final excerpt = bookmark.note?.trim().isNotEmpty == true
-        ? bookmark.note!.trim()
-        : bookmark.paragraph?.content.trim() ?? '';
-    final book = bookmark.book;
+    final excerpt = highlight.text.trim().isNotEmpty
+        ? highlight.text.trim()
+        : highlight.note?.trim() ?? '';
+    final note = highlight.note?.trim();
+    final book = highlight.book;
+    Color accent = AppColors.accent;
+    try {
+      if (highlight.color != null && highlight.color!.isNotEmpty) {
+        accent = Color(
+          int.parse(highlight.color!.replaceFirst('#', '0xFF')),
+        );
+      }
+    } catch (_) {}
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -992,12 +1003,12 @@ class _BookmarkCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.14),
+                  color: accent.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.bookmark_added_rounded,
-                  color: AppColors.accent,
+                  color: accent,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1019,8 +1030,21 @@ class _BookmarkCard extends StatelessWidget {
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               height: 1.6,
+              fontStyle: FontStyle.italic,
             ),
           ),
+          if (note != null && note.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              note,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                height: 1.5,
+              ),
+            ),
+          ],
         ],
       ),
     );

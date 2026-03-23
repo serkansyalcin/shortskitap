@@ -136,32 +136,60 @@ class _ParagraphCardState extends State<ParagraphCard>
 
 
   Widget _buildQuote() {
+    final hl = widget.highlightColor;
+    final quoteContent = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '"',
+          style: _bodyStyle(
+            color: widget.accentColor.withValues(alpha: 0.20),
+            fontSize: 80,
+            height: 0.8,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          widget.paragraph.content,
+          style: _bodyStyle(
+            color: widget.textColor,
+            fontSize: widget.fontSize,
+            height: widget.lineHeight + 0.08,
+            fontWeight: FontWeight.w500,
+            fontStyle: FontStyle.italic,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+
+    if (hl == null) {
+      return Center(child: quoteContent);
+    }
+
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '"',
-            style: _bodyStyle(
-              color: widget.accentColor.withValues(alpha: 0.20),
-              fontSize: 80,
-              height: 0.8,
-              fontWeight: FontWeight.w600,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              decoration: BoxDecoration(
+                color: hl.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: hl.withOpacity(0.25)),
+              ),
+              child: quoteContent,
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            widget.paragraph.content,
-            style: _bodyStyle(
-              color: widget.textColor,
-              fontSize: widget.fontSize,
-              height: widget.lineHeight + 0.08,
-              fontWeight: FontWeight.w500,
-              fontStyle: FontStyle.italic,
+            Positioned(
+              top: 0,
+              bottom: 0,
+              left: 0,
+              child: Container(width: 4, color: hl),
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

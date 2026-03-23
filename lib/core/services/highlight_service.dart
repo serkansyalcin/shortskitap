@@ -1,4 +1,5 @@
 import '../api/api_client.dart';
+import '../models/highlight_model.dart';
 
 class HighlightService {
   final ApiClient _client = ApiClient.instance;
@@ -9,6 +10,14 @@ class HighlightService {
       params: bookId != null ? {'book_id': bookId} : null,
     );
     return res.data;
+  }
+
+  Future<List<HighlightModel>> getHighlightsList({int? bookId}) async {
+    final data = await getHighlights(bookId: bookId);
+    final items = (data['data'] as List<dynamic>? ?? const <dynamic>[]);
+    return items
+        .map((item) => HighlightModel.fromJson(item as Map<String, dynamic>))
+        .toList(growable: false);
   }
 
   Future<dynamic> createHighlight({
