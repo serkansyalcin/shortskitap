@@ -79,7 +79,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'KitapLig',
+                        'Kitaplig',
                         style: GoogleFonts.playfairDisplay(
                           fontSize: 32,
                           fontWeight: FontWeight.w700,

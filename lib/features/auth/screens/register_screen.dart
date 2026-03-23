@@ -488,7 +488,7 @@ class _RegisterHero extends StatelessWidget {
               Text(
                 readingIntent
                     ? 'Okumaya başlamak için hesap oluştur'
-                    : 'KitapLig ile okumaya başla',
+                    : 'Kitaplig ile okumaya başla',
                 style: textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
@@ -504,7 +504,7 @@ class _RegisterHero extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         Text(
-          'KitapLig hesabını aç',
+          'Kitaplig hesabını aç',
           style: textTheme.displayMedium?.copyWith(color: colorScheme.onSurface),
         ),
         const SizedBox(height: 10),

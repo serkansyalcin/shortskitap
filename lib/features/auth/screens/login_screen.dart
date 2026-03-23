@@ -84,7 +84,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       _AuthHero(
                         label: readingIntent
                             ? 'Okumaya devam etmek için giriş yap'
-                            : 'KitapLig ile okuma alışkanlığı',
+                            : 'Kitaplig ile okuma alışkanlığı',
                         title: 'Tekrar hoş geldin',
                         subtitle: readingIntent
                             ? 'Kitabı okumaya başlamak için hesabına giriş yapman gerekiyor.'

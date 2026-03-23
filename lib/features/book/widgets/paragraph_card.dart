@@ -254,8 +254,8 @@ class _ParagraphCardState extends State<ParagraphCard>
 
   void _shareParagraph() {
     Share.share(
-      '"${widget.paragraph.content}"\n\n— KitapLig uygulamasından',
-      subject: 'KitapLig',
+      '"${widget.paragraph.content}"\n\n— Kitaplig uygulamasından',
+      subject: 'Kitaplig',
     );
   }
 }

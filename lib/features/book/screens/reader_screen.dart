@@ -200,7 +200,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               ),
               const SizedBox(height: 12),
               Text(
-                'Kitapları cihazınıza indirip çevrimdışı okumak için KitapLig Premium abonesi olmalısınız. İstediğiniz zaman, internete ihtiyaç duymadan okuma keyfini çıkarın!',
+                'Kitapları cihazınıza indirip çevrimdışı okumak için Kitaplig Premium abonesi olmalısınız. İstediğiniz zaman, internete ihtiyaç duymadan okuma keyfini çıkarın!',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 15,
@@ -864,7 +864,7 @@ class _PremiumGateScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Bu kitabı okumak için KitapLig Premium üyeliği gerekiyor.\nAylık ₺14,99 ile sınırsız erişim sağlayın.',
+                'Bu kitabı okumak için Kitaplig Premium üyeliği gerekiyor.\nAylık ₺14,99 ile sınırsız erişim sağlayın.',
                 style: TextStyle(
                   fontSize: 15,
                   color: Colors.black54,
