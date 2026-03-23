@@ -359,7 +359,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             const SizedBox(height: 14),
                             Center(
                               child: TextButton(
-                                onPressed: () => context.pop(),
+                                onPressed: () {
+                                  final uri = Uri(
+                                    path: '/login',
+                                    queryParameters: returnTo != null ? {'returnTo': returnTo} : null,
+                                  );
+                                  context.pushReplacement(uri.toString());
+                                },
                                 child: const Text.rich(
                                   TextSpan(
                                     text: 'Zaten hesabın var mı? ',

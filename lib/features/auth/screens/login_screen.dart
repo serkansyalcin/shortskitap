@@ -253,10 +253,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             Center(
                               child: TextButton(
                                 onPressed: () {
-                                  final route = returnTo?.isNotEmpty == true
-                                      ? '/register?returnTo=${Uri.encodeComponent(returnTo!)}'
-                                      : '/register';
-                                  context.push(route);
+                                  final uri = Uri(
+                                    path: '/register',
+                                    queryParameters: returnTo != null ? {'returnTo': returnTo} : null,
+                                  );
+                                  context.pushReplacement(uri.toString());
                                 },
                                 child: const Text.rich(
                                   TextSpan(

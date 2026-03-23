@@ -42,7 +42,7 @@ class ShareableQuoteOverlay extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Text(
-                  'GÜNÜN ALINTISI',
+                  'Günün Alıntısı',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w900,

@@ -217,7 +217,7 @@ class _BrandChip extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Text(
-            'KİTAPLİG ALINTISI',
+            'Kitaplig Alıntısı',
             style: TextStyle(
               fontSize: 9,
               fontWeight: FontWeight.w800,

@@ -809,7 +809,7 @@ class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            'GÜNÜN ALINTISI',
+                            'Günün Alıntısı',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
