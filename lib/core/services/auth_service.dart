@@ -76,8 +76,8 @@ class AuthService {
     return UserModel.fromJson(res.data['data'] as Map<String, dynamic>);
   }
 
-  Future<void> deleteAccount() async {
-    await _client.delete('/me');
+  Future<void> deleteAccount(String password) async {
+    await _client.delete('/me', data: {'password': password});
     await ApiClient.clearToken();
   }
 }

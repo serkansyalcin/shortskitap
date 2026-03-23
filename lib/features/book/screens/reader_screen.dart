@@ -148,6 +148,31 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _startControlsTimer();
   }
 
+  Future<void> _downloadBook() async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      final count = await ref
+          .read(bookDownloadControllerProvider.notifier)
+          .downloadBook(widget.bookId);
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            count > 0
+                ? 'Kitap cihaza indirildi. Artık çevrimdışı da okunabilir.'
+                : 'Bu kitap zaten indiriliyor.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('İndirme tamamlanamadı: $error')),
+      );
+    }
+  }
+
   void _goNext(int total) {
     if (_currentIndex < total - 1) {
       _pageController.nextPage(
@@ -220,6 +245,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final progressAsync = ref.watch(bookProgressProvider(widget.bookId));
     final settings = ref.watch(settingsProvider);
     final isPremium = ref.watch(isPremiumProvider);
+    final isDownloading = ref.watch(
+      bookDownloadControllerProvider.select(
+        (downloading) => downloading.contains(widget.bookId),
+      ),
+    );
+    final cacheStatusAsync = ref.watch(bookCacheStatusProvider(widget.bookId));
+    final isDownloaded = cacheStatusAsync.valueOrNull == true;
     final readerTheme = _readerThemeOverride ?? settings.theme;
     final readerFontSize =
         _readerFontSizeOverride ?? settings.fontSize.toDouble();
@@ -313,7 +345,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     child: _ReaderTopBar(
                       readerTheme: readerTheme,
                       fontFamily: readerFontFamily,
+                      isDownloaded: isDownloaded,
+                      isDownloading: isDownloading,
                       onBack: () => context.pop(),
+                      onDownload: isDownloaded || isDownloading
+                          ? null
+                          : _downloadBook,
                       onSettings: () =>
                           _showReaderSettings(context, readerTheme),
                     ),
@@ -763,13 +800,19 @@ class _PremiumGateScreen extends StatelessWidget {
 class _ReaderTopBar extends StatelessWidget {
   final String readerTheme;
   final String fontFamily;
+  final bool isDownloaded;
+  final bool isDownloading;
   final VoidCallback onBack;
+  final VoidCallback? onDownload;
   final VoidCallback onSettings;
 
   const _ReaderTopBar({
     required this.readerTheme,
     required this.fontFamily,
+    required this.isDownloaded,
+    required this.isDownloading,
     required this.onBack,
+    required this.onDownload,
     required this.onSettings,
   });
 
@@ -821,6 +864,15 @@ class _ReaderTopBar extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
+          ),
+          const SizedBox(width: 10),
+          _TopBarButton(
+            icon: isDownloaded
+                ? Icons.download_done_rounded
+                : Icons.download_rounded,
+            color: isDownloaded ? AppColors.accent : iconColor,
+            onTap: onDownload,
+            loading: isDownloading,
           ),
           const SizedBox(width: 10),
           _TopBarButton(
@@ -928,7 +980,10 @@ class _ReaderBottomBar extends StatelessWidget {
                 onTap: onVoiceoverToggle,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: voiceoverEnabled
                         ? AppColors.accent.withValues(alpha: 0.22)
@@ -1035,18 +1090,20 @@ class _ReaderPalette {
 class _TopBarButton extends StatelessWidget {
   final IconData icon;
   final Color color;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool loading;
 
   const _TopBarButton({
     required this.icon,
     required this.color,
     required this.onTap,
+    this.loading = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withValues(alpha: 0.08),
+      color: Colors.white.withValues(alpha: onTap == null ? 0.04 : 0.08),
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
@@ -1054,7 +1111,22 @@ class _TopBarButton extends StatelessWidget {
         child: SizedBox(
           width: 40,
           height: 40,
-          child: Icon(icon, color: color, size: 19),
+          child: AnimatedOpacity(
+            opacity: onTap == null && !loading ? 0.65 : 1,
+            duration: const Duration(milliseconds: 180),
+            child: Center(
+              child: loading
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: color,
+                      ),
+                    )
+                  : Icon(icon, color: color, size: 19),
+            ),
+          ),
         ),
       ),
     );

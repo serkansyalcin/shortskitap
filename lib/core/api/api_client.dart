@@ -60,7 +60,7 @@ class ApiClient {
   Future<Response<T>> patch<T>(String path, {dynamic data}) =>
       _dio.patch<T>(path, data: data);
 
-  Future<Response<T>> delete<T>(String path) => _dio.delete<T>(path);
+  Future<Response<T>> delete<T>(String path, {dynamic data}) => _dio.delete<T>(path, data: data);
 
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();

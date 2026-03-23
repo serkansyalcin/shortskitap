@@ -92,9 +92,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState.unauthenticated();
   }
 
-  Future<bool> deleteAccount() async {
+  Future<bool> deleteAccount(String password) async {
     try {
-      await _service.deleteAccount();
+      await _service.deleteAccount(password);
       state = const AuthState.unauthenticated();
       return true;
     } catch (e) {

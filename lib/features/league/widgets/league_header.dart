@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kitaplig/core/models/league_model.dart';
 
 class LeagueHeader extends StatelessWidget {
@@ -39,7 +40,9 @@ class LeagueHeader extends StatelessWidget {
           ],
         ),
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: tierColor.withValues(alpha: isDark ? 0.35 : 0.24)),
+        border: Border.all(
+          color: tierColor.withValues(alpha: isDark ? 0.35 : 0.24),
+        ),
         boxShadow: [
           BoxShadow(
             color: tierColor.withValues(alpha: 0.16),
@@ -55,7 +58,13 @@ class LeagueHeader extends StatelessWidget {
             children: [
               if (showBackButton)
                 IconButton(
-                  onPressed: () => Navigator.of(context).maybePop(),
+                  onPressed: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/home');
+                    }
+                  },
                   icon: Icon(
                     Icons.arrow_back_rounded,
                     color: theme.colorScheme.onSurface,
@@ -160,7 +169,8 @@ class LeagueHeader extends StatelessWidget {
                       child: _HeaderMetric(
                         icon: Icons.flash_on_rounded,
                         label: 'Bu hafta',
-                        value: '${membership.weeklyXp} ${isKidsMode ? 'Puan' : 'XP'}',
+                        value:
+                            '${membership.weeklyXp} ${isKidsMode ? 'Puan' : 'XP'}',
                         accent: const Color(0xFFFBBF24),
                       ),
                     ),
@@ -198,9 +208,13 @@ class LeagueHeader extends StatelessWidget {
                     Expanded(
                       child: Text(
                         membership.isInPromotionZone
-                            ? (isKidsMode ? 'Ödül bölgesindesin' : 'Terfi bölgesindesin')
+                            ? (isKidsMode
+                                  ? 'Ödül bölgesindesin'
+                                  : 'Terfi bölgesindesin')
                             : membership.isInDemotionZone
-                            ? (isKidsMode ? 'Daha fazla oku' : 'Düşme hattından çık')
+                            ? (isKidsMode
+                                  ? 'Daha fazla oku'
+                                  : 'Düşme hattından çık')
                             : 'Biraz daha yüksel',
                         style: TextStyle(
                           color: theme.colorScheme.onSurface,

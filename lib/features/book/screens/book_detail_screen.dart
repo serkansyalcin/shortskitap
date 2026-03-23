@@ -137,66 +137,71 @@ class BookDetailScreen extends ConsumerWidget {
 
                       // Series info
                       if (book.seriesId != null)
-                        ref.watch(seriesDetailProvider(book.seriesId!)).when(
-                          data: (series) => Column(
-                            children: [
-                              SeriesInfoWidget(
-                                series: series,
-                                currentBookOrder: book.seriesOrder,
-                                accentColor: accentColor,
-                              ),
-                              const SizedBox(height: 12),
-                              if (series.books.isNotEmpty) ...[
-                                SeriesBookListWidget(
-                                  series: series,
-                                  currentBookId: book.id,
-                                  accentColor: accentColor,
-                                ),
-                                const SizedBox(height: 20),
-                              ],
-                            ],
-                          ),
-                          loading: () => const SizedBox.shrink(),
-                          error: (_, __) => const SizedBox.shrink(),
-                        ),
-
-                      // Characters section
-                      ref.watch(charactersProvider(book.id)).when(
-                        data: (characters) => characters.isEmpty
-                            ? const SizedBox.shrink()
-                            : Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                        ref
+                            .watch(seriesDetailProvider(book.seriesId!))
+                            .when(
+                              data: (series) => Column(
                                 children: [
-                                  Text(
-                                    'Karakterler',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: colorScheme.onSurface,
-                                      letterSpacing: -0.2,
-                                    ),
+                                  SeriesInfoWidget(
+                                    series: series,
+                                    currentBookOrder: book.seriesOrder,
+                                    accentColor: accentColor,
                                   ),
-                                  const SizedBox(height: 10),
-                                  SizedBox(
-                                    height: 200,
-                                    child: ListView.separated(
-                                      scrollDirection: Axis.horizontal,
-                                      itemCount: characters.length,
-                                      separatorBuilder: (_, __) =>
-                                          const SizedBox(width: 10),
-                                      itemBuilder: (context, index) =>
-                                          CharacterCardWidget(
-                                        character: characters[index],
-                                        accentColor: accentColor,
-                                      ),
+                                  const SizedBox(height: 12),
+                                  if (series.books.isNotEmpty) ...[
+                                    SeriesBookListWidget(
+                                      series: series,
+                                      currentBookId: book.id,
+                                      accentColor: accentColor,
                                     ),
-                                  ),
-                                  const SizedBox(height: 20),
+                                    const SizedBox(height: 20),
+                                  ],
                                 ],
                               ),
-                        loading: () => const SizedBox.shrink(),
-                        error: (_, __) => const SizedBox.shrink(),
-                      ),
+                              loading: () => const SizedBox.shrink(),
+                              error: (_, __) => const SizedBox.shrink(),
+                            ),
+
+                      // Characters section
+                      ref
+                          .watch(charactersProvider(book.id))
+                          .when(
+                            data: (characters) => characters.isEmpty
+                                ? const SizedBox.shrink()
+                                : Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Karakterler',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          color: colorScheme.onSurface,
+                                          letterSpacing: -0.2,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      SizedBox(
+                                        height: 200,
+                                        child: ListView.separated(
+                                          scrollDirection: Axis.horizontal,
+                                          itemCount: characters.length,
+                                          separatorBuilder: (_, __) =>
+                                              const SizedBox(width: 10),
+                                          itemBuilder: (context, index) =>
+                                              CharacterCardWidget(
+                                                character: characters[index],
+                                                accentColor: accentColor,
+                                              ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 20),
+                                    ],
+                                  ),
+                            loading: () => const SizedBox.shrink(),
+                            error: (_, __) => const SizedBox.shrink(),
+                          ),
                     ],
                   ),
                 ),
@@ -854,12 +859,27 @@ class _BookActionStrip extends ConsumerStatefulWidget {
 class _BookActionStripState extends ConsumerState<_BookActionStrip> {
   bool _isSubmitting = false;
   bool? _optimisticFavorite;
+  bool _syncedDownloadedMetadata = false;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final favorites = ref.watch(favoritesProvider).valueOrNull ?? const [];
+    final isDownloading = ref.watch(
+      bookDownloadControllerProvider.select(
+        (downloading) => downloading.contains(widget.book.id),
+      ),
+    );
+    final isDownloaded =
+        ref.watch(bookCacheStatusProvider(widget.book.id)).valueOrNull == true;
+    if (isDownloaded && !_syncedDownloadedMetadata) {
+      _syncedDownloadedMetadata = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await ref.read(offlineCacheServiceProvider).cacheBook(widget.book);
+        ref.invalidate(downloadedBooksProvider);
+      });
+    }
     final isAuthenticated = authState.isAuthenticated;
     final isFavorite =
         _optimisticFavorite ??
@@ -925,6 +945,26 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          _ActionButton(
+            icon: isDownloaded
+                ? Icons.delete_outline_rounded
+                : isDownloading
+                ? Icons.downloading_rounded
+                : Icons.download_rounded,
+            label: isDownloaded
+                ? 'Cihazdan kaldir'
+                : isDownloading
+                ? 'Kitap indiriliyor...'
+                : 'Cihaza indir ve cevrimdisi oku',
+            accentColor: widget.accentColor,
+            emphasized: isDownloaded,
+            onTap: isDownloading
+                ? null
+                : isDownloaded
+                ? _removeDownload
+                : _downloadBook,
+          ),
           if (!isAuthenticated) ...[
             const SizedBox(height: 10),
             Text(
@@ -938,6 +978,47 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
         ],
       ),
     );
+  }
+
+  Future<void> _downloadBook() async {
+    try {
+      final count = await ref
+          .read(bookDownloadControllerProvider.notifier)
+          .downloadBook(widget.book.id, book: widget.book);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            count > 0
+                ? 'Kitap indirildi. Artik cevrimdisi da acilabilir.'
+                : 'Bu kitap zaten indiriliyor.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('İndirme tamamlanamadı: $error')));
+    }
+  }
+
+  Future<void> _removeDownload() async {
+    try {
+      await ref
+          .read(bookDownloadControllerProvider.notifier)
+          .removeDownload(widget.book.id);
+      _syncedDownloadedMetadata = false;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kitap cihazdan kaldırıldı.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Kaldırma tamamlanamadı: $error')));
+    }
   }
 
   Future<void> _toggleFavorite() async {

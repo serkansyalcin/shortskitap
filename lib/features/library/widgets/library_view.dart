@@ -4,16 +4,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/providers/auth_provider.dart';
+import '../../../app/providers/books_provider.dart';
 import '../../../app/providers/kids_provider.dart';
 import '../../../app/providers/library_provider.dart';
 import '../../../app/providers/progress_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/models/book_model.dart';
 import '../../../core/models/bookmark_model.dart';
 import '../../../core/models/favorite_model.dart';
 import '../../../core/models/progress_model.dart';
 import '../../../core/widgets/animated_segmented_control.dart';
 
-enum _LibraryMode { overview, reading, completed, favorites, highlights }
+enum _LibraryMode {
+  overview,
+  reading,
+  completed,
+  downloaded,
+  favorites,
+  highlights,
+}
 
 class LibraryView extends ConsumerStatefulWidget {
   const LibraryView({super.key});
@@ -39,6 +48,7 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
     final progressAsync = ref.watch(allProgressProvider);
     final favoritesAsync = ref.watch(favoritesProvider);
     final bookmarksAsync = ref.watch(bookmarksProvider);
+    final downloadedAsync = ref.watch(downloadedBooksProvider);
     final isKidsMode = ref.watch(kidsModeProvider);
 
     final rawProgress = progressAsync.valueOrNull ?? const <ProgressModel>[];
@@ -46,7 +56,9 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
     final rawBookmarks = bookmarksAsync.valueOrNull ?? const <BookmarkModel>[];
 
     final allProgress = isKidsMode
-        ? rawProgress.where((p) => p.book?.isKids == true).toList(growable: false)
+        ? rawProgress
+              .where((p) => p.book?.isKids == true)
+              .toList(growable: false)
         : rawProgress;
     final activeProgress = allProgress
         .where((item) => !item.isCompleted)
@@ -55,11 +67,16 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
         .where((item) => item.isCompleted)
         .toList(growable: false);
     final favorites = isKidsMode
-        ? rawFavorites.where((f) => f.book?.isKids == true).toList(growable: false)
+        ? rawFavorites
+              .where((f) => f.book?.isKids == true)
+              .toList(growable: false)
         : rawFavorites;
     final bookmarks = isKidsMode
-        ? rawBookmarks.where((b) => b.book?.isKids == true).toList(growable: false)
+        ? rawBookmarks
+              .where((b) => b.book?.isKids == true)
+              .toList(growable: false)
         : rawBookmarks;
+    final downloadedBooks = downloadedAsync.valueOrNull ?? const <BookModel>[];
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -72,10 +89,12 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
               progressAsync: progressAsync,
               favoritesAsync: favoritesAsync,
               bookmarksAsync: bookmarksAsync,
+              downloadedAsync: downloadedAsync,
               filteredCounts: isKidsMode
                   ? (
                       progress: activeProgress.length,
                       completed: completedProgress.length,
+                      downloaded: downloadedBooks.length,
                       favorites: favorites.length,
                       bookmarks: bookmarks.length,
                     )
@@ -101,6 +120,11 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
                   value: _LibraryMode.completed,
                   label: 'Biten',
                   icon: Icons.verified_rounded,
+                ),
+                SegmentedItem(
+                  value: _LibraryMode.downloaded,
+                  label: 'Indirilen',
+                  icon: Icons.download_done_rounded,
                 ),
                 SegmentedItem(
                   value: _LibraryMode.favorites,
@@ -139,9 +163,11 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
                   progressAsync: progressAsync,
                   favoritesAsync: favoritesAsync,
                   bookmarksAsync: bookmarksAsync,
+                  downloadedAsync: downloadedAsync,
                   allProgress: allProgress,
                   activeProgress: activeProgress,
                   completedProgress: completedProgress,
+                  downloadedBooks: downloadedBooks,
                   favorites: favorites,
                   bookmarks: bookmarks,
                 ),
@@ -162,9 +188,11 @@ class _LibraryModeContent extends StatelessWidget {
   final AsyncValue<List<ProgressModel>> progressAsync;
   final AsyncValue<List<FavoriteModel>> favoritesAsync;
   final AsyncValue<List<BookmarkModel>> bookmarksAsync;
+  final AsyncValue<List<BookModel>> downloadedAsync;
   final List<ProgressModel> allProgress;
   final List<ProgressModel> activeProgress;
   final List<ProgressModel> completedProgress;
+  final List<BookModel> downloadedBooks;
   final List<FavoriteModel> favorites;
   final List<BookmarkModel> bookmarks;
 
@@ -176,9 +204,11 @@ class _LibraryModeContent extends StatelessWidget {
     required this.progressAsync,
     required this.favoritesAsync,
     required this.bookmarksAsync,
+    required this.downloadedAsync,
     required this.allProgress,
     required this.activeProgress,
     required this.completedProgress,
+    required this.downloadedBooks,
     required this.favorites,
     required this.bookmarks,
   });
@@ -197,6 +227,8 @@ class _LibraryModeContent extends StatelessWidget {
         'Su an aktif okudugun kitaplar ve son ilerlemen burada.',
       _LibraryMode.completed =>
         'Bitirdigin kitaplarin arsivi ve yeniden donus rafin.',
+      _LibraryMode.downloaded =>
+        'Cihazina indirdigin kitaplar burada, internet olmasa da elinin altinda.',
       _LibraryMode.favorites =>
         'Gozunun onunde tutmak istedigin kitaplarin kisayolu.',
       _LibraryMode.highlights =>
@@ -261,6 +293,40 @@ class _LibraryModeContent extends StatelessWidget {
                     child: _ProgressCard(progress: progressForMode[index]),
                   ),
                 ),
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+        ],
+        if (mode == _LibraryMode.overview ||
+            mode == _LibraryMode.downloaded) ...[
+          const _SectionTitle(
+            title: 'İndirilenler',
+            subtitle: 'Cihazına kaydettiğin kitaplara hızlıca ulaş.',
+          ),
+          const SizedBox(height: 10),
+          downloadedAsync.when(
+            loading: () => const _LibraryLoadingCard(height: 140),
+            error: (_, __) => const _InlineInfoCard(
+              title: 'İndirilen kitaplar yüklenemedi',
+              subtitle: 'Yerel kütüphane birazdan tekrar denenebilir.',
+            ),
+            data: (_) {
+              if (downloadedBooks.isEmpty) {
+                return const _InlineInfoCard(
+                  title: 'Henüz indirilen kitap yok',
+                  subtitle:
+                      'Bir kitabı indirdiginde burada göreceksin.',
+                );
+              }
+
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: downloadedBooks
+                    .take(mode == _LibraryMode.downloaded ? 18 : 6)
+                    .map((book) => _DownloadedBookCard(book: book))
+                    .toList(),
               );
             },
           ),
@@ -346,29 +412,38 @@ class _LibraryHero extends StatelessWidget {
   final AsyncValue<List<ProgressModel>> progressAsync;
   final AsyncValue<List<FavoriteModel>> favoritesAsync;
   final AsyncValue<List<BookmarkModel>> bookmarksAsync;
-  final ({int progress, int completed, int favorites, int bookmarks})? filteredCounts;
+  final AsyncValue<List<BookModel>> downloadedAsync;
+  final ({
+    int progress,
+    int completed,
+    int downloaded,
+    int favorites,
+    int bookmarks,
+  })?
+  filteredCounts;
 
   const _LibraryHero({
     required this.progressAsync,
     required this.favoritesAsync,
     required this.bookmarksAsync,
+    required this.downloadedAsync,
     this.filteredCounts,
   });
 
   @override
   Widget build(BuildContext context) {
-    final progressCount = filteredCounts?.progress ??
-        progressAsync.valueOrNull?.length ??
-        0;
-    final completedCount = filteredCounts?.completed ??
+    final progressCount =
+        filteredCounts?.progress ?? progressAsync.valueOrNull?.length ?? 0;
+    final completedCount =
+        filteredCounts?.completed ??
         progressAsync.valueOrNull?.where((item) => item.isCompleted).length ??
         0;
-    final favoritesCount = filteredCounts?.favorites ??
-        favoritesAsync.valueOrNull?.length ??
-        0;
-    final bookmarksCount = filteredCounts?.bookmarks ??
-        bookmarksAsync.valueOrNull?.length ??
-        0;
+    final downloadedCount =
+        filteredCounts?.downloaded ?? downloadedAsync.valueOrNull?.length ?? 0;
+    final favoritesCount =
+        filteredCounts?.favorites ?? favoritesAsync.valueOrNull?.length ?? 0;
+    final bookmarksCount =
+        filteredCounts?.bookmarks ?? bookmarksAsync.valueOrNull?.length ?? 0;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -446,12 +521,22 @@ class _LibraryHero extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _StatPill(label: 'Favori', value: '$favoritesCount'),
+                child: _StatPill(label: 'İndirilen', value: '$downloadedCount'),
               ),
               const SizedBox(width: 10),
               Expanded(
+                child: _StatPill(label: 'Favori', value: '$favoritesCount'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
                 child: _StatPill(label: 'Alıntı', value: '$bookmarksCount'),
               ),
+              const SizedBox(width: 10),
+              const Expanded(child: SizedBox.shrink()),
             ],
           ),
         ],
@@ -481,9 +566,9 @@ class _StatPill extends StatelessWidget {
         children: [
           Text(
             value,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(color: theme.colorScheme.onSurface),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: theme.colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 2),
           Text(
@@ -596,7 +681,9 @@ class _ProgressCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(26),
-          border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
+          border: Border.all(
+            color: theme.colorScheme.outline.withOpacity(0.75),
+          ),
         ),
         child: Row(
           children: [
@@ -645,7 +732,9 @@ class _ProgressCard extends StatelessWidget {
                     child: LinearProgressIndicator(
                       value: progress.completionPercentage / 100,
                       minHeight: 7,
-                      backgroundColor: theme.colorScheme.outline.withOpacity(0.45),
+                      backgroundColor: theme.colorScheme.outline.withOpacity(
+                        0.45,
+                      ),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         progress.isCompleted ? Colors.green : AppColors.primary,
                       ),
@@ -690,7 +779,9 @@ class _FavoriteChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
+          border: Border.all(
+            color: theme.colorScheme.outline.withOpacity(0.75),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -730,6 +821,145 @@ class _FavoriteChip extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _DownloadedBookCard extends ConsumerWidget {
+  final BookModel book;
+
+  const _DownloadedBookCard({required this.book});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isProcessing = ref.watch(
+      bookDownloadControllerProvider.select(
+        (downloading) => downloading.contains(book.id),
+      ),
+    );
+
+    return InkWell(
+      onTap: () => context.push(
+        '/read/${book.id}',
+        extra: {'isPremium': book.isPremium},
+      ),
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        width: 220,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: theme.colorScheme.outline.withOpacity(0.75),
+          ),
+        ),
+        child: Row(
+          children: [
+            _BookCover(
+              imageUrl: book.coverImageUrl,
+              width: 56,
+              height: 78,
+              radius: 14,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.accent.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Text(
+                            'Çevrimdışı hazır',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.accent,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      InkWell(
+                        onTap: isProcessing
+                            ? null
+                            : () => _removeDownload(context, ref),
+                        borderRadius: BorderRadius.circular(999),
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: isProcessing
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.accent,
+                                  ),
+                                )
+                              : Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 18,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    book.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    book.author?.name ?? 'Hazır indirilen kitap',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _removeDownload(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref
+          .read(bookDownloadControllerProvider.notifier)
+          .removeDownload(book.id);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${book.title} cihazdan kaldırıldı.')),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Kaldırma tamamlanamadı: $error')));
+    }
   }
 }
 
@@ -774,9 +1004,7 @@ class _BookmarkCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   book?.title ?? 'Kaydedilen alinti',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: theme.colorScheme.onSurface,
                   ),
                 ),
@@ -894,9 +1122,9 @@ class _EmptyPanel extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(color: theme.colorScheme.onSurface),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: theme.colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -936,9 +1164,9 @@ class _InlineInfoCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurface),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
@@ -1008,9 +1236,9 @@ class _LibraryErrorCard extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurface),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 14),
           OutlinedButton(onPressed: onPressed, child: Text(buttonLabel)),
