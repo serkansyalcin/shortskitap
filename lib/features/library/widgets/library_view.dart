@@ -123,7 +123,7 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
                 ),
                 SegmentedItem(
                   value: _LibraryMode.downloaded,
-                  label: 'Indirilen',
+                  label: 'İndirilen',
                   icon: Icons.download_done_rounded,
                 ),
                 SegmentedItem(
