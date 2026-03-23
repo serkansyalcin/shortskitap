@@ -18,6 +18,7 @@ import '../../features/book/screens/series_screen.dart';
 import '../../features/library/screens/library_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/settings_screen.dart';
+import '../../features/profile/screens/highlights_screen.dart';
 import '../../features/league/screens/league_screen.dart';
 import '../../features/subscription/screens/paywall_screen.dart';
 
@@ -99,6 +100,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: 'library', builder: (_, __) => const LibraryScreen()),
           GoRoute(path: 'profile', builder: (_, __) => const ProfileScreen()),
           GoRoute(path: 'settings', builder: (_, __) => const SettingsScreen()),
+          GoRoute(path: 'highlights', builder: (_, __) => const HighlightsScreen()),
         ],
       ),
       GoRoute(path: '/league', builder: (_, __) => const LeagueScreen()),

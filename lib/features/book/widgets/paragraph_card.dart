@@ -14,8 +14,8 @@ class ParagraphCard extends StatefulWidget {
   final double lineHeight;
   final Color textColor;
   final Color dividerColor;
-  final Color accentColor;
   final Color mutedColor;
+  final VoidCallback? onHighlight;
 
   const ParagraphCard({
     super.key,
@@ -29,6 +29,7 @@ class ParagraphCard extends StatefulWidget {
     required this.dividerColor,
     required this.accentColor,
     required this.mutedColor,
+    this.onHighlight,
   });
 
   @override
@@ -245,6 +246,21 @@ class _ParagraphCardState extends State<ParagraphCard>
                   );
                 },
               ),
+              if (widget.onHighlight != null)
+                ListTile(
+                  leading: const Icon(
+                    Icons.format_paint_rounded,
+                    color: AppColors.primary,
+                  ),
+                  title: const Text(
+                    'Bu paragrafı vurgula',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    widget.onHighlight!();
+                  },
+                ),
             ],
           ),
         ),

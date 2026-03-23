@@ -3,9 +3,11 @@ import '../../core/models/book_model.dart';
 import '../../core/models/category_model.dart';
 import '../../core/models/paragraph_model.dart';
 import '../../core/models/podcast_model.dart';
+import '../../core/models/review_model.dart';
 import '../../core/services/book_service.dart';
 import '../../core/services/offline_cache_service.dart';
 import '../../core/services/podcast_service.dart';
+import '../../core/services/review_service.dart';
 import 'kids_provider.dart';
 import 'subscription_provider.dart';
 
@@ -16,6 +18,7 @@ final podcastServiceProvider = Provider<PodcastService>(
 final offlineCacheServiceProvider = Provider<OfflineCacheService>(
   (ref) => OfflineCacheService(),
 );
+final reviewServiceProvider = Provider<ReviewService>((ref) => ReviewService());
 
 final categoriesProvider = FutureProvider<List<CategoryModel>>((ref) {
   final isKids = ref.watch(kidsModeProvider);
@@ -91,6 +94,15 @@ final podcastsProvider = FutureProvider.family<List<PodcastModel>, int>((
   bookId,
 ) {
   return ref.read(podcastServiceProvider).getPodcasts(bookId);
+});
+
+final bookReviewsProvider = FutureProvider.family<List<ReviewModel>, int>((
+  ref,
+  bookId,
+) async {
+  final res = await ref.read(reviewServiceProvider).getReviews(bookId);
+  final data = res['data']['data'] as List<dynamic>;
+  return data.map((e) => ReviewModel.fromJson(e as Map<String, dynamic>)).toList();
 });
 
 final downloadedBooksProvider = FutureProvider<List<BookModel>>((ref) async {

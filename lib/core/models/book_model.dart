@@ -21,6 +21,8 @@ class BookModel {
   final int totalParagraphs;
   final int? estimatedReadMinutes;
   final int viewCount;
+  final double rating;
+  final int reviewsCount;
 
   const BookModel({
     required this.id,
@@ -42,6 +44,8 @@ class BookModel {
     required this.totalParagraphs,
     this.estimatedReadMinutes,
     required this.viewCount,
+    this.rating = 0.0,
+    this.reviewsCount = 0,
   });
 
   factory BookModel.fromJson(Map<String, dynamic> json) => BookModel(
@@ -68,6 +72,8 @@ class BookModel {
     totalParagraphs: json['total_paragraphs'] as int? ?? 0,
     estimatedReadMinutes: json['estimated_read_minutes'] as int?,
     viewCount: json['view_count'] as int? ?? 0,
+    rating: (json['reviews_avg_rating'] as num?)?.toDouble() ?? 0.0,
+    reviewsCount: json['reviews_count'] as int? ?? 0,
   );
 
   Map<String, dynamic> toJson() => {
@@ -90,5 +96,7 @@ class BookModel {
     'total_paragraphs': totalParagraphs,
     'estimated_read_minutes': estimatedReadMinutes,
     'view_count': viewCount,
+    'reviews_avg_rating': rating,
+    'reviews_count': reviewsCount,
   };
 }

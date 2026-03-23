@@ -20,6 +20,7 @@ import '../../league/widgets/league_mini_card.dart';
 import '../../library/widgets/library_view.dart';
 import '../../profile/widgets/achievement_badge_grid.dart';
 import '../../profile/widgets/achievement_celebration_widget.dart';
+import '../../profile/widgets/reading_heatmap_widget.dart';
 import '../../subscription/widgets/premium_badge.dart';
 import '../widgets/kids_mode_exit_dialog.dart';
 import '../widgets/kids_mode_pin_set_dialog.dart';
@@ -1656,6 +1657,10 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                   error: (_, __) => const SizedBox.shrink(),
                 ),
 
+                // --- Heatmap ---
+                const ReadingHeatmapWidget(),
+                const SizedBox(height: 20),
+
                 // --- Stats ---
                 Offstage(
                   offstage: true,
@@ -1684,6 +1689,13 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                 _MenuCard(
                   color: cardColor,
                   children: [
+                    _MenuItem(
+                      icon: Icons.format_quote_rounded,
+                      title: 'Alıntılarım',
+                      subtitle: 'Kaydettiğiniz paragraflar ve notlar',
+                      onTap: () => context.push('/home/highlights'),
+                    ),
+                    _MenuDivider(),
                     _MenuItem(
                       icon: Icons.settings_outlined,
                       title: 'Ayarlar',

@@ -104,4 +104,25 @@ class AuthService {
       'password_confirmation': password,
     });
   }
+
+  Future<({UserModel user, String token})> socialLogin({
+    required String provider,
+    required String providerId,
+    required String name,
+    required String email,
+    String? avatarUrl,
+  }) async {
+    final res = await _client.post('/auth/social', data: {
+      'provider': provider,
+      'provider_id': providerId,
+      'name': name,
+      'email': email,
+      if (avatarUrl != null) 'avatar_url': avatarUrl,
+    });
+    final data = res.data['data'] as Map<String, dynamic>;
+    final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
+    final token = data['token'] as String;
+    await ApiClient.saveToken(token);
+    return (user: user, token: token);
+  }
 }

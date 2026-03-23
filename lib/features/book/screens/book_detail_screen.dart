@@ -18,6 +18,7 @@ import '../../../features/subscription/widgets/premium_badge.dart';
 import '../widgets/character_card_widget.dart';
 import '../widgets/podcast_player_widget.dart';
 import '../widgets/series_info_widget.dart';
+import '../../../core/models/review_model.dart';
 
 class BookDetailScreen extends ConsumerWidget {
   final String slug;
@@ -196,6 +197,88 @@ class BookDetailScreen extends ConsumerWidget {
                                               ),
                                         ),
                                       ),
+                                      const SizedBox(height: 20),
+                                    ],
+                                  ),
+                            loading: () => const SizedBox.shrink(),
+                            error: (_, __) => const SizedBox.shrink(),
+                          ),
+
+                      // Reviews section
+                      ref
+                          .watch(bookReviewsProvider(book.id))
+                          .when(
+                            data: (reviews) => reviews.isEmpty
+                                ? const SizedBox.shrink()
+                                : Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Değerlendirmeler',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          color: colorScheme.onSurface,
+                                          letterSpacing: -0.2,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      ...reviews.map((review) => Padding(
+                                        padding: const EdgeInsets.only(bottom: 12),
+                                        child: Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                                            borderRadius: BorderRadius.circular(16),
+                                            border: Border.all(color: Colors.white.withOpacity(0.04)),
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  CircleAvatar(
+                                                    radius: 12,
+                                                    backgroundColor: accentColor.withOpacity(0.2),
+                                                    backgroundImage: review.userAvatarUrl != null ? CachedNetworkImageProvider(review.userAvatarUrl!) : null,
+                                                    child: review.userAvatarUrl == null ? Icon(Icons.person, size: 14, color: accentColor) : null,
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    review.userName ?? 'İsimsiz',
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: colorScheme.onSurface,
+                                                    ),
+                                                  ),
+                                                  const Spacer(),
+                                                  Row(
+                                                    children: List.generate(5, (sIndex) => Icon(
+                                                      sIndex < review.rating ? Icons.star_rounded : Icons.star_border_rounded,
+                                                      size: 14,
+                                                      color: const Color(0xFFFFC107),
+                                                    )),
+                                                  ),
+                                                ],
+                                              ),
+                                              if (review.comment != null && review.comment!.isNotEmpty) ...[
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  review.comment!,
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    height: 1.5,
+                                                    color: colorScheme.onSurfaceVariant,
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                      )),
                                       const SizedBox(height: 20),
                                     ],
                                   ),
@@ -382,6 +465,12 @@ class _BookHeroCard extends StatelessWidget {
                   spacing: 10,
                   runSpacing: 10,
                   children: [
+                    if (book.rating > 0)
+                      _MetaPill(
+                        icon: Icons.star_rounded,
+                        label: '${book.rating.toStringAsFixed(1)} (${book.reviewsCount})',
+                        iconColor: const Color(0xFFFFC107),
+                      ),
                     _MetaPill(
                       icon: Icons.auto_stories_outlined,
                       label: '${book.totalParagraphs} paragraf',
@@ -1293,8 +1382,9 @@ class _Chip extends StatelessWidget {
 class _MetaPill extends StatelessWidget {
   final IconData icon;
   final String label;
+  final Color? iconColor;
 
-  const _MetaPill({required this.icon, required this.label});
+  const _MetaPill({required this.icon, required this.label, this.iconColor});
 
   @override
   Widget build(BuildContext context) {
@@ -1310,7 +1400,7 @@ class _MetaPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: colorScheme.onSurface),
+          Icon(icon, size: 14, color: iconColor ?? colorScheme.onSurface),
           const SizedBox(width: 6),
           Text(
             label,

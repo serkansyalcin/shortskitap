@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../app/providers/auth_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/widgets/brand_logo.dart';
+import '../widgets/social_auth_buttons.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -354,6 +355,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                           : 'Kayıt ol',
                                     ),
                             ),
+                            SocialAuthButtons(returnTo: returnTo),
                             const SizedBox(height: 14),
                             Center(
                               child: TextButton(

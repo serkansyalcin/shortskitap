@@ -14,9 +14,12 @@ import '../../../app/providers/voiceover_provider.dart';
 import '../../../core/services/auto_voiceover_service.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/paragraph_model.dart';
+import '../../../core/models/paragraph_model.dart';
 import '../../../core/platform/platform_support.dart';
 import '../../../features/subscription/widgets/ad_banner.dart';
 import '../widgets/paragraph_card.dart';
+import '../widgets/review_modal.dart';
+import '../widgets/highlight_modal.dart';
 
 const _adEveryN = 5;
 
@@ -292,6 +295,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         duration: const Duration(milliseconds: 380),
         curve: Curves.easeInOutCubic,
       );
+    } else {
+      // Reached the end. Let's show the review modal!
+      ReviewModal.show(context, widget.bookId);
     }
   }
 
@@ -444,6 +450,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         dividerColor: palette.divider,
                         accentColor: palette.accent,
                         mutedColor: palette.muted,
+                        onHighlight: () {
+                          HighlightModal.show(
+                            context,
+                            widget.bookId,
+                            (item as _ParagraphItem).paragraph,
+                          );
+                        },
                       );
                     },
                   ),
@@ -482,9 +495,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       total: paragraphs.length,
                       fontFamily: readerFontFamily,
                       onPrev: _currentIndex > 0 ? _goPrev : null,
-                      onNext: _currentIndex < items.length - 1
-                          ? () => _goNext(items.length)
-                          : null,
+                      onNext: () => _goNext(items.length),
                       voiceoverEnabled: ref.watch(voiceoverEnabledProvider),
                       voiceoverLoading: _voiceoverLoading,
                       onVoiceoverToggle: _toggleVoiceover,

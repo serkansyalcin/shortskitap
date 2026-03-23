@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/providers/settings_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/providers/auth_provider.dart';
+import '../../../core/api/api_client.dart';
 import '../../../core/widgets/brand_logo.dart';
 import '../../../core/widgets/category_visuals.dart';
 
@@ -62,6 +64,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _finish() async {
+    try {
+      await ApiClient.instance.put('/me', {
+        'daily_goal': _selectedGoal,
+        'preferences': _selectedCategories.toList(),
+      });
+      ref.read(authProvider.notifier).fetchUser();
+    } catch (_) {}
+
     await ref.read(settingsProvider.notifier).setTheme('system');
     await ref.read(settingsProvider.notifier).setDailyGoal(_selectedGoal);
     await ref.read(settingsProvider.notifier).completeOnboarding();
