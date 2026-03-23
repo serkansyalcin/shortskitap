@@ -133,7 +133,7 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
                 ),
                 SegmentedItem(
                   value: _LibraryMode.highlights,
-                  label: 'Alinti',
+                  label: 'Alıntı',
                   icon: Icons.bookmark_rounded,
                 ),
               ],
@@ -222,17 +222,17 @@ class _LibraryModeContent extends StatelessWidget {
     };
     final modeSummary = switch (mode) {
       _LibraryMode.overview =>
-        'Tum raflarini tek ekranda gor, kaldigin yerden devam et.',
+        'Tüm raflarını tek ekranda gör, kaldığın yerden devam et.',
       _LibraryMode.reading =>
-        'Su an aktif okudugun kitaplar ve son ilerlemen burada.',
+        'Su an aktif okuduğun kitaplar ve son ilerlemen burada.',
       _LibraryMode.completed =>
-        'Bitirdigin kitaplarin arsivi ve yeniden donus rafin.',
+        'Bitirdiğin kitapların arşivi ve yeniden dönuş rafın.',
       _LibraryMode.downloaded =>
-        'Cihazina indirdigin kitaplar burada, internet olmasa da elinin altinda.',
+        'Cihazına indirdiğin kitaplar burada, internet olmasa da elinin altında.',
       _LibraryMode.favorites =>
-        'Gozunun onunde tutmak istedigin kitaplarin kisayolu.',
+        'Gözunun önunde tutmak istediğin kitapların kısayolu.',
       _LibraryMode.highlights =>
-        'Kaydettigin notlar ve donmek istedigin alintilar burada.',
+        'Kaydettiğin notlar ve dönmek istedigin alıntılar burada.',
     };
 
     return Column(
@@ -1003,7 +1003,7 @@ class _BookmarkCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  book?.title ?? 'Kaydedilen alinti',
+                  book?.title ?? 'Kaydedilen alıntı',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: theme.colorScheme.onSurface,
                   ),
