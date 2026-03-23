@@ -6,19 +6,31 @@ import '../../../core/models/paragraph_model.dart';
 class HighlightModal extends StatefulWidget {
   final int bookId;
   final ParagraphModel paragraph;
+  /// Called with (paragraphId, colorHex) after a successful save.
+  final void Function(int paragraphId, String colorHex)? onSaved;
 
   const HighlightModal({
     super.key,
     required this.bookId,
     required this.paragraph,
+    this.onSaved,
   });
 
-  static void show(BuildContext context, int bookId, ParagraphModel paragraph) {
+  static void show(
+    BuildContext context,
+    int bookId,
+    ParagraphModel paragraph, {
+    void Function(int paragraphId, String colorHex)? onSaved,
+  }) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => HighlightModal(bookId: bookId, paragraph: paragraph),
+      builder: (_) => HighlightModal(
+        bookId: bookId,
+        paragraph: paragraph,
+        onSaved: onSaved,
+      ),
     );
   }
 
@@ -57,6 +69,8 @@ class _HighlightModalState extends State<HighlightModal> {
         color: _selectedColor,
       );
       if (!mounted) return;
+      // Notify the reader before closing so it can update local state
+      widget.onSaved?.call(widget.paragraph.id, _selectedColor);
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vurgu kaydedildi!')),
@@ -114,31 +128,38 @@ class _HighlightModalState extends State<HighlightModal> {
               ),
             ),
             const SizedBox(height: 20),
-            Container(
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: highlightColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: highlightColor.withOpacity(0.3)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(
                 children: [
-                  Container(width: 4, color: highlightColor),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        widget.paragraph.content,
-                        maxLines: 4,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 14,
-                          height: 1.5,
-                          color: theme.colorScheme.onSurface,
-                          fontStyle: FontStyle.italic,
-                        ),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: highlightColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: highlightColor.withOpacity(0.3),
                       ),
+                    ),
+                    child: Text(
+                      widget.paragraph.content,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.5,
+                        color: theme.colorScheme.onSurface,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    child: Container(
+                      width: 4,
+                      color: highlightColor,
                     ),
                   ),
                 ],

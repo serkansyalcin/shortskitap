@@ -17,6 +17,8 @@ class ParagraphCard extends StatefulWidget {
   final Color accentColor;
   final Color mutedColor;
   final VoidCallback? onHighlight;
+  /// If not null, show a highlight tint over the paragraph
+  final Color? highlightColor;
 
   const ParagraphCard({
     super.key,
@@ -31,6 +33,7 @@ class ParagraphCard extends StatefulWidget {
     required this.accentColor,
     required this.mutedColor,
     this.onHighlight,
+    this.highlightColor,
   });
 
   @override
@@ -87,20 +90,50 @@ class _ParagraphCardState extends State<ParagraphCard>
   }
 
   Widget _buildText() {
+    final hl = widget.highlightColor;
+    final textWidget = Text(
+      widget.paragraph.content,
+      style: _bodyStyle(
+        color: widget.textColor,
+        fontSize: widget.fontSize,
+        height: widget.lineHeight,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.08,
+      ),
+      textAlign: TextAlign.left,
+    );
+
+    if (hl == null) {
+      return Center(child: textWidget);
+    }
+
+    // Highlighted: show a subtle tinted background + left accent bar
     return Center(
-      child: Text(
-        widget.paragraph.content,
-        style: _bodyStyle(
-          color: widget.textColor,
-          fontSize: widget.fontSize,
-          height: widget.lineHeight,
-          fontWeight: FontWeight.w400,
-          letterSpacing: 0.08,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
+              decoration: BoxDecoration(
+                color: hl.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: hl.withOpacity(0.25)),
+              ),
+              child: textWidget,
+            ),
+            Positioned(
+              top: 0,
+              bottom: 0,
+              left: 0,
+              child: Container(width: 4, color: hl),
+            ),
+          ],
         ),
-        textAlign: TextAlign.left,
       ),
     );
   }
+
 
   Widget _buildQuote() {
     return Center(

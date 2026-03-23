@@ -190,20 +190,36 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
                       ),
                     ),
                   ),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    border: Border(left: BorderSide(color: color, width: 4)),
-                  ),
-                  child: Text(
-                    highlight['text'] ?? '',
-                    style: TextStyle(
-                      fontSize: 15,
-                      height: 1.6,
-                      color: theme.colorScheme.onSurface,
-                      fontStyle: FontStyle.italic,
-                    ),
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+                  child: Stack(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.1),
+                          border: Border.all(color: color.withOpacity(0.15)),
+                        ),
+                        child: Text(
+                          highlight['text'] ?? '',
+                          style: TextStyle(
+                            fontSize: 15,
+                            height: 1.6,
+                            color: theme.colorScheme.onSurface,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 0,
+                        bottom: 0,
+                        left: 0,
+                        child: Container(
+                          width: 4,
+                          color: color,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 if (highlight['note'] != null && highlight['note'].toString().trim().isNotEmpty)

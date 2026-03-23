@@ -55,6 +55,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _voiceoverLoading = false;
   int? _currentParagraphId;
   late final AutoVoiceoverService _voiceoverService;
+  final Map<int, String> _localHighlights = {};
 
   @override
   void initState() {
@@ -439,8 +440,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     itemBuilder: (ctx, index) {
                       final item = items[index];
                       if (item is _AdItem) return _AdPage(palette: palette);
+                      final paragraph = (item as _ParagraphItem).paragraph;
+                      final highlightHex = _localHighlights[paragraph.id] ?? paragraph.highlightColor;
+                      Color? highlightColor;
+                      if (highlightHex != null) {
+                        try {
+                          highlightColor = Color(int.parse(highlightHex.replaceFirst('#', '0xFF')));
+                        } catch (_) {}
+                      }
+
                       return ParagraphCard(
-                        paragraph: (item as _ParagraphItem).paragraph,
+                        paragraph: paragraph,
                         isCurrent: index == _currentIndex,
                         total: paragraphs.length,
                         fontSize: readerFontSize,
@@ -450,11 +460,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         dividerColor: palette.divider,
                         accentColor: palette.accent,
                         mutedColor: palette.muted,
+                        highlightColor: highlightColor,
                         onHighlight: () {
                           HighlightModal.show(
                             context,
                             widget.bookId,
-                            (item as _ParagraphItem).paragraph,
+                            paragraph,
+                            onSaved: (id, color) {
+                              setState(() {
+                                _localHighlights[id] = color;
+                              });
+                              // Also invalidate paragraphs to ensure backend/cache stays in sync on next load
+                              ref.invalidate(paragraphsProvider(widget.bookId));
+                            },
                           );
                         },
                       );
