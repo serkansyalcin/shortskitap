@@ -3,6 +3,19 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/api/api_client.dart';
 
+enum _HeatmapRange {
+  month('1A', 4, 'Son 1 ay'),
+  quarter('3A', 12, 'Son 3 ay'),
+  halfYear('6A', 24, 'Son 6 ay'),
+  year('Yıl', 52, 'Son 1 yıl');
+
+  const _HeatmapRange(this.label, this.weeks, this.description);
+
+  final String label;
+  final int weeks;
+  final String description;
+}
+
 class ReadingHeatmapWidget extends StatefulWidget {
   const ReadingHeatmapWidget({super.key});
 
@@ -15,6 +28,7 @@ class _ReadingHeatmapWidgetState extends State<ReadingHeatmapWidget> {
 
   bool _isLoading = true;
   Map<String, int> _heatmapData = {};
+  _HeatmapRange _selectedRange = _HeatmapRange.quarter;
 
   @override
   void initState() {
@@ -67,27 +81,17 @@ class _ReadingHeatmapWidgetState extends State<ReadingHeatmapWidget> {
     }
 
     final today = DateTime.now();
-    final start = _startOfWeek(today.subtract(const Duration(days: 364)));
-    final weeks = <List<DateTime>>[];
+    final weeks = _buildWeeks(today, _selectedRange);
+    final visibleDates = weeks.expand((week) => week);
+    final visibleCounts = visibleDates
+        .where((date) => !date.isAfter(today))
+        .map((date) => _heatmapData[_dateKey(date)] ?? 0)
+        .toList(growable: false);
 
-    for (
-      var cursor = start;
-      !cursor.isAfter(today);
-      cursor = cursor.add(const Duration(days: 7))
-    ) {
-      weeks.add(
-        List.generate(
-          7,
-          (index) => cursor.add(Duration(days: index)),
-          growable: false,
-        ),
-      );
-    }
-
-    final activeDays = _heatmapData.values.where((value) => value > 0).length;
+    final activeDays = visibleCounts.where((value) => value > 0).length;
     final totalParagraphs =
-        _heatmapData.values.fold<int>(0, (sum, value) => sum + value);
-    final maxDailyCount = _heatmapData.values.fold<int>(
+        visibleCounts.fold<int>(0, (sum, value) => sum + value);
+    final maxDailyCount = visibleCounts.fold<int>(
       0,
       (max, value) => value > max ? value : max,
     );
@@ -143,35 +147,101 @@ class _ReadingHeatmapWidgetState extends State<ReadingHeatmapWidget> {
             ],
           ),
           const SizedBox(height: 16),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: weeks.map((week) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 3),
-                  child: Column(
-                    children: week.map((date) {
-                      final isFuture = date.isAfter(today);
-                      final count =
-                          isFuture ? 0 : (_heatmapData[_dateKey(date)] ?? 0);
-
-                      return Container(
-                        width: 11,
-                        height: 11,
-                        margin: const EdgeInsets.only(bottom: 3),
-                        decoration: BoxDecoration(
-                          color: isFuture
-                              ? theme.colorScheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.28)
-                              : _colorForCount(count, theme, maxDailyCount),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      );
-                    }).toList(growable: false),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _HeatmapRange.values.map((range) {
+              final isSelected = range == _selectedRange;
+              return InkWell(
+                onTap: () => setState(() => _selectedRange = range),
+                borderRadius: BorderRadius.circular(999),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
                   ),
-                );
-              }).toList(growable: false),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primary.withValues(alpha: 0.14)
+                        : theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.primary.withValues(alpha: 0.25)
+                          : theme.colorScheme.outline.withValues(alpha: 0.18),
+                    ),
+                  ),
+                  child: Text(
+                    range.label,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: isSelected
+                          ? AppColors.primary
+                          : theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(growable: false),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _selectedRange.description,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
             ),
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const columnSpacing = 2.0;
+              const rowSpacing = 3.0;
+              final weekCount = weeks.length;
+              final cellSize =
+                  ((constraints.maxWidth - (columnSpacing * (weekCount - 1))) /
+                          weekCount)
+                      .clamp(4.0, 11.0)
+                      .toDouble();
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: List.generate(weeks.length, (weekIndex) {
+                  final week = weeks[weekIndex];
+                  final isLastWeek = weekIndex == weeks.length - 1;
+
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      right: isLastWeek ? 0 : columnSpacing,
+                    ),
+                    child: Column(
+                      children: week.map((date) {
+                        final isFuture = date.isAfter(today);
+                        final count =
+                            isFuture ? 0 : (_heatmapData[_dateKey(date)] ?? 0);
+
+                        return Container(
+                          width: cellSize,
+                          height: cellSize,
+                          margin: const EdgeInsets.only(bottom: rowSpacing),
+                          decoration: BoxDecoration(
+                            color: isFuture
+                                ? theme.colorScheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.28)
+                                : _colorForCount(count, theme, maxDailyCount),
+                            borderRadius: BorderRadius.circular(
+                              cellSize <= 5 ? 2 : 3,
+                            ),
+                          ),
+                        );
+                      }).toList(growable: false),
+                    ),
+                  );
+                }),
+              );
+            },
           ),
           const SizedBox(height: 14),
           Row(
@@ -223,6 +293,22 @@ class _ReadingHeatmapWidgetState extends State<ReadingHeatmapWidget> {
   DateTime _startOfWeek(DateTime date) {
     final normalized = DateTime(date.year, date.month, date.day);
     return normalized.subtract(Duration(days: normalized.weekday - 1));
+  }
+
+  List<List<DateTime>> _buildWeeks(DateTime today, _HeatmapRange range) {
+    final start = _startOfWeek(
+      today.subtract(Duration(days: (range.weeks - 1) * 7)),
+    );
+
+    return List.generate(
+      range.weeks,
+      (weekIndex) => List.generate(
+        7,
+        (dayIndex) => start.add(Duration(days: (weekIndex * 7) + dayIndex)),
+        growable: false,
+      ),
+      growable: false,
+    );
   }
 
   String _dateKey(DateTime date) {
