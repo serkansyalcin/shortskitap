@@ -6,7 +6,7 @@ class HighlightService {
   Future<dynamic> getHighlights({int? bookId}) async {
     final res = await _client.get(
       '/highlights',
-      queryParameters: bookId != null ? {'book_id': bookId} : null,
+      params: bookId != null ? {'book_id': bookId} : null,
     );
     return res.data;
   }

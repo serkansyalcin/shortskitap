@@ -2096,7 +2096,9 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                 children: [
                   Expanded(
                     child: TextButton(
-                      onPressed: _loading ? null : () => Navigator.pop(context, false),
+                      onPressed: _loading
+                          ? null
+                          : () => Navigator.of(context).pop(),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(

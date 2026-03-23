@@ -1,11 +1,12 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/providers/auth_provider.dart';
+import '../../../core/models/user_model.dart';
 import '../../../core/services/auth_service.dart';
 
 class SocialAuthButtons extends ConsumerStatefulWidget {
@@ -21,8 +22,8 @@ class _SocialAuthButtonsState extends ConsumerState<SocialAuthButtons> {
   bool _isLoadingGoogle = false;
   bool _isLoadingApple = false;
 
-  void _handleSuccess(UserModel user, String token) {
-    ref.read(authProvider.notifier).setAuthenticated(user, token);
+  void _handleSuccess(UserModel user) {
+    ref.read(authProvider.notifier).updateUser(user);
     final returnTo = widget.returnTo;
     if (returnTo != null && returnTo.isNotEmpty) {
       context.go(returnTo);
@@ -53,7 +54,7 @@ class _SocialAuthButtonsState extends ConsumerState<SocialAuthButtons> {
           email: account.email,
           avatarUrl: account.photoUrl,
         );
-        _handleSuccess(result.user, result.token);
+        _handleSuccess(result.user);
       }
     } catch (e) {
       _showError('Google ile giriş yapılırken bir hata oluştu.');
@@ -84,7 +85,7 @@ class _SocialAuthButtonsState extends ConsumerState<SocialAuthButtons> {
         name: name,
         email: email,
       );
-      _handleSuccess(result.user, result.token);
+      _handleSuccess(result.user);
     } catch (e) {
        _showError('Apple ile giriş yapılırken bir hata oluştu.');
     } finally {
@@ -94,7 +95,8 @@ class _SocialAuthButtonsState extends ConsumerState<SocialAuthButtons> {
 
   @override
   Widget build(BuildContext context) {
-    bool showApple = !Platform.isAndroid; // Hide on Android as requested
+    final bool showApple =
+        !kIsWeb && defaultTargetPlatform != TargetPlatform.android;
 
     return Column(
       children: [

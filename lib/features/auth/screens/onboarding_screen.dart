@@ -65,11 +65,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Future<void> _finish() async {
     try {
-      await ApiClient.instance.put('/me', {
+      await ApiClient.instance.put('/me', data: {
         'daily_goal': _selectedGoal,
         'preferences': _selectedCategories.toList(),
       });
-      ref.read(authProvider.notifier).fetchUser();
+      await ref.read(authProvider.notifier).refreshMe();
     } catch (_) {}
 
     await ref.read(settingsProvider.notifier).setTheme('system');

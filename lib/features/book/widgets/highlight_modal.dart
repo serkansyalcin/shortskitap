@@ -115,23 +115,33 @@ class _HighlightModalState extends State<HighlightModal> {
             ),
             const SizedBox(height: 20),
             Container(
-              padding: const EdgeInsets.all(16),
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 color: highlightColor.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: highlightColor.withOpacity(0.3)),
-                borderLeft: BorderSide(color: highlightColor, width: 4),
               ),
-              child: Text(
-                widget.paragraph.content,
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.5,
-                  color: theme.colorScheme.onSurface,
-                  fontStyle: FontStyle.italic,
-                ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(width: 4, color: highlightColor),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        widget.paragraph.content,
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.5,
+                          color: theme.colorScheme.onSurface,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 24),

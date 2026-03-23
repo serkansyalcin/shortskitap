@@ -14,6 +14,7 @@ class ParagraphCard extends StatefulWidget {
   final double lineHeight;
   final Color textColor;
   final Color dividerColor;
+  final Color accentColor;
   final Color mutedColor;
   final VoidCallback? onHighlight;
 
