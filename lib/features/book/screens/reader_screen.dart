@@ -15,7 +15,6 @@ import '../../../app/providers/voiceover_provider.dart';
 import '../../../core/services/auto_voiceover_service.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/paragraph_model.dart';
-import '../../../core/models/paragraph_model.dart';
 import '../../../core/platform/platform_support.dart';
 import '../../../features/subscription/widgets/ad_banner.dart';
 import '../widgets/paragraph_card.dart';
@@ -115,9 +114,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
       if (!mounted) return;
+      final readAt = DateTime.now();
       ref
           .read(progressSyncProvider.notifier)
-          .sync(widget.bookId, paragraphOrder, _sessionSeconds);
+          .sync(widget.bookId, paragraphOrder, _sessionSeconds, readAt: readAt);
       _sessionSeconds = 0;
     });
 
@@ -129,7 +129,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       if (index + 1 < items.length) {
         final nextItem = items[index + 1];
         if (nextItem is _ParagraphItem) {
-           _voiceoverService.preloadNextParagraph(widget.bookId, nextItem.paragraph.id);
+          _voiceoverService.preloadNextParagraph(
+            widget.bookId,
+            nextItem.paragraph.id,
+          );
         }
       }
     }
@@ -233,10 +236,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 ),
                 child: const Text(
                   'Premium\'u İncele',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
               ),
               const SizedBox(height: 12),
@@ -290,7 +290,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     } catch (error) {
       if (!mounted) return;
       messenger.showSnackBar(
-        const SnackBar(content: Text('İndirme tamamlanamadı. Lütfen daha sonra tekrar deneyin.')),
+        const SnackBar(
+          content: Text(
+            'İndirme tamamlanamadı. Lütfen daha sonra tekrar deneyin.',
+          ),
+        ),
       );
     }
   }
@@ -446,11 +450,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       final item = items[index];
                       if (item is _AdItem) return _AdPage(palette: palette);
                       final paragraph = (item as _ParagraphItem).paragraph;
-                      final highlightHex = _localHighlights[paragraph.id] ?? paragraph.highlightColor;
+                      final highlightHex =
+                          _localHighlights[paragraph.id] ??
+                          paragraph.highlightColor;
                       Color? highlightColor;
                       if (highlightHex != null) {
                         try {
-                          highlightColor = Color(int.parse(highlightHex.replaceFirst('#', '0xFF')));
+                          highlightColor = Color(
+                            int.parse(highlightHex.replaceFirst('#', '0xFF')),
+                          );
                         } catch (_) {}
                       }
 

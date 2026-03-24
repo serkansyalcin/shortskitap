@@ -13,8 +13,10 @@ import '../../../app/providers/kids_provider.dart';
 import '../../../app/providers/daily_quote_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/daily_quote_model.dart';
+import '../../../core/models/achievement_model.dart';
 import '../../../core/models/progress_model.dart';
 import '../../../core/models/user_model.dart';
+import '../../../core/platform/browser_file_download.dart';
 import '../../../core/widgets/category_visuals.dart';
 import '../../../core/services/subscription_service.dart';
 import '../../../core/services/notification_permission_service.dart';
@@ -22,8 +24,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io' if (dart.library.html) 'dart:html' as html;
 import 'dart:io' show Platform;
 import '../../league/screens/league_screen.dart';
 import '../../league/widgets/league_mini_card.dart';
@@ -228,7 +228,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                       children: [
                         Text(
                           ref.watch(kidsModeProvider)
-                              ? 'Hoş Geldin, ${user?.name.split(' ').first ?? 'Küçük Okuyucu'} 🎈'
+                              ? 'Hoş Geldin, ${user?.name.split(' ').first ?? 'Küçük Okuyucu'} 🎉'
                               : 'Merhaba, ${user?.name.split(' ').first ?? 'Okuyucu'} 👋',
                           style: TextStyle(
                             fontSize: 22,
@@ -305,7 +305,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               const _DailyQuoteCard(),
 
               const SizedBox(height: 16),
@@ -437,7 +437,8 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
 
               if (isAuthenticated)
                 progressAsync.when(
-                  data: (progress) => _findContinueReadingProgress(
+                  data: (progress) =>
+                      _findContinueReadingProgress(
                             progress,
                             isKidsMode: ref.watch(kidsModeProvider),
                           ) !=
@@ -472,7 +473,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                           TextButton(
                             onPressed: () => widget.onOpenDiscover(null),
                             child: const Text(
-                              'Tümü',
+                            'Tümü',
                               style: TextStyle(color: AppColors.primary),
                             ),
                           ),
@@ -549,7 +550,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                           TextButton(
                             onPressed: () => widget.onOpenDiscover(null),
                             child: const Text(
-                              'Tümü',
+                            'Tümü',
                               style: TextStyle(color: AppColors.primary),
                             ),
                           ),
@@ -665,7 +666,9 @@ class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
           if (!status.isGranted) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Galeriye kaydetmek için izin vermelisiniz.')),
+                const SnackBar(
+                  content: Text('Galeriye kaydetmek için izin vermelisiniz.'),
+                ),
               );
             }
             return;
@@ -675,7 +678,9 @@ class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
           if (!status.isGranted) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Galeriye kaydetmek için izin vermelisiniz.')),
+                const SnackBar(
+                  content: Text('Galeriye kaydetmek için izin vermelisiniz.'),
+                ),
               );
             }
             return;
@@ -687,23 +692,17 @@ class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
       final isDark = Theme.of(context).brightness == Brightness.dark;
       final image = await _screenshotController.captureFromWidget(
         Material(
-          child: ShareableQuoteOverlay(
-            quote: quote,
-            isDark: isDark,
-          ),
+          child: ShareableQuoteOverlay(quote: quote, isDark: isDark),
         ),
         delay: const Duration(milliseconds: 100),
       );
 
       if (kIsWeb) {
-        // 3a. Web: trigger browser download via dart:html
-        // ignore: avoid_web_libraries_in_flutter
-        final blob = html.Blob([image], 'image/png');
-        final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.AnchorElement(href: url)
-          ..setAttribute('download', 'kitaplig_quote_${quote.id}.png')
-          ..click();
-        html.Url.revokeObjectUrl(url);
+        await downloadBytes(
+          bytes: image,
+          mimeType: 'image/png',
+          filename: 'kitaplig_quote_${quote.id}.png',
+        );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -737,9 +736,9 @@ class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
     } catch (e) {
       debugPrint('Share error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Hata: $e')));
       }
     } finally {
       if (mounted) {
@@ -757,27 +756,25 @@ class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
     return quoteAsync.when(
       data: (quote) {
         if (quote == null) return const SizedBox.shrink();
-        
+
         return Container(
           width: double.infinity,
           margin: const EdgeInsets.only(bottom: 24),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: colorScheme.outline.withOpacity(0.35),
-            ),
+            border: Border.all(color: colorScheme.outline.withOpacity(0.35)),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: isDark 
-                ? [
-                    colorScheme.surfaceContainerHighest.withOpacity(0.6),
-                    colorScheme.surfaceContainerHighest.withOpacity(0.3),
-                  ]
-                : [
-                    AppColors.primary.withOpacity(0.08),
-                    AppColors.accent.withOpacity(0.05),
-                  ],
+              colors: isDark
+                  ? [
+                      colorScheme.surfaceContainerHighest.withOpacity(0.6),
+                      colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                    ]
+                  : [
+                      AppColors.primary.withOpacity(0.08),
+                      AppColors.accent.withOpacity(0.05),
+                    ],
             ),
           ),
           clipBehavior: Clip.antiAlias,
@@ -819,21 +816,24 @@ class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
                           ),
                         ),
                         const Spacer(),
-                        _isSharing 
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-                            )
-                          : IconButton(
-                              visualDensity: VisualDensity.compact,
-                              onPressed: () => _shareQuote(quote),
-                              icon: Icon(
-                                Icons.ios_share_rounded,
-                                size: 18,
-                                color: colorScheme.onSurfaceVariant,
+                        _isSharing
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.primary,
+                                ),
+                              )
+                            : IconButton(
+                                visualDensity: VisualDensity.compact,
+                                onPressed: () => _shareQuote(quote),
+                                icon: Icon(
+                                  Icons.ios_share_rounded,
+                                  size: 18,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
                               ),
-                            ),
                       ],
                     ),
                     const SizedBox(height: 14),
@@ -896,7 +896,9 @@ class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
                           Icon(
                             Icons.arrow_forward_ios_rounded,
                             size: 12,
-                            color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+                            color: colorScheme.onSurfaceVariant.withOpacity(
+                              0.5,
+                            ),
                           ),
                         ],
                       ),
@@ -916,15 +918,12 @@ class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
           color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
           borderRadius: BorderRadius.circular(24),
         ),
-        child: const Center(
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       ),
       error: (err, stack) => const SizedBox.shrink(),
     );
   }
 }
-
 
 class _HomeActionButton extends StatelessWidget {
   const _HomeActionButton({
@@ -1471,6 +1470,7 @@ class _ProfileTab extends ConsumerStatefulWidget {
 class _ProfileTabState extends ConsumerState<_ProfileTab> {
   final NotificationPermissionService _notificationPermissionService =
       createNotificationPermissionService();
+  final Set<String> _celebratedAchievementKeys = <String>{};
   NotificationPermissionState _notificationStatus =
       NotificationPermissionState.denied;
   bool _notificationLoading = false;
@@ -1795,6 +1795,32 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<List<AchievementModel>>>(earnedAchievementsProvider, (
+      previous,
+      next,
+    ) {
+      next.whenData((achievements) {
+        if (!mounted || _celebratingAchievementIndex != null) {
+          return;
+        }
+
+        final nextIndex = achievements.indexWhere(
+          (achievement) =>
+              achievement.isNew &&
+              !_celebratedAchievementKeys.contains(achievement.key),
+        );
+        if (nextIndex == -1) {
+          return;
+        }
+
+        _celebratedAchievementKeys.add(achievements[nextIndex].key);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() => _celebratingAchievementIndex = nextIndex);
+        });
+      });
+    });
+
     final user = ref.watch(authProvider).user;
     final progress = ref.watch(allProgressProvider).valueOrNull ?? const [];
     final favorites = ref.watch(favoritesProvider).valueOrNull ?? const [];
@@ -1817,24 +1843,6 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
     );
     final notificationEnabled =
         _notificationStatus == NotificationPermissionState.granted;
-    final notificationStatusLabel = switch (_notificationStatus) {
-      NotificationPermissionState.granted => 'Açık',
-      NotificationPermissionState.unsupported => 'Desteklenmiyor',
-      NotificationPermissionState.permanentlyDenied =>
-        'Tarayıcı / sistem kapalı',
-      NotificationPermissionState.denied => 'Kapalı',
-    };
-    final notificationDescription = switch (_notificationStatus) {
-      NotificationPermissionState.granted =>
-        'Günlük hedefin ve önemli güncellemeler için bildirim alıyorsun.',
-      NotificationPermissionState.unsupported =>
-        'Bu cihazda bildirim izni desteklenmiyor.',
-      NotificationPermissionState.permanentlyDenied =>
-        'İzin kapatılmış görünüyor. Tek dokunuşla ayarlara gidip açabilirsin.',
-      NotificationPermissionState.denied =>
-        'Günlük hatırlatıcılar ve lig gelişmeleri için izni açabilirsin.',
-    };
-
     final achievementsAsync = ref.watch(earnedAchievementsProvider);
 
     return SafeArea(
@@ -2004,7 +2012,11 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                         icon: '🎯',
                       ),
                       const SizedBox(width: 12),
-                      const _StatCard(label: 'Seri', value: '—', icon: '🔥'),
+                      const _StatCard(
+                        label: 'Seri',
+                        value: '—',
+                        icon: '🔥',
+                      ),
                       const SizedBox(width: 12),
                       const _StatCard(
                         label: 'Rozetler',
@@ -2047,19 +2059,26 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                           if (val) {
                             ref.read(kidsModeProvider.notifier).state = true;
                           } else {
-                            final svc = await ref.read(kidsModePinServiceProvider.future);
+                            final svc = await ref.read(
+                              kidsModePinServiceProvider.future,
+                            );
                             if (!svc.hasPin()) {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Çocuk modundan çıkmak için önce Ebeveyn Şifresi belirleyin.'),
+                                    content: Text(
+                                      'Çocuk modundan çıkmak için önce Ebeveyn Şifresi belirleyin.',
+                                    ),
                                   ),
                                 );
                               }
                               return;
                             }
                             if (!context.mounted) return;
-                            final ok = await KidsModeExitDialog.show(context, verifyPin: svc.verifyPin);
+                            final ok = await KidsModeExitDialog.show(
+                              context,
+                              verifyPin: svc.verifyPin,
+                            );
                             if (ok == true && context.mounted) {
                               ref.read(kidsModeProvider.notifier).state = false;
                             }
@@ -2071,19 +2090,26 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                         if (val) {
                           ref.read(kidsModeProvider.notifier).state = true;
                         } else {
-                          final svc = await ref.read(kidsModePinServiceProvider.future);
+                          final svc = await ref.read(
+                            kidsModePinServiceProvider.future,
+                          );
                           if (!svc.hasPin()) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Çocuk modundan çıkmak için Ebeveyn Şifresi belirleyin.'),
+                                  content: Text(
+                                    'Çocuk modundan çıkmak için Ebeveyn Şifresi belirleyin.',
+                                  ),
                                 ),
                               );
                             }
                             return;
                           }
                           if (!context.mounted) return;
-                          final ok = await KidsModeExitDialog.show(context, verifyPin: svc.verifyPin);
+                          final ok = await KidsModeExitDialog.show(
+                            context,
+                            verifyPin: svc.verifyPin,
+                          );
                           if (ok == true && context.mounted) {
                             ref.read(kidsModeProvider.notifier).state = false;
                           }
@@ -2246,8 +2272,15 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                 }
                 return AchievementCelebrationOverlay(
                   achievement: achievements[idx],
-                  onDismiss: () =>
-                      setState(() => _celebratingAchievementIndex = null),
+                  onDismiss: () async {
+                    await ref
+                        .read(achievementServiceProvider)
+                        .markSeen(achievements[idx]);
+                    ref.invalidate(earnedAchievementsProvider);
+                    if (mounted) {
+                      setState(() => _celebratingAchievementIndex = null);
+                    }
+                  },
                 );
               },
               loading: () => const SizedBox.shrink(),
@@ -2256,17 +2289,6 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
         ],
       ),
     );
-  }
-
-  String _providerLabel(String? provider) {
-    switch ((provider ?? '').toLowerCase()) {
-      case 'google':
-        return 'Google ile bağlı';
-      case 'apple':
-        return 'Apple ile bağlı';
-      default:
-        return 'E-posta hesabı';
-    }
   }
 }
 
@@ -2312,9 +2334,15 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFEF2F2).withOpacity(isDark ? 0.05 : 1.0),
+                      color: const Color(
+                        0xFFFEF2F2,
+                      ).withOpacity(isDark ? 0.05 : 1.0),
                       borderRadius: BorderRadius.circular(16),
-                      border: isDark ? Border.all(color: const Color(0xFF7C2D12).withOpacity(0.3)) : null,
+                      border: isDark
+                          ? Border.all(
+                              color: const Color(0xFF7C2D12).withOpacity(0.3),
+                            )
+                          : null,
                     ),
                     child: const Icon(
                       Icons.warning_amber_rounded,
@@ -2351,15 +2379,21 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                 ],
               ),
               const SizedBox(height: 24),
-              
+
               // Warning Box
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF2A1F1A) : const Color(0xFFFFF1F2),
+                  color: isDark
+                      ? const Color(0xFF2A1F1A)
+                      : const Color(0xFFFFF1F2),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: (isDark ? const Color(0xFF7C2D12) : const Color(0xFFFDA4AF)).withOpacity(0.5),
+                    color:
+                        (isDark
+                                ? const Color(0xFF7C2D12)
+                                : const Color(0xFFFDA4AF))
+                            .withOpacity(0.5),
                   ),
                 ),
                 child: Text(
@@ -2367,7 +2401,9 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                   style: TextStyle(
                     fontSize: 14,
                     height: 1.5,
-                    color: isDark ? const Color(0xFFFECDD3) : const Color(0xFF9F1239),
+                    color: isDark
+                        ? const Color(0xFFFECDD3)
+                        : const Color(0xFF9F1239),
                   ),
                 ),
               ),
@@ -2400,7 +2436,8 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                     color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
                   ),
                   filled: true,
-                  fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                  fillColor: theme.colorScheme.surfaceContainerHighest
+                      .withOpacity(0.5),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 16,
@@ -2412,8 +2449,10 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide(
-                      color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626), 
-                      width: 1.5
+                      color: isDark
+                          ? const Color(0xFFF87171)
+                          : const Color(0xFFDC2626),
+                      width: 1.5,
                     ),
                   ),
                 ),
@@ -2452,9 +2491,13 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                     child: FilledButton(
                       style: FilledButton.styleFrom(
                         backgroundColor: const Color(0xFFDC2626),
-                        disabledBackgroundColor: isDark ? const Color(0xFF3F3F46) : const Color(0xFFE4E4E7),
+                        disabledBackgroundColor: isDark
+                            ? const Color(0xFF3F3F46)
+                            : const Color(0xFFE4E4E7),
                         foregroundColor: Colors.white,
-                        disabledForegroundColor: isDark ? const Color(0xFFA1A1AA) : const Color(0xFFA1A1AA),
+                        disabledForegroundColor: isDark
+                            ? const Color(0xFFA1A1AA)
+                            : const Color(0xFFA1A1AA),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -2859,61 +2902,6 @@ class _PremiumDetailRow extends StatelessWidget {
   }
 }
 
-class _HeroMetricTile extends StatelessWidget {
-  const _HeroMetricTile({
-    required this.icon,
-    required this.value,
-    required this.label,
-  });
-
-  final IconData icon;
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withOpacity(0.05)
-            : theme.colorScheme.surfaceContainerHighest.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(isDark ? 0.16 : 0.45),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 16, color: AppColors.primary),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ProfileQuickStat extends StatelessWidget {
   const _ProfileQuickStat({
     required this.width,
@@ -2983,37 +2971,6 @@ class _ProfileQuickStat extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _NotificationStatusPill extends StatelessWidget {
-  const _NotificationStatusPill({required this.label, required this.isEnabled});
-
-  final String label;
-  final bool isEnabled;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: isEnabled
-            ? AppColors.primary.withOpacity(0.14)
-            : theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: isEnabled
-              ? AppColors.primary
-              : theme.colorScheme.onSurfaceVariant,
-        ),
       ),
     );
   }

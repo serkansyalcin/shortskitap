@@ -6,12 +6,8 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/paragraph_model.dart';
+import '../../../core/platform/browser_file_download.dart';
 import '../../../core/widgets/shareable_paragraph_overlay.dart';
-
-// Web-only import
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:io' if (dart.library.html) 'dart:html' as html;
-import 'dart:ui' as ui;
 
 class ParagraphCard extends StatefulWidget {
   final ParagraphModel paragraph;
@@ -301,15 +297,26 @@ class _ParagraphCardState extends State<ParagraphCard>
                   height: 40,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFF77737)],
+                      colors: [
+                        Color(0xFF833AB4),
+                        Color(0xFFFD1D1D),
+                        Color(0xFFF77737),
+                      ],
                     ),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 20),
+                  child: const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
                 title: const Text(
                   'Alıntı Paylaş',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 subtitle: Text(
                   'İnstagram Story formatında',
@@ -323,8 +330,14 @@ class _ParagraphCardState extends State<ParagraphCard>
 
               // Plain text share
               ListTile(
-                leading: const Icon(Icons.share_rounded, color: AppColors.primary),
-                title: const Text('Metin Olarak Paylaş', style: TextStyle(color: Colors.white)),
+                leading: const Icon(
+                  Icons.share_rounded,
+                  color: AppColors.primary,
+                ),
+                title: const Text(
+                  'Metin Olarak Paylaş',
+                  style: TextStyle(color: Colors.white),
+                ),
                 onTap: () {
                   Navigator.pop(sheetCtx);
                   _shareParagraph();
@@ -333,8 +346,14 @@ class _ParagraphCardState extends State<ParagraphCard>
 
               // Bookmark
               ListTile(
-                leading: const Icon(Icons.bookmark_add_outlined, color: AppColors.primary),
-                title: const Text('Yer imi ekle', style: TextStyle(color: Colors.white)),
+                leading: const Icon(
+                  Icons.bookmark_add_outlined,
+                  color: AppColors.primary,
+                ),
+                title: const Text(
+                  'Yer imi ekle',
+                  style: TextStyle(color: Colors.white),
+                ),
                 onTap: () {
                   Navigator.pop(sheetCtx);
                   ScaffoldMessenger.of(ctx).showSnackBar(
@@ -346,8 +365,14 @@ class _ParagraphCardState extends State<ParagraphCard>
               // Highlight
               if (widget.onHighlight != null)
                 ListTile(
-                  leading: const Icon(Icons.format_paint_rounded, color: AppColors.primary),
-                  title: const Text('Bu paragrafı vurgula', style: TextStyle(color: Colors.white)),
+                  leading: const Icon(
+                    Icons.format_paint_rounded,
+                    color: AppColors.primary,
+                  ),
+                  title: const Text(
+                    'Bu paragrafı vurgula',
+                    style: TextStyle(color: Colors.white),
+                  ),
                   onTap: () {
                     Navigator.pop(sheetCtx);
                     widget.onHighlight!();
@@ -377,7 +402,9 @@ class _ParagraphCardState extends State<ParagraphCard>
       builder: (dialogCtx) => StatefulBuilder(
         builder: (dialogCtx, setStateDialog) => Dialog(
           backgroundColor: const Color(0xFF1C1C1E),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -418,7 +445,11 @@ class _ParagraphCardState extends State<ParagraphCard>
                           ),
                         ),
                         child: selectedTheme == i
-                            ? const Icon(Icons.check_rounded, color: Colors.white, size: 20)
+                            ? const Icon(
+                                Icons.check_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              )
                             : null,
                       ),
                     );
@@ -491,14 +522,13 @@ class _ParagraphCardState extends State<ParagraphCard>
       );
 
       if (kIsWeb) {
-        // Web: trigger download via dart:html
-        final blob = html.Blob([image], 'image/png');
-        final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.AnchorElement(href: url)
-          ..setAttribute('download', 'kitaplig_quote_${DateTime.now().millisecondsSinceEpoch}.png')
-          ..click();
-        html.Url.revokeObjectUrl(url);
-        
+        await downloadBytes(
+          bytes: image,
+          mimeType: 'image/png',
+          filename:
+              'kitaplig_quote_${DateTime.now().millisecondsSinceEpoch}.png',
+        );
+
         if (parentCtx.mounted) {
           ScaffoldMessenger.of(parentCtx).showSnackBar(
             const SnackBar(
@@ -508,15 +538,21 @@ class _ParagraphCardState extends State<ParagraphCard>
           );
         }
       } else {
-        final xFile = XFile.fromData(image, mimeType: 'image/png', name: 'kitaplig_quote.png');
-        await Share.shareXFiles([xFile], text: '— ${widget.bookTitle ?? 'KitapLig'}\n\nkitaplig.com');
+        final xFile = XFile.fromData(
+          image,
+          mimeType: 'image/png',
+          name: 'kitaplig_quote.png',
+        );
+        await Share.shareXFiles([
+          xFile,
+        ], text: '— ${widget.bookTitle ?? 'KitapLig'}\n\nkitaplig.com');
       }
     } catch (e) {
       debugPrint('Capture error: $e');
       if (parentCtx.mounted) {
-        ScaffoldMessenger.of(parentCtx).showSnackBar(
-          SnackBar(content: Text('Hata: $e')),
-        );
+        ScaffoldMessenger.of(
+          parentCtx,
+        ).showSnackBar(SnackBar(content: Text('Hata: $e')));
       }
     } finally {
       if (mounted) setState(() => _isCapturing = false);

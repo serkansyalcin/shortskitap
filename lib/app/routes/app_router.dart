@@ -22,11 +22,14 @@ import '../../features/profile/screens/settings_screen.dart';
 import '../../features/profile/screens/highlights_screen.dart';
 import '../../features/league/screens/league_screen.dart';
 import '../../features/subscription/screens/paywall_screen.dart';
+import '../../features/profile/screens/all_achievements_screen.dart';
+import '../../core/models/achievement_model.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
+  final currentSettings = ref.watch(settingsProvider);
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
@@ -36,15 +39,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isUnknown = authState.status == AuthStatus.unknown;
       final location = state.matchedLocation;
       final returnTo = state.uri.queryParameters['returnTo'];
-      
-      final currentSettings = ref.read(settingsProvider);
 
       if (isUnknown) return location == '/splash' ? null : '/splash';
 
       final isAuthRoute = location == '/login' || location == '/register';
       final isOnboarding = location == '/onboarding';
       final isSplash = location == '/splash';
-      final needsOnboarding = !currentSettings.onboardingDone && !isAuthenticated;
+      final needsOnboarding =
+          !currentSettings.onboardingDone && !isAuthenticated;
       final isReadRoute = location.startsWith('/read/');
       final isProtectedRoute =
           isReadRoute ||
@@ -85,9 +87,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/verify-pin',
-        builder: (_, state) => VerifyPinScreen(
-          email: state.uri.queryParameters['email'] ?? '',
-        ),
+        builder: (_, state) =>
+            VerifyPinScreen(email: state.uri.queryParameters['email'] ?? ''),
       ),
       GoRoute(
         path: '/reset-password',
@@ -104,8 +105,22 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: 'search', builder: (_, __) => const SearchScreen()),
           GoRoute(path: 'library', builder: (_, __) => const LibraryScreen()),
           GoRoute(path: 'profile', builder: (_, __) => const ProfileScreen()),
+          GoRoute(
+            path: 'badges',
+            builder: (_, state) {
+              final extra = state.extra as Map<String, dynamic>?;
+              return AllAchievementsScreen(
+                achievements:
+                    extra?['achievements'] as List<AchievementModel>? ?? [],
+                earnedCount: extra?['earnedCount'] as int? ?? 0,
+              );
+            },
+          ),
           GoRoute(path: 'settings', builder: (_, __) => const SettingsScreen()),
-          GoRoute(path: 'highlights', builder: (_, __) => const HighlightsScreen()),
+          GoRoute(
+            path: 'highlights',
+            builder: (_, __) => const HighlightsScreen(),
+          ),
         ],
       ),
       GoRoute(path: '/league', builder: (_, __) => const LeagueScreen()),

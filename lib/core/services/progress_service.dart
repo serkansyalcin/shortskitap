@@ -8,12 +8,31 @@ class ProgressService {
     int bookId,
     int lastParagraphOrder,
     int sessionSeconds,
+    DateTime readAt,
   ) async {
-    final res = await _client.post('/progress', data: {
-      'book_id': bookId,
-      'last_paragraph_order': lastParagraphOrder,
-      'session_seconds': sessionSeconds,
-    });
+    final isWeekend =
+        readAt.weekday == DateTime.saturday ||
+        readAt.weekday == DateTime.sunday;
+    final isNightOwl = readAt.hour >= 22 || readAt.hour < 4;
+
+    final res = await _client.post(
+      '/progress',
+      data: {
+        'book_id': bookId,
+        'last_paragraph_order': lastParagraphOrder,
+        'session_seconds': sessionSeconds,
+        'read_at_local': readAt.toIso8601String(),
+        'read_hour_local': readAt.hour,
+        'read_weekday_local': readAt.weekday,
+        'is_weekend_local': isWeekend,
+        'timezone_name': readAt.timeZoneName,
+        'timezone_offset_minutes': readAt.timeZoneOffset.inMinutes,
+        'client_achievement_context': {
+          'night_owl_candidate': isNightOwl,
+          'weekend_warrior_candidate': isWeekend,
+        },
+      },
+    );
     return res.data['data'] as Map<String, dynamic>;
   }
 
