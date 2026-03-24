@@ -76,8 +76,53 @@ class AuthService {
     return UserModel.fromJson(res.data['data'] as Map<String, dynamic>);
   }
 
-  Future<void> deleteAccount() async {
-    await _client.delete('/me');
+  Future<void> deleteAccount(String password) async {
+    await _client.delete('/me', data: {'password': password});
     await ApiClient.clearToken();
+  }
+
+  Future<void> requestPasswordReset(String email) async {
+    await _client.post('/auth/forgot-password', data: {'email': email});
+  }
+
+  Future<void> verifyResetCode(String email, String code) async {
+    await _client.post('/auth/verify-reset-code', data: {
+      'email': email,
+      'code': code,
+    });
+  }
+
+  Future<void> submitNewPassword(
+    String email,
+    String code,
+    String password,
+  ) async {
+    await _client.post('/auth/reset-password', data: {
+      'email': email,
+      'code': code,
+      'password': password,
+      'password_confirmation': password,
+    });
+  }
+
+  Future<({UserModel user, String token})> socialLogin({
+    required String provider,
+    required String providerId,
+    required String name,
+    required String email,
+    String? avatarUrl,
+  }) async {
+    final res = await _client.post('/auth/social', data: {
+      'provider': provider,
+      'provider_id': providerId,
+      'name': name,
+      'email': email,
+      if (avatarUrl != null) 'avatar_url': avatarUrl,
+    });
+    final data = res.data['data'] as Map<String, dynamic>;
+    final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
+    final token = data['token'] as String;
+    await ApiClient.saveToken(token);
+    return (user: user, token: token);
   }
 }

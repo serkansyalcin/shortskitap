@@ -10,6 +10,8 @@ class ParagraphModel {
   final int? estimatedSeconds;
   final ParagraphType type;
   final Map<String, dynamic>? chapter;
+  /// Highlight color hex string (e.g. '#FFEB3B'), null if not highlighted.
+  final String? highlightColor;
 
   const ParagraphModel({
     required this.id,
@@ -21,7 +23,21 @@ class ParagraphModel {
     this.estimatedSeconds,
     required this.type,
     this.chapter,
+    this.highlightColor,
   });
+
+  ParagraphModel copyWith({String? highlightColor}) => ParagraphModel(
+        id: id,
+        bookId: bookId,
+        chapterId: chapterId,
+        content: content,
+        sortOrder: sortOrder,
+        wordCount: wordCount,
+        estimatedSeconds: estimatedSeconds,
+        type: type,
+        chapter: chapter,
+        highlightColor: highlightColor ?? this.highlightColor,
+      );
 
   factory ParagraphModel.fromJson(Map<String, dynamic> json) => ParagraphModel(
         id: json['id'] as int,
@@ -33,6 +49,7 @@ class ParagraphModel {
         estimatedSeconds: json['estimated_seconds'] as int?,
         type: _typeFromString(json['type'] as String?),
         chapter: json['chapter'] as Map<String, dynamic>?,
+        highlightColor: json['highlight_color'] as String?,
       );
 
   static ParagraphType _typeFromString(String? type) {

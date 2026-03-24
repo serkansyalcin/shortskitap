@@ -1,7 +1,10 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../core/api/api_client.dart';
 import '../../core/models/user_model.dart';
 import '../../core/services/auth_service.dart';
-import '../../core/api/api_client.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
@@ -10,17 +13,14 @@ class AuthState {
   final UserModel? user;
   final String? error;
 
-  const AuthState({
-    required this.status,
-    this.user,
-    this.error,
-  });
+  const AuthState({required this.status, this.user, this.error});
 
   const AuthState.unknown() : this(status: AuthStatus.unknown);
+
   const AuthState.authenticated(UserModel user)
-      : this(status: AuthStatus.authenticated, user: user);
-  const AuthState.unauthenticated()
-      : this(status: AuthStatus.unauthenticated);
+    : this(status: AuthStatus.authenticated, user: user);
+
+  const AuthState.unauthenticated() : this(status: AuthStatus.unauthenticated);
 
   bool get isAuthenticated => status == AuthStatus.authenticated;
 }
@@ -38,6 +38,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = const AuthState.unauthenticated();
       return;
     }
+
     final user = await _service.getMe();
     if (user != null) {
       state = AuthState.authenticated(user);
@@ -51,11 +52,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final result = await _service.login(email, password);
       state = AuthState.authenticated(result.user);
+      _syncOnboardingPrefs();
       return true;
     } catch (e) {
       state = AuthState(
         status: AuthStatus.unauthenticated,
-        error: e.toString(),
+        error: _parseError(e),
       );
       return false;
     }
@@ -77,11 +79,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
         acceptPrivacyPolicy: acceptPrivacyPolicy,
       );
       state = AuthState.authenticated(result.user);
+      _syncOnboardingPrefs();
       return true;
     } catch (e) {
       state = AuthState(
         status: AuthStatus.unauthenticated,
-        error: e.toString(),
+        error: _parseError(e),
       );
       return false;
     }
@@ -92,12 +95,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState.unauthenticated();
   }
 
-  Future<bool> deleteAccount() async {
+  Future<bool> deleteAccount(String password) async {
     try {
-      await _service.deleteAccount();
+      await _service.deleteAccount(password);
       state = const AuthState.unauthenticated();
       return true;
-    } catch (e) {
+    } catch (_) {
       return false;
     }
   }
@@ -123,7 +126,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(
         status: AuthStatus.authenticated,
         user: state.user,
-        error: e.toString(),
+        error: _parseError(e),
       );
       return false;
     }
@@ -149,7 +152,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(
         status: state.status,
         user: state.user,
-        error: e.toString(),
+        error: _parseError(e),
       );
       return false;
     }
@@ -157,6 +160,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   void updateUser(UserModel user) {
     state = AuthState.authenticated(user);
+    _syncOnboardingPrefs();
+  }
+
+  Future<void> _syncOnboardingPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedPrefs = prefs.getStringList('onboarding_prefs');
+      if (savedPrefs != null && savedPrefs.isNotEmpty) {
+        final savedGoal = prefs.getInt('daily_goal') ?? 10;
+        await ApiClient.instance.put(
+          '/me',
+          data: {'daily_goal': savedGoal, 'preferences': savedPrefs},
+        );
+        await prefs.remove('onboarding_prefs');
+        await refreshMe();
+      }
+    } catch (_) {}
   }
 
   bool _isSameUser(UserModel a, UserModel b) {
@@ -172,6 +192,45 @@ class AuthNotifier extends StateNotifier<AuthState> {
         a.preferredFontSize == b.preferredFontSize &&
         a.termsAcceptedAt == b.termsAcceptedAt &&
         a.privacyPolicyAcceptedAt == b.privacyPolicyAcceptedAt;
+  }
+
+  String _parseError(dynamic error) {
+    if (error is DioException) {
+      final data = error.response?.data;
+      if (data is Map<String, dynamic>) {
+        final errors = data['errors'];
+        if (errors is Map<String, dynamic> && errors.isNotEmpty) {
+          final firstError = errors.values.first;
+          if (firstError is List && firstError.isNotEmpty) {
+            return _translateMessage(firstError.first.toString());
+          }
+        }
+
+        final message = data['message'];
+        if (message != null) {
+          return _translateMessage(message.toString());
+        }
+      }
+    }
+
+    return 'Bir hata oluştu. Lütfen tekrar deneyin.';
+  }
+
+  String _translateMessage(String message) {
+    if (message.contains('unique')) {
+      return 'Bu e-posta adresi zaten kullanımda.';
+    }
+    if (message.contains('required')) {
+      return 'Lütfen tüm alanları doldur.';
+    }
+    if (message == 'invalid_credentials' ||
+        message == 'The provided credentials are incorrect.') {
+      return 'E-posta veya şifre hatalı. Bilgilerini kontrol edip tekrar dene.';
+    }
+    if (message == 'Unauthenticated.') {
+      return 'Oturumun sona ermiş görünüyor. Lütfen tekrar giriş yap.';
+    }
+    return message;
   }
 }
 

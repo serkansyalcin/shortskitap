@@ -561,7 +561,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   title: 'Geri Bildirim Gönder',
                   color: AppColors.primary,
                   onTap: () => _launchUrl(
-                    'mailto:serkan.syalcin@khotmail.com?subject=KitapLig%20Geri%20Bildirim',
+                    'mailto:serkan.syalcin@khotmail.com?subject=Kitaplig%20Geri%20Bildirim',
                   ),
                 ),
               ],
@@ -572,7 +572,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Column(
               children: [
                 Text(
-                  'KitapLig',
+                  'Kitaplig',
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 16,
@@ -581,7 +581,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '© 2026 KitapLig. Tüm hakları saklıdır.',
+                  '© 2026 Kitaplig. Tüm hakları saklıdır.',
                   style: TextStyle(fontSize: 11, color: textSecondary),
                 ),
               ],

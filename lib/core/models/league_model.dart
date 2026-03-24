@@ -32,11 +32,15 @@ class LeagueMembershipModel {
   final String? nextTier;
   final int groupNumber;
   final int weeklyXp;
+  final int weeklyLp;
+  final int duelWins;
+  final int duelLosses;
+  final int streakShields;
   final int rank;
   final int groupSize;
   final int promotionZone;
   final int demotionZone;
-  final int? xpToPromotion;
+  final int? lpToPromotion;
   final Map<String, dynamic>? lastResult;
 
   const LeagueMembershipModel({
@@ -47,11 +51,15 @@ class LeagueMembershipModel {
     this.nextTier,
     required this.groupNumber,
     required this.weeklyXp,
+    required this.weeklyLp,
+    required this.duelWins,
+    required this.duelLosses,
+    required this.streakShields,
     required this.rank,
     required this.groupSize,
     required this.promotionZone,
     required this.demotionZone,
-    this.xpToPromotion,
+    this.lpToPromotion,
     this.lastResult,
   });
 
@@ -64,11 +72,15 @@ class LeagueMembershipModel {
       nextTier: json['next_tier'] as String?,
       groupNumber: json['group_number'] as int,
       weeklyXp: json['weekly_xp'] as int,
+      weeklyLp: json['weekly_lp'] as int? ?? 0,
+      duelWins: json['duel_wins'] as int? ?? 0,
+      duelLosses: json['duel_losses'] as int? ?? 0,
+      streakShields: json['streak_shields'] as int? ?? 0,
       rank: json['rank'] as int,
       groupSize: json['group_size'] as int,
       promotionZone: json['promotion_zone'] as int,
       demotionZone: json['demotion_zone'] as int,
-      xpToPromotion: json['xp_to_promotion'] as int?,
+      lpToPromotion: json['lp_to_promotion'] as int? ?? json['xp_to_promotion'] as int?,
       lastResult: json['last_result'] as Map<String, dynamic>?,
     );
   }
@@ -90,6 +102,7 @@ class LeaderboardEntry {
   final String name;
   final String? avatarUrl;
   final int weeklyXp;
+  final int weeklyLp;
   final bool isMe;
   final bool isPremium;
   final String resultPreview;
@@ -100,6 +113,7 @@ class LeaderboardEntry {
     required this.name,
     this.avatarUrl,
     required this.weeklyXp,
+    required this.weeklyLp,
     required this.isMe,
     this.isPremium = false,
     required this.resultPreview,
@@ -112,6 +126,7 @@ class LeaderboardEntry {
       name: json['name'] as String,
       avatarUrl: json['avatar_url'] as String?,
       weeklyXp: json['weekly_xp'] as int,
+      weeklyLp: json['weekly_lp'] as int? ?? 0,
       isMe: json['is_me'] as bool,
       isPremium: json['is_premium'] == true,
       resultPreview: json['result_preview'] as String,

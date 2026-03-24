@@ -183,6 +183,62 @@ class AppTheme {
           textStyle: textTheme.labelLarge,
         ),
       ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          final disabled = states.contains(WidgetState.disabled);
+
+          if (selected) {
+            return disabled
+                ? Colors.white.withValues(alpha: 0.7)
+                : Colors.white;
+          }
+
+          if (disabled) {
+            return isDark
+                ? Colors.white.withValues(alpha: 0.35)
+                : const Color(0xFFF4F7F1);
+          }
+
+          return isDark
+              ? const Color(0xFFD7E2D6)
+              : const Color(0xFFFFFFFF);
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          final disabled = states.contains(WidgetState.disabled);
+
+          if (selected) {
+            return disabled
+                ? AppColors.primary.withValues(alpha: 0.28)
+                : AppColors.primary.withValues(alpha: 0.55);
+          }
+
+          if (disabled) {
+            return isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : const Color(0xFFE8EEE7);
+          }
+
+          return isDark
+              ? const Color(0xFF2A332D)
+              : const Color(0xFFDDE6DB);
+        }),
+        trackOutlineColor: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          final disabled = states.contains(WidgetState.disabled);
+
+          if (selected) {
+            return Colors.transparent;
+          }
+
+          if (disabled) {
+            return outline.withValues(alpha: isDark ? 0.2 : 0.35);
+          }
+
+          return outline.withValues(alpha: isDark ? 0.65 : 0.9);
+        }),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surfaceHigh,

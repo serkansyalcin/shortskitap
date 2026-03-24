@@ -18,6 +18,7 @@ import '../../../features/subscription/widgets/premium_badge.dart';
 import '../widgets/character_card_widget.dart';
 import '../widgets/podcast_player_widget.dart';
 import '../widgets/series_info_widget.dart';
+import '../../../core/models/review_model.dart';
 
 class BookDetailScreen extends ConsumerWidget {
   final String slug;
@@ -137,66 +138,199 @@ class BookDetailScreen extends ConsumerWidget {
 
                       // Series info
                       if (book.seriesId != null)
-                        ref.watch(seriesDetailProvider(book.seriesId!)).when(
-                          data: (series) => Column(
-                            children: [
-                              SeriesInfoWidget(
-                                series: series,
-                                currentBookOrder: book.seriesOrder,
-                                accentColor: accentColor,
-                              ),
-                              const SizedBox(height: 12),
-                              if (series.books.isNotEmpty) ...[
-                                SeriesBookListWidget(
-                                  series: series,
-                                  currentBookId: book.id,
-                                  accentColor: accentColor,
-                                ),
-                                const SizedBox(height: 20),
-                              ],
-                            ],
-                          ),
-                          loading: () => const SizedBox.shrink(),
-                          error: (_, __) => const SizedBox.shrink(),
-                        ),
-
-                      // Characters section
-                      ref.watch(charactersProvider(book.id)).when(
-                        data: (characters) => characters.isEmpty
-                            ? const SizedBox.shrink()
-                            : Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                        ref
+                            .watch(seriesDetailProvider(book.seriesId!))
+                            .when(
+                              data: (series) => Column(
                                 children: [
-                                  Text(
-                                    'Karakterler',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: colorScheme.onSurface,
-                                      letterSpacing: -0.2,
-                                    ),
+                                  SeriesInfoWidget(
+                                    series: series,
+                                    currentBookOrder: book.seriesOrder,
+                                    accentColor: accentColor,
                                   ),
-                                  const SizedBox(height: 10),
-                                  SizedBox(
-                                    height: 200,
-                                    child: ListView.separated(
-                                      scrollDirection: Axis.horizontal,
-                                      itemCount: characters.length,
-                                      separatorBuilder: (_, __) =>
-                                          const SizedBox(width: 10),
-                                      itemBuilder: (context, index) =>
-                                          CharacterCardWidget(
-                                        character: characters[index],
-                                        accentColor: accentColor,
-                                      ),
+                                  const SizedBox(height: 12),
+                                  if (series.books.isNotEmpty) ...[
+                                    SeriesBookListWidget(
+                                      series: series,
+                                      currentBookId: book.id,
+                                      accentColor: accentColor,
                                     ),
-                                  ),
-                                  const SizedBox(height: 20),
+                                    const SizedBox(height: 20),
+                                  ],
                                 ],
                               ),
-                        loading: () => const SizedBox.shrink(),
-                        error: (_, __) => const SizedBox.shrink(),
-                      ),
+                              loading: () => const SizedBox.shrink(),
+                              error: (_, __) => const SizedBox.shrink(),
+                            ),
+
+                      // Characters section
+                      ref
+                          .watch(charactersProvider(book.id))
+                          .when(
+                            data: (characters) => characters.isEmpty
+                                ? const SizedBox.shrink()
+                                : Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Karakterler',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          color: colorScheme.onSurface,
+                                          letterSpacing: -0.2,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      SizedBox(
+                                        height: 200,
+                                        child: ListView.separated(
+                                          scrollDirection: Axis.horizontal,
+                                          itemCount: characters.length,
+                                          separatorBuilder: (_, __) =>
+                                              const SizedBox(width: 10),
+                                          itemBuilder: (context, index) =>
+                                              CharacterCardWidget(
+                                                character: characters[index],
+                                                accentColor: accentColor,
+                                              ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 20),
+                                    ],
+                                  ),
+                            loading: () => const SizedBox.shrink(),
+                            error: (_, __) => const SizedBox.shrink(),
+                          ),
+
+                      // Reviews section
+                      ref
+                          .watch(bookReviewsProvider(book.id))
+                          .when(
+                            data: (reviews) => reviews.isEmpty
+                                ? const SizedBox.shrink()
+                                : Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Değerlendirmeler',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          color: colorScheme.onSurface,
+                                          letterSpacing: -0.2,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      ...reviews.map(
+                                        (review) => Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 12,
+                                          ),
+                                          child: Container(
+                                            width: double.infinity,
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
+                                              color: colorScheme
+                                                  .surfaceContainerHighest
+                                                  .withOpacity(0.3),
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              border: Border.all(
+                                                color: Colors.white.withOpacity(
+                                                  0.04,
+                                                ),
+                                              ),
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    CircleAvatar(
+                                                      radius: 12,
+                                                      backgroundColor:
+                                                          accentColor
+                                                              .withOpacity(0.2),
+                                                      backgroundImage:
+                                                          review.userAvatarUrl !=
+                                                              null
+                                                          ? CachedNetworkImageProvider(
+                                                              review
+                                                                  .userAvatarUrl!,
+                                                            )
+                                                          : null,
+                                                      child:
+                                                          review.userAvatarUrl ==
+                                                              null
+                                                          ? Icon(
+                                                              Icons.person,
+                                                              size: 14,
+                                                              color:
+                                                                  accentColor,
+                                                            )
+                                                          : null,
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Text(
+                                                      review.userName ??
+                                                          'İsimsiz',
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        color: colorScheme
+                                                            .onSurface,
+                                                      ),
+                                                    ),
+                                                    const Spacer(),
+                                                    Row(
+                                                      children: List.generate(
+                                                        5,
+                                                        (sIndex) => Icon(
+                                                          sIndex < review.rating
+                                                              ? Icons
+                                                                    .star_rounded
+                                                              : Icons
+                                                                    .star_border_rounded,
+                                                          size: 14,
+                                                          color: const Color(
+                                                            0xFFFFC107,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                if (review.comment != null &&
+                                                    review
+                                                        .comment!
+                                                        .isNotEmpty) ...[
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    review.comment!,
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      height: 1.5,
+                                                      color: colorScheme
+                                                          .onSurfaceVariant,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 20),
+                                    ],
+                                  ),
+                            loading: () => const SizedBox.shrink(),
+                            error: (_, __) => const SizedBox.shrink(),
+                          ),
                     ],
                   ),
                 ),
@@ -269,6 +403,23 @@ class _BookHeroCard extends StatelessWidget {
     required this.accentColor,
     required this.textSecondary,
   });
+
+  String _getLanguageName(String code) {
+    switch (code.toLowerCase()) {
+      case 'tr':
+        return 'Türkçe';
+      case 'en':
+        return 'İngilizce';
+      case 'fr':
+        return 'Fransızca';
+      case 'de':
+        return 'Almanca';
+      case 'ru':
+        return 'Rusça';
+      default:
+        return code.toUpperCase();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -377,6 +528,17 @@ class _BookHeroCard extends StatelessWidget {
                   spacing: 10,
                   runSpacing: 10,
                   children: [
+                    if (book.rating > 0)
+                      _MetaPill(
+                        icon: Icons.star_rounded,
+                        label:
+                            '${book.rating.toStringAsFixed(1)} (${book.reviewsCount})',
+                        iconColor: const Color(0xFFFFC107),
+                      ),
+                    _MetaPill(
+                      icon: Icons.language_rounded,
+                      label: _getLanguageName(book.language),
+                    ),
                     _MetaPill(
                       icon: Icons.auto_stories_outlined,
                       label: '${book.totalParagraphs} paragraf',
@@ -854,12 +1016,28 @@ class _BookActionStrip extends ConsumerStatefulWidget {
 class _BookActionStripState extends ConsumerState<_BookActionStrip> {
   bool _isSubmitting = false;
   bool? _optimisticFavorite;
+  bool _syncedDownloadedMetadata = false;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final favorites = ref.watch(favoritesProvider).valueOrNull ?? const [];
+    final isDownloading = ref.watch(
+      bookDownloadControllerProvider.select(
+        (downloading) => downloading.contains(widget.book.id),
+      ),
+    );
+    final isDownloaded =
+        ref.watch(bookCacheStatusProvider(widget.book.id)).valueOrNull == true;
+    final isPremium = ref.watch(isPremiumProvider);
+    if (isDownloaded && !_syncedDownloadedMetadata && isPremium) {
+      _syncedDownloadedMetadata = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await ref.read(offlineCacheServiceProvider).cacheBook(widget.book);
+        ref.invalidate(downloadedBooksProvider);
+      });
+    }
     final isAuthenticated = authState.isAuthenticated;
     final isFavorite =
         _optimisticFavorite ??
@@ -925,6 +1103,26 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          _ActionButton(
+            icon: isDownloaded
+                ? Icons.delete_outline_rounded
+                : isDownloading
+                ? Icons.downloading_rounded
+                : Icons.download_rounded,
+            label: isDownloaded
+                ? 'Cihazdan kaldır'
+                : isDownloading
+                ? 'Kitap indiriliyor...'
+                : 'Cihaza indir ve Çevrimdışı oku',
+            accentColor: widget.accentColor,
+            emphasized: isDownloaded,
+            onTap: isDownloading
+                ? null
+                : isDownloaded
+                ? _removeDownload
+                : _downloadBook,
+          ),
           if (!isAuthenticated) ...[
             const SizedBox(height: 10),
             Text(
@@ -940,12 +1138,158 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
     );
   }
 
+  void _showPremiumRequiredForDownloadModal() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: isDark ? const Color(0xFF171A17) : theme.cardColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 4,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.workspace_premium_rounded,
+                  color: AppColors.primary,
+                  size: 32,
+                ),
+              ),
+              Text(
+                'Premium Özellik',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Kitapları cihazınıza indirip çevrimdışı okumak için Kitaplig Premium abonesi olmalısınız. İstediğiniz zaman, internete ihtiyaç duymadan okuma keyfini çıkarın!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.5,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 32),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  context.push('/premium');
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text(
+                  'Premium\'u İncele',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  'Vazgeç',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _downloadBook() async {
+    final isPremium = ref.read(isPremiumProvider);
+    if (!isPremium) {
+      _showPremiumRequiredForDownloadModal();
+      return;
+    }
+
+    try {
+      final count = await ref
+          .read(bookDownloadControllerProvider.notifier)
+          .downloadBook(widget.book.id, book: widget.book);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            count > 0
+                ? 'Kitap indirildi. Artık çevrimdışı da açılabilir.'
+                : 'Bu kitap zaten indiriliyor.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'İndirme işlemi sırasında bir hata oluştu. Hesabınıza giriş yaptığınızdan emin olun.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _removeDownload() async {
+    try {
+      await ref
+          .read(bookDownloadControllerProvider.notifier)
+          .removeDownload(widget.book.id);
+      _syncedDownloadedMetadata = false;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kitap cihazdan kaldırıldı.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Kaldırma tamamlanamadı: $error')));
+    }
+  }
+
   Future<void> _toggleFavorite() async {
     final authState = ref.read(authProvider);
     if (!authState.isAuthenticated) {
       if (!mounted) return;
       final returnTo = Uri.encodeComponent('/books/${widget.book.slug}');
-      context.push('/login?returnTo=$returnTo');
+      context.go('/login?returnTo=$returnTo');
       return;
     }
 
@@ -995,7 +1339,7 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
     final shareText = StringBuffer()
       ..writeln('${widget.book.title}${author != null ? ' - $author' : ''}')
       ..writeln()
-      ..write('KitapLig uygulamasında bu kitaba göz at: ${widget.book.title}');
+      ..write('Kitaplig uygulamasında bu kitaba göz at: ${widget.book.title}');
 
     Share.share(shareText.toString(), subject: widget.book.title);
   }
@@ -1107,8 +1451,9 @@ class _Chip extends StatelessWidget {
 class _MetaPill extends StatelessWidget {
   final IconData icon;
   final String label;
+  final Color? iconColor;
 
-  const _MetaPill({required this.icon, required this.label});
+  const _MetaPill({required this.icon, required this.label, this.iconColor});
 
   @override
   Widget build(BuildContext context) {
@@ -1124,7 +1469,7 @@ class _MetaPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: colorScheme.onSurface),
+          Icon(icon, size: 14, color: iconColor ?? colorScheme.onSurface),
           const SizedBox(width: 6),
           Text(
             label,

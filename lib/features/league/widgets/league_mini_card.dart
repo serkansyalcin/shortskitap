@@ -67,12 +67,29 @@ class LeagueMiniCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '#${m.rank} sıra  •  ${m.weeklyXp} XP  •  ${s.daysRemaining}g kaldı',
+                        '#${m.rank} sıra  •  ${m.weeklyLp} LP  •  ${s.daysRemaining}g kaldı',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.8),
                           fontSize: 12,
                         ),
                       ),
+                      if (m.streakShields > 0) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.shield_rounded, color: Colors.white, size: 12),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${m.streakShields} Kalkan Aktif',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -98,11 +115,11 @@ class LeagueMiniCard extends ConsumerWidget {
                           ),
                         ),
                       )
-                    else if (m.xpToPromotion != null)
+                    else if (m.lpToPromotion != null)
                       Column(
                         children: [
                           Text(
-                            '+${m.xpToPromotion} XP',
+                            '+${m.lpToPromotion} LP',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,

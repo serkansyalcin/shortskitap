@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/providers/books_provider.dart';
+import '../../../app/providers/library_provider.dart';
 import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/settings_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
@@ -17,17 +18,23 @@ import '../../../core/models/paragraph_model.dart';
 import '../../../core/platform/platform_support.dart';
 import '../../../features/subscription/widgets/ad_banner.dart';
 import '../widgets/paragraph_card.dart';
+import '../widgets/review_modal.dart';
+import '../widgets/highlight_modal.dart';
 
 const _adEveryN = 5;
 
 class ReaderScreen extends ConsumerStatefulWidget {
   final int bookId;
   final bool bookIsPremium;
+  final String? bookTitle;
+  final String? authorName;
 
   const ReaderScreen({
     super.key,
     required this.bookId,
     this.bookIsPremium = false,
+    this.bookTitle,
+    this.authorName,
   });
 
   @override
@@ -52,6 +59,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _voiceoverLoading = false;
   int? _currentParagraphId;
   late final AutoVoiceoverService _voiceoverService;
+  final Map<int, String> _localHighlights = {};
 
   @override
   void initState() {
@@ -106,26 +114,39 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
       if (!mounted) return;
+      final readAt = DateTime.now();
       ref
           .read(progressSyncProvider.notifier)
-          .sync(widget.bookId, paragraphOrder, _sessionSeconds);
+          .sync(widget.bookId, paragraphOrder, _sessionSeconds, readAt: readAt);
       _sessionSeconds = 0;
     });
 
     final voiceEnabled = ref.read(voiceoverEnabledProvider);
     if (voiceEnabled && paragraphId != null) {
-      _triggerVoiceover(paragraphId);
+      _triggerVoiceover(paragraphId, index);
+
+      // Trigger preload for the next page
+      if (index + 1 < items.length) {
+        final nextItem = items[index + 1];
+        if (nextItem is _ParagraphItem) {
+          _voiceoverService.preloadNextParagraph(
+            widget.bookId,
+            nextItem.paragraph.id,
+          );
+        }
+      }
     }
   }
 
-  Future<void> _triggerVoiceover(int paragraphId) async {
-    if (_voiceoverLoading) return;
+  Future<void> _triggerVoiceover(int paragraphId, int index) async {
     if (!mounted) return;
     setState(() => _voiceoverLoading = true);
     try {
       await _voiceoverService.playParagraph(widget.bookId, paragraphId);
     } finally {
-      if (mounted) setState(() => _voiceoverLoading = false);
+      if (mounted && _currentIndex == index) {
+        setState(() => _voiceoverLoading = false);
+      }
     }
   }
 
@@ -138,7 +159,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       ref.read(voiceoverEnabledProvider.notifier).state = true;
       _voiceoverService.enable();
       if (_currentParagraphId != null) {
-        _triggerVoiceover(_currentParagraphId!);
+        _triggerVoiceover(_currentParagraphId!, _currentIndex);
       }
     }
   }
@@ -148,12 +169,145 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _startControlsTimer();
   }
 
+  void _showPremiumRequiredForDownloadModal() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: isDark ? const Color(0xFF171A17) : theme.cardColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 4,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.workspace_premium_rounded,
+                  color: AppColors.primary,
+                  size: 32,
+                ),
+              ),
+              Text(
+                'Premium Özellik',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Kitapları cihazınıza indirip çevrimdışı okumak için Kitaplig Premium abonesi olmalısınız. İstediğiniz zaman, internete ihtiyaç duymadan okuma keyfini çıkarın!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.5,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 32),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  context.push('/premium');
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text(
+                  'Premium\'u İncele',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  'Vazgeç',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _downloadBook() async {
+    final isPremium = ref.read(isPremiumProvider);
+    if (!isPremium) {
+      _showPremiumRequiredForDownloadModal();
+      return;
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      final count = await ref
+          .read(bookDownloadControllerProvider.notifier)
+          .downloadBook(widget.bookId);
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            count > 0
+                ? 'Kitap cihaza indirildi. Artık çevrimdışı da okunabilir.'
+                : 'Bu kitap zaten indiriliyor.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'İndirme tamamlanamadı. Lütfen daha sonra tekrar deneyin.',
+          ),
+        ),
+      );
+    }
+  }
+
   void _goNext(int total) {
     if (_currentIndex < total - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 380),
         curve: Curves.easeInOutCubic,
       );
+    } else {
+      // Reached the end. Let's show the review modal!
+      ReviewModal.show(context, widget.bookId);
     }
   }
 
@@ -220,6 +374,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final progressAsync = ref.watch(bookProgressProvider(widget.bookId));
     final settings = ref.watch(settingsProvider);
     final isPremium = ref.watch(isPremiumProvider);
+    final isDownloading = ref.watch(
+      bookDownloadControllerProvider.select(
+        (downloading) => downloading.contains(widget.bookId),
+      ),
+    );
+    final cacheStatusAsync = ref.watch(bookCacheStatusProvider(widget.bookId));
+    final isDownloaded = cacheStatusAsync.valueOrNull == true;
     final readerTheme = _readerThemeOverride ?? settings.theme;
     final readerFontSize =
         _readerFontSizeOverride ?? settings.fontSize.toDouble();
@@ -288,8 +449,21 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     itemBuilder: (ctx, index) {
                       final item = items[index];
                       if (item is _AdItem) return _AdPage(palette: palette);
+                      final paragraph = (item as _ParagraphItem).paragraph;
+                      final highlightHex =
+                          _localHighlights[paragraph.id] ??
+                          paragraph.highlightColor;
+                      Color? highlightColor;
+                      if (highlightHex != null) {
+                        try {
+                          highlightColor = Color(
+                            int.parse(highlightHex.replaceFirst('#', '0xFF')),
+                          );
+                        } catch (_) {}
+                      }
+
                       return ParagraphCard(
-                        paragraph: (item as _ParagraphItem).paragraph,
+                        paragraph: paragraph,
                         isCurrent: index == _currentIndex,
                         total: paragraphs.length,
                         fontSize: readerFontSize,
@@ -299,6 +473,24 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                         dividerColor: palette.divider,
                         accentColor: palette.accent,
                         mutedColor: palette.muted,
+                        highlightColor: highlightColor,
+                        bookTitle: widget.bookTitle,
+                        authorName: widget.authorName,
+                        onHighlight: () {
+                          HighlightModal.show(
+                            context,
+                            widget.bookId,
+                            paragraph,
+                            onSaved: (id, color) {
+                              setState(() {
+                                _localHighlights[id] = color;
+                              });
+                              // Refresh highlight-backed surfaces after a new save.
+                              ref.invalidate(paragraphsProvider(widget.bookId));
+                              ref.invalidate(highlightsProvider);
+                            },
+                          );
+                        },
                       );
                     },
                   ),
@@ -313,7 +505,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     child: _ReaderTopBar(
                       readerTheme: readerTheme,
                       fontFamily: readerFontFamily,
+                      isDownloaded: isDownloaded,
+                      isDownloading: isDownloading,
                       onBack: () => context.pop(),
+                      onDownload: isDownloaded || isDownloading
+                          ? null
+                          : _downloadBook,
                       onSettings: () =>
                           _showReaderSettings(context, readerTheme),
                     ),
@@ -332,9 +529,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       total: paragraphs.length,
                       fontFamily: readerFontFamily,
                       onPrev: _currentIndex > 0 ? _goPrev : null,
-                      onNext: _currentIndex < items.length - 1
-                          ? () => _goNext(items.length)
-                          : null,
+                      onNext: () => _goNext(items.length),
                       voiceoverEnabled: ref.watch(voiceoverEnabledProvider),
                       voiceoverLoading: _voiceoverLoading,
                       onVoiceoverToggle: _toggleVoiceover,
@@ -714,7 +909,7 @@ class _PremiumGateScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Bu kitabı okumak için KitapLig Premium üyeliği gerekiyor.\nAylık ₺14,99 ile sınırsız erişim sağlayın.',
+                'Bu kitabı okumak için Kitaplig Premium üyeliği gerekiyor.\nAylık ₺14,99 ile sınırsız erişim sağlayın.',
                 style: TextStyle(
                   fontSize: 15,
                   color: Colors.black54,
@@ -763,13 +958,19 @@ class _PremiumGateScreen extends StatelessWidget {
 class _ReaderTopBar extends StatelessWidget {
   final String readerTheme;
   final String fontFamily;
+  final bool isDownloaded;
+  final bool isDownloading;
   final VoidCallback onBack;
+  final VoidCallback? onDownload;
   final VoidCallback onSettings;
 
   const _ReaderTopBar({
     required this.readerTheme,
     required this.fontFamily,
+    required this.isDownloaded,
+    required this.isDownloading,
     required this.onBack,
+    required this.onDownload,
     required this.onSettings,
   });
 
@@ -821,6 +1022,15 @@ class _ReaderTopBar extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
+          ),
+          const SizedBox(width: 10),
+          _TopBarButton(
+            icon: isDownloaded
+                ? Icons.download_done_rounded
+                : Icons.download_rounded,
+            color: isDownloaded ? AppColors.accent : iconColor,
+            onTap: onDownload,
+            loading: isDownloading,
           ),
           const SizedBox(width: 10),
           _TopBarButton(
@@ -928,7 +1138,10 @@ class _ReaderBottomBar extends StatelessWidget {
                 onTap: onVoiceoverToggle,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: voiceoverEnabled
                         ? AppColors.accent.withValues(alpha: 0.22)
@@ -1035,18 +1248,20 @@ class _ReaderPalette {
 class _TopBarButton extends StatelessWidget {
   final IconData icon;
   final Color color;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool loading;
 
   const _TopBarButton({
     required this.icon,
     required this.color,
     required this.onTap,
+    this.loading = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withValues(alpha: 0.08),
+      color: Colors.white.withValues(alpha: onTap == null ? 0.04 : 0.08),
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
@@ -1054,7 +1269,22 @@ class _TopBarButton extends StatelessWidget {
         child: SizedBox(
           width: 40,
           height: 40,
-          child: Icon(icon, color: color, size: 19),
+          child: AnimatedOpacity(
+            opacity: onTap == null && !loading ? 0.65 : 1,
+            duration: const Duration(milliseconds: 180),
+            child: Center(
+              child: loading
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: color,
+                      ),
+                    )
+                  : Icon(icon, color: color, size: 19),
+            ),
+          ),
         ),
       ),
     );

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/providers/auth_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/widgets/brand_logo.dart';
+import '../widgets/social_auth_buttons.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -17,9 +18,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+
   bool _loading = false;
   bool _obscure = true;
   String? _error;
+  AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
 
   @override
   void dispose() {
@@ -36,8 +39,41 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return returnTo;
   }
 
+  String? _validateEmail(String? value) {
+    final email = value?.trim() ?? '';
+    if (email.isEmpty) {
+      return 'E-posta adresini yaz.';
+    }
+    if (!email.contains('@') || !email.contains('.')) {
+      return 'Geçerli bir e-posta adresi gir.';
+    }
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    final password = value ?? '';
+    if (password.isEmpty) {
+      return 'Şifreni yaz.';
+    }
+    if (password.length < 6) {
+      return 'Şifre en az 6 karakter olmalı.';
+    }
+    return null;
+  }
+
+  void _clearInlineError() {
+    if (_error != null) {
+      setState(() => _error = null);
+    }
+  }
+
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
+
+    if (!_formKey.currentState!.validate()) {
+      setState(() => _autovalidateMode = AutovalidateMode.onUserInteraction);
+      return;
+    }
 
     setState(() {
       _loading = true;
@@ -48,14 +84,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         .read(authProvider.notifier)
         .login(_emailCtrl.text.trim(), _passwordCtrl.text);
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     setState(() => _loading = false);
     if (success) {
       context.go(_targetAfterAuth(context));
-    } else {
-      setState(() => _error = 'E-posta veya şifre hatalı.');
+      return;
     }
+
+    setState(() {
+      _autovalidateMode = AutovalidateMode.onUserInteraction;
+      _error = ref.read(authProvider).error;
+    });
   }
 
   @override
@@ -84,29 +126,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       _AuthHero(
                         label: readingIntent
                             ? 'Okumaya devam etmek için giriş yap'
-                            : 'KitapLig ile okuma alışkanlığı',
+                            : 'Kitaplig ile okuma ritmini koru',
                         title: 'Tekrar hoş geldin',
                         subtitle: readingIntent
-                            ? 'Kitabı okumaya başlamak için hesabına giriş yapman gerekiyor.'
-                            : 'Okuma ilerlemen, lig puanların ve kitapların seninle kalsın.',
+                            ? 'Kitaba dönmek için hesabına giriş yapman gerekiyor.'
+                            : 'Okuma ilerlemen, lig puanların ve kitapların hesabında seni bekliyor.',
                       ),
                       const SizedBox(height: 26),
                       Container(
                         padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: theme.cardColor,
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(
-                              color: colorScheme.outline.withOpacity(0.7),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(
-                                  alpha: isDark ? 0.32 : 0.08,
-                                ),
-                                blurRadius: 34,
-                                offset: const Offset(0, 18),
+                        decoration: BoxDecoration(
+                          color: theme.cardColor,
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: colorScheme.outline.withOpacity(0.7),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(
+                                alpha: isDark ? 0.32 : 0.08,
                               ),
+                              blurRadius: 34,
+                              offset: const Offset(0, 18),
+                            ),
                           ],
                         ),
                         child: Column(
@@ -120,38 +162,80 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Okuma geçmişin, lig puanların ve premium erişimin hesabında.',
+                              'E-posta ve şifrenle giriş yaparak kaldığın yerden devam edebilirsin.',
                               style: textTheme.bodyMedium?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                                 height: 1.55,
                               ),
                             ),
+                            if (_error != null) ...[
+                              const SizedBox(height: 18),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFF1F1),
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: const Color(0xFFFCA5A5),
+                                  ),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Padding(
+                                      padding: EdgeInsets.only(top: 1),
+                                      child: Icon(
+                                        Icons.error_outline_rounded,
+                                        color: Color(0xFFDC2626),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        _error!,
+                                        style: textTheme.bodyMedium?.copyWith(
+                                          color: const Color(0xFF991B1B),
+                                          height: 1.45,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 22),
                             Form(
                               key: _formKey,
+                              autovalidateMode: _autovalidateMode,
                               child: Column(
                                 children: [
                                   TextFormField(
                                     controller: _emailCtrl,
                                     keyboardType: TextInputType.emailAddress,
+                                    textInputAction: TextInputAction.next,
+                                    onChanged: (_) => _clearInlineError(),
                                     decoration: const InputDecoration(
                                       labelText: 'E-posta',
+                                      hintText: 'ornek@mail.com',
                                       prefixIcon: Icon(
                                         Icons.alternate_email_rounded,
                                       ),
                                     ),
-                                    validator: (value) {
-                                      if (value == null ||
-                                          !value.contains('@')) {
-                                        return 'Geçerli bir e-posta gir.';
-                                      }
-                                      return null;
-                                    },
+                                    validator: _validateEmail,
                                   ),
                                   const SizedBox(height: 16),
                                   TextFormField(
                                     controller: _passwordCtrl,
                                     obscureText: _obscure,
+                                    textInputAction: TextInputAction.done,
+                                    onChanged: (_) => _clearInlineError(),
+                                    onFieldSubmitted: (_) {
+                                      if (!_loading) {
+                                        _submit();
+                                      }
+                                    },
                                     decoration: InputDecoration(
                                       labelText: 'Şifre',
                                       prefixIcon: const Icon(
@@ -168,48 +252,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         ),
                                       ),
                                     ),
-                                    validator: (value) {
-                                      if (value == null || value.length < 6) {
-                                        return 'En az 6 karakter gir.';
-                                      }
-                                      return null;
-                                    },
+                                    validator: _validatePassword,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: TextButton(
+                                      onPressed: () {
+                                        context.push('/forgot-password');
+                                      },
+                                      style: TextButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        minimumSize: Size.zero,
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: Text(
+                                        'Şifreni mi unuttun?',
+                                        style: textTheme.bodySmall?.copyWith(
+                                          color: colorScheme.onSurfaceVariant,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                            if (_error != null) ...[
-                              const SizedBox(height: 16),
-                              Container(
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF351717),
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(
-                                    color: const Color(
-                                      0xFFFF6B6B,
-                                    ).withValues(alpha: 0.40),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.error_outline_rounded,
-                                      color: Color(0xFFFF8B8B),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        _error!,
-                                        style: textTheme.bodyMedium?.copyWith(
-                                          color: const Color(0xFFFFD3D3),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
                             const SizedBox(height: 22),
                             ElevatedButton(
                               onPressed: _loading ? null : _submit,
@@ -228,14 +300,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                           : 'Giriş yap',
                                     ),
                             ),
+                            SocialAuthButtons(returnTo: returnTo),
                             const SizedBox(height: 14),
                             Center(
                               child: TextButton(
                                 onPressed: () {
-                                  final route = returnTo?.isNotEmpty == true
-                                      ? '/register?returnTo=${Uri.encodeComponent(returnTo!)}'
-                                      : '/register';
-                                  context.push(route);
+                                  final uri = Uri(
+                                    path: '/register',
+                                    queryParameters: returnTo != null
+                                        ? {'returnTo': returnTo}
+                                        : null,
+                                  );
+                                  context.pushReplacement(uri.toString());
                                 },
                                 child: const Text.rich(
                                   TextSpan(
@@ -278,6 +354,7 @@ class _AuthBackdrop extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
     return IgnorePointer(
       child: Stack(
         children: [
@@ -373,10 +450,10 @@ class _AuthHero extends StatelessWidget {
               Text(
                 label,
                 style: textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
                 ),
+              ),
             ],
           ),
         ),
@@ -388,7 +465,9 @@ class _AuthHero extends StatelessWidget {
         const SizedBox(height: 24),
         Text(
           title,
-          style: textTheme.displayMedium?.copyWith(color: colorScheme.onSurface),
+          style: textTheme.displayMedium?.copyWith(
+            color: colorScheme.onSurface,
+          ),
         ),
         const SizedBox(height: 10),
         Text(

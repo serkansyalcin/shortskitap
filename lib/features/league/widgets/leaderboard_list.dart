@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitaplig/app/providers/league_provider.dart';
+import 'package:kitaplig/app/providers/duel_provider.dart';
 import 'package:kitaplig/core/models/league_model.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../subscription/widgets/premium_badge.dart';
+import 'league_empty_state.dart';
 
 class LeaderboardList extends ConsumerWidget {
   final LeagueMembershipModel membership;
@@ -55,7 +58,7 @@ class LeaderboardList extends ConsumerWidget {
       ),
       data: (entries) {
         if (entries.isEmpty) {
-          return const _LeagueEmptyState(
+          return const LeagueEmptyState(
             icon: Icons.groups_rounded,
             title: 'Henüz grup oluşmadı',
             subtitle:
@@ -125,10 +128,7 @@ class _LeagueSummaryCard extends StatelessWidget {
   final LeagueMembershipModel membership;
   final bool isKidsMode;
 
-  const _LeagueSummaryCard({
-    required this.membership,
-    this.isKidsMode = false,
-  });
+  const _LeagueSummaryCard({required this.membership, this.isKidsMode = false});
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +148,7 @@ class _LeagueSummaryCard extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: const Color(0xFF22C55E).withValues(alpha: 0.14),
+              color: const Color(0xFF22C55E).withOpacity(0.14),
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(Icons.insights_rounded, color: Color(0xFF22C55E)),
@@ -168,7 +168,7 @@ class _LeagueSummaryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '#${membership.rank} sıradasın · ${membership.weeklyXp} ${isKidsMode ? 'Puan' : 'XP'}',
+                  '#${membership.rank} sıradasın · ${membership.weeklyLp} ${isKidsMode ? 'Puan' : 'LP'}',
                   style: TextStyle(
                     color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.w800,
@@ -225,92 +225,186 @@ class _LeaderboardTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: borderColor),
       ),
-      child: Row(
+      child: Column(
         children: [
-          _RankBadge(rank: entry.rank),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          Row(
+            children: [
+              _RankBadge(rank: entry.rank),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Flexible(
-                      child: Text(
-                        entry.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface,
-                          fontWeight: entry.isMe
-                              ? FontWeight.w800
-                              : FontWeight.w700,
-                          fontSize: 17,
-                        ),
-                      ),
-                    ),
-                    if (entry.isPremium) ...[
-                      const SizedBox(width: 6),
-                      const PremiumCrownIcon(size: 14),
-                    ],
-                    if (entry.isMe) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFBBF24),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: const Text(
-                          'Sen',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 11,
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            entry.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface,
+                              fontWeight: entry.isMe
+                                  ? FontWeight.w800
+                                  : FontWeight.w700,
+                              fontSize: 17,
+                            ),
                           ),
                         ),
+                        if (entry.isPremium) ...[
+                          const SizedBox(width: 6),
+                          const PremiumCrownIcon(size: 14),
+                        ],
+                        if (entry.isMe) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFBBF24),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: const Text(
+                              'Sen',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _resultLabel(entry.resultPreview),
+                      style: TextStyle(
+                        color: _resultColor(entry.resultPreview),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
-                    ],
+                    ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  _resultLabel(entry.resultPreview),
-                  style: TextStyle(
-                    color: _resultColor(entry.resultPreview),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                isKidsMode ? 'Haftalık puan' : 'Haftalık XP',
-                style: TextStyle(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                '${entry.weeklyXp}',
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    isKidsMode ? 'Haftalık puan' : 'Haftalık LP',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${entry.weeklyLp}',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
+          if (!entry.isMe) ...[
+            const SizedBox(height: 12),
+            Divider(
+              height: 1,
+              color: theme.colorScheme.outline.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 8),
+            Consumer(
+              builder: (context, ref, _) {
+                ref.watch(duelStateProvider);
+                final duelNotifier = ref.read(duelStateProvider.notifier);
+                final existingDuel = duelNotifier.findOpenDuelWithUser(
+                  entry.userId,
+                );
+                final hasIncomingPending =
+                    existingDuel != null &&
+                    existingDuel.isPending &&
+                    existingDuel.challengerId == entry.userId;
+                final actionLabel = existingDuel == null
+                    ? 'Düello Et'
+                    : existingDuel.isActive
+                    ? 'Düelloya Git'
+                    : hasIncomingPending
+                    ? 'Teklifi Gör'
+                    : 'Gönderildi';
+                final promptLabel = existingDuel == null
+                    ? 'Rekabet etmek ister misin?'
+                    : existingDuel.isActive
+                    ? 'Bu kullanıcıyla aktif bir düellon var.'
+                    : hasIncomingPending
+                    ? 'Bu kullanıcıdan gelen teklif seni bekliyor.'
+                    : 'Teklif gönderildi, cevap bekleniyor.';
+
+                Future<void> handlePressed() async {
+                  if (existingDuel != null) {
+                    context.push('/duels/${existingDuel.id}');
+                    return;
+                  }
+
+                  final result = await duelNotifier.challenge(entry.userId);
+                  if (!context.mounted) {
+                    return;
+                  }
+
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(SnackBar(content: Text(result.message)));
+                }
+
+                return Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        promptLabel,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      height: 32,
+                      child: OutlinedButton.icon(
+                        onPressed: handlePressed,
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 32),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                          side: BorderSide(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
+                        ),
+                        icon: const Icon(Icons.bolt_rounded, size: 14),
+                        label: Text(
+                          actionLabel,
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
         ],
       ),
     );
@@ -396,7 +490,7 @@ class _ZoneDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Divider(color: color.withValues(alpha: 0.7))),
+        Expanded(child: Divider(color: color.withOpacity(0.7))),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Text(
@@ -408,55 +502,8 @@ class _ZoneDivider extends StatelessWidget {
             ),
           ),
         ),
-        Expanded(child: Divider(color: color.withValues(alpha: 0.7))),
+        Expanded(child: Divider(color: color.withOpacity(0.7))),
       ],
-    );
-  }
-}
-
-class _LeagueEmptyState extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  const _LeagueEmptyState({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 42, color: const Color(0xFF22C55E)),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: theme.colorScheme.onSurface,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: theme.colorScheme.onSurfaceVariant,
-                height: 1.5,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
