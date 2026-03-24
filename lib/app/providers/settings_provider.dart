@@ -50,12 +50,38 @@ class SettingsNotifier extends StateNotifier<UserSettings> {
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     final defaultTheme = resolveDefaultTheme();
+    final savedTheme = prefs.getString('theme');
+    final resolvedTheme = _resolveStoredTheme(savedTheme, defaultTheme);
+
+    if (savedTheme != resolvedTheme) {
+      await prefs.setString('theme', resolvedTheme);
+    }
+
     state = UserSettings(
-      theme: prefs.getString('theme') ?? defaultTheme,
+      theme: resolvedTheme,
       fontSize: prefs.getInt('font_size') ?? 16,
       onboardingDone: prefs.getBool('onboarding_done') ?? false,
       dailyGoal: prefs.getInt('daily_goal') ?? 10,
     );
+  }
+
+  String _resolveStoredTheme(String? savedTheme, String defaultTheme) {
+    if (savedTheme == null || savedTheme.isEmpty) {
+      return defaultTheme;
+    }
+
+    if (savedTheme == 'system' && defaultTheme != 'system') {
+      return defaultTheme;
+    }
+
+    switch (savedTheme) {
+      case 'light':
+      case 'dark':
+      case 'system':
+        return savedTheme;
+      default:
+        return defaultTheme;
+    }
   }
 
   Future<void> setTheme(String theme) async {

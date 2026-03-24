@@ -80,18 +80,35 @@ class AuthService {
       payload['preferred_font_size'] = preferredFontSize;
     }
 
-    final data = avatarBytes != null
-        ? FormData.fromMap({
-            ...payload,
-            'avatar': MultipartFile.fromBytes(
-              avatarBytes,
-              filename: avatarFileName ?? 'avatar.jpg',
-            ),
-          })
-        : payload;
+    UserModel? updatedUser;
 
-    final res = await _client.put('/me', data: data);
-    return UserModel.fromJson(res.data['data'] as Map<String, dynamic>);
+    if (payload.isNotEmpty) {
+      final res = await _client.put('/me', data: payload);
+      updatedUser = UserModel.fromJson(res.data['data'] as Map<String, dynamic>);
+    }
+
+    if (avatarBytes != null) {
+      final res = await _client.post(
+        '/me/avatar',
+        data: FormData.fromMap({
+          'avatar': MultipartFile.fromBytes(
+            avatarBytes,
+            filename: avatarFileName ?? 'avatar.jpg',
+          ),
+        }),
+      );
+      updatedUser = UserModel.fromJson(res.data['data'] as Map<String, dynamic>);
+    }
+
+    if (updatedUser != null) {
+      return updatedUser;
+    }
+
+    final me = await getMe();
+    if (me == null) {
+      throw StateError('Profil güncellemesi sonrası kullanıcı verisi alınamadı.');
+    }
+    return me;
   }
 
   Future<void> deleteAccount(String password) async {
