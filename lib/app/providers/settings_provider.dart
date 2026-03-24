@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserSettings {
@@ -28,15 +29,29 @@ class UserSettings {
       );
 }
 
+String resolveDefaultTheme() {
+  final configured = (dotenv.env['APP_DEFAULT_THEME'] ?? 'dark').trim().toLowerCase();
+  switch (configured) {
+    case 'light':
+    case 'dark':
+    case 'sepia':
+    case 'system':
+      return configured;
+    default:
+      return 'dark';
+  }
+}
+
 class SettingsNotifier extends StateNotifier<UserSettings> {
-  SettingsNotifier() : super(const UserSettings()) {
+  SettingsNotifier() : super(UserSettings(theme: resolveDefaultTheme())) {
     _load();
   }
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
+    final defaultTheme = resolveDefaultTheme();
     state = UserSettings(
-      theme: prefs.getString('theme') ?? 'system',
+      theme: prefs.getString('theme') ?? defaultTheme,
       fontSize: prefs.getInt('font_size') ?? 16,
       onboardingDone: prefs.getBool('onboarding_done') ?? false,
       dailyGoal: prefs.getInt('daily_goal') ?? 10,

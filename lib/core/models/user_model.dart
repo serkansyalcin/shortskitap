@@ -41,7 +41,7 @@ class UserModel {
             ? DateTime.tryParse(json['premium_expires_at'] as String)
             : null,
         dailyGoal: json['daily_goal'] as int? ?? 10,
-        preferredTheme: json['preferred_theme'] as String? ?? 'system',
+        preferredTheme: json['preferred_theme'] as String? ?? 'dark',
         preferredFontSize: json['preferred_font_size'] as int? ?? 16,
         termsAcceptedAt: json['terms_accepted_at'] != null
             ? DateTime.tryParse(json['terms_accepted_at'] as String)
