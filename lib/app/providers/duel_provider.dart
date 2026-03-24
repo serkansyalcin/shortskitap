@@ -6,8 +6,6 @@ import '../../core/services/duel_service.dart';
 import 'league_provider.dart';
 import 'notification_provider.dart';
 
-final duelLiveRevisionProvider = StateProvider<int>((ref) => 0);
-
 final duelServiceProvider = Provider<DuelService>((ref) {
   return DuelService(ApiClient.instance);
 });
@@ -20,12 +18,11 @@ final myDuelsProvider = FutureProvider<List<DuelModel>>((ref) {
   return ref.read(duelServiceProvider).getMyDuels();
 });
 
-final duelDetailsProvider = FutureProvider.family<DuelModel, int>((
+final duelDetailsProvider = FutureProvider.autoDispose.family<DuelModel, int>((
   ref,
   duelId,
 ) {
   ref.watch(authProvider.select((state) => state.user?.id));
-  ref.watch(duelLiveRevisionProvider);
   return ref.read(duelServiceProvider).getDuelDetails(duelId);
 });
 
@@ -118,7 +115,5 @@ class DuelNotifier extends StateNotifier<AsyncValue<List<DuelModel>>> {
         _ref.invalidate(provider);
       }
     }
-
-    _ref.read(duelLiveRevisionProvider.notifier).state++;
   }
 }

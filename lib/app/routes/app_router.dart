@@ -169,6 +169,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           return ReaderScreen(
             bookId: int.parse(state.pathParameters['bookId']!),
             bookIsPremium: extra?['isPremium'] == true,
+            backTo: state.uri.queryParameters['backTo'],
           );
         },
       ),

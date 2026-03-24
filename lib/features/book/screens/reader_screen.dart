@@ -28,6 +28,7 @@ class ReaderScreen extends ConsumerStatefulWidget {
   final bool bookIsPremium;
   final String? bookTitle;
   final String? authorName;
+  final String? backTo;
 
   const ReaderScreen({
     super.key,
@@ -35,6 +36,7 @@ class ReaderScreen extends ConsumerStatefulWidget {
     this.bookIsPremium = false,
     this.bookTitle,
     this.authorName,
+    this.backTo,
   });
 
   @override
@@ -83,6 +85,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _controlsTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) setState(() => _showControls = false);
     });
+  }
+
+  void _handleBack(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+
+    final fallbackLocation =
+        widget.backTo != null && widget.backTo!.isNotEmpty
+        ? widget.backTo!
+        : '/home';
+    context.go(fallbackLocation);
   }
 
   @override
@@ -391,7 +406,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (widget.bookIsPremium && !isPremium) {
       return _PremiumGateScreen(
         onUpgrade: () => context.push('/premium'),
-        onBack: () => context.pop(),
+        onBack: () => _handleBack(context),
       );
     }
 
@@ -507,7 +522,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       fontFamily: readerFontFamily,
                       isDownloaded: isDownloaded,
                       isDownloading: isDownloading,
-                      onBack: () => context.pop(),
+                      onBack: () => _handleBack(context),
                       onDownload: isDownloaded || isDownloading
                           ? null
                           : _downloadBook,

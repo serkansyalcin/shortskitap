@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitaplig/app/providers/auth_provider.dart';
 import 'package:kitaplig/app/providers/duel_provider.dart';
-import 'package:kitaplig/core/models/duel_model.dart';
 import 'package:kitaplig/app/theme/app_colors.dart';
+import 'package:kitaplig/core/models/duel_model.dart';
 
 class DuelScreen extends ConsumerStatefulWidget {
   final int duelId;
@@ -16,75 +16,28 @@ class DuelScreen extends ConsumerStatefulWidget {
   ConsumerState<DuelScreen> createState() => _DuelScreenState();
 }
 
-class _DuelScreenState extends ConsumerState<DuelScreen>
-    with WidgetsBindingObserver {
+class _DuelScreenState extends ConsumerState<DuelScreen> {
   Timer? _countdownTimer;
-  Timer? _refreshTimer;
-  bool _isRefreshing = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
         setState(() {});
       }
     });
-    _refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
-      if (!mounted) {
-        return;
-      }
-
-      _refreshLiveData();
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _refreshLiveData();
-    });
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _countdownTimer?.cancel();
-    _refreshTimer?.cancel();
     super.dispose();
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _refreshLiveData();
-    }
-  }
-
-  Future<void> _refreshLiveData() async {
-    if (!mounted || _isRefreshing) {
-      return;
-    }
-
-    _isRefreshing = true;
-    try {
-      ref.read(duelLiveRevisionProvider.notifier).state++;
-      ref.invalidate(myDuelsProvider);
-      ref.invalidate(duelStateProvider);
-      final refreshedDuel = await ref.refresh(
-        duelDetailsProvider(widget.duelId).future,
-      );
-      if (refreshedDuel.id != widget.duelId) {
-        return;
-      }
-    } catch (_) {
-      // Canlı yenileme hataları ekranı bozmasın.
-    } finally {
-      _isRefreshing = false;
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final duelId = widget.duelId;
-    final duelAsync = ref.watch(duelDetailsProvider(duelId));
+    final duelAsync = ref.watch(duelDetailsProvider(widget.duelId));
 
     return Scaffold(
       appBar: AppBar(
@@ -143,6 +96,7 @@ class _DuelContent extends StatelessWidget {
 
 class _VersusHeader extends StatelessWidget {
   final DuelModel duel;
+
   const _VersusHeader({required this.duel});
 
   @override
@@ -214,6 +168,7 @@ class _UserAvatar extends StatelessWidget {
 
 class _ProgressComparison extends StatelessWidget {
   final DuelModel duel;
+
   const _ProgressComparison({required this.duel});
 
   @override
@@ -257,6 +212,7 @@ class _ProgressComparison extends StatelessWidget {
 
 class _DuelStats extends StatelessWidget {
   final DuelModel duel;
+
   const _DuelStats({required this.duel});
 
   @override
@@ -304,6 +260,7 @@ class _DuelStats extends StatelessWidget {
 class _StatRow extends StatelessWidget {
   final String label;
   final String value;
+
   const _StatRow({required this.label, required this.value});
 
   @override
@@ -329,6 +286,7 @@ class _StatRow extends StatelessWidget {
 
 class _PendingActions extends ConsumerWidget {
   final DuelModel duel;
+
   const _PendingActions({required this.duel});
 
   @override

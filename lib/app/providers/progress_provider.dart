@@ -80,7 +80,6 @@ class ProgressSyncNotifier extends StateNotifier<ProgressSyncState> {
       ref.invalidate(earnedAchievementsProvider);
       ref.invalidate(duelStateProvider);
       refreshNotificationProviders(ref);
-      ref.read(duelLiveRevisionProvider.notifier).state++;
     } catch (_) {
       state = const ProgressSyncState(isSyncing: false);
     }

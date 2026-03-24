@@ -565,6 +565,7 @@ class _SetupPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Wrap(
+            alignment: WrapAlignment.center,
             spacing: 12,
             runSpacing: 12,
             children: categories.map((cat) {

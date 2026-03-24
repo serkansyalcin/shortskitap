@@ -52,7 +52,13 @@ class BookDetailScreen extends ConsumerWidget {
                 leading: Padding(
                   padding: const EdgeInsets.only(left: 20, top: 12, bottom: 12),
                   child: IconButton(
-                    onPressed: () => context.pop(),
+                    onPressed: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/home');
+                      }
+                    },
                     style: IconButton.styleFrom(
                       backgroundColor: colorScheme.surfaceContainerHighest
                           .withValues(alpha: 0.6),
@@ -98,6 +104,7 @@ class BookDetailScreen extends ConsumerWidget {
                             _PrimaryReadingCard(
                               progress: progress,
                               bookId: book.id,
+                              bookSlug: book.slug,
                               isPremiumBook: book.isPremium,
                               hasPremiumAccess: isPremium,
                               accentColor: accentColor,
@@ -846,6 +853,7 @@ class _ContentCard extends StatelessWidget {
 class _PrimaryReadingCard extends StatelessWidget {
   final ProgressModel? progress;
   final int bookId;
+  final String bookSlug;
   final bool isPremiumBook;
   final bool hasPremiumAccess;
   final Color accentColor;
@@ -853,6 +861,7 @@ class _PrimaryReadingCard extends StatelessWidget {
   const _PrimaryReadingCard({
     required this.progress,
     required this.bookId,
+    required this.bookSlug,
     required this.isPremiumBook,
     required this.hasPremiumAccess,
     required this.accentColor,
@@ -868,6 +877,10 @@ class _PrimaryReadingCard extends StatelessWidget {
       1.0,
     );
     final lastParagraph = progress?.lastParagraphOrder;
+    final readerLocation = Uri(
+      path: '/read/$bookId',
+      queryParameters: {'backTo': '/books/$bookSlug'},
+    ).toString();
 
     return Container(
       width: double.infinity,
@@ -966,7 +979,7 @@ class _PrimaryReadingCard extends StatelessWidget {
             const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: () => context.push(
-                '/read/$bookId',
+                readerLocation,
                 extra: {'isPremium': isPremiumBook},
               ),
               icon: const Icon(Icons.visibility_outlined),
@@ -982,7 +995,7 @@ class _PrimaryReadingCard extends StatelessWidget {
           ] else
             ElevatedButton.icon(
               onPressed: () => context.push(
-                '/read/$bookId',
+                readerLocation,
                 extra: {'isPremium': isPremiumBook},
               ),
               icon: const Icon(Icons.play_arrow_rounded, size: 22),
