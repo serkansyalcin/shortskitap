@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -112,6 +114,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     int? dailyGoal,
     String? preferredTheme,
     int? preferredFontSize,
+    Uint8List? avatarBytes,
+    String? avatarFileName,
   }) async {
     try {
       final user = await _service.updateMe(
@@ -121,6 +125,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         dailyGoal: dailyGoal,
         preferredTheme: preferredTheme,
         preferredFontSize: preferredFontSize,
+        avatarBytes: avatarBytes,
+        avatarFileName: avatarFileName,
       );
       state = AuthState.authenticated(user);
       return true;

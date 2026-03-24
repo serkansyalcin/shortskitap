@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +11,8 @@ import '../../../app/providers/league_provider.dart';
 import '../../../app/providers/profile_provider.dart';
 import '../../../app/providers/settings_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/services/avatar_picker_service.dart';
+import '../../../core/services/avatar_picker_types.dart';
 import '../../../core/services/notification_permission_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -20,6 +24,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _permissionService = createNotificationPermissionService();
+  final _avatarPicker = createAvatarPickerService();
   final _nameController = TextEditingController();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -29,6 +34,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _notificationLoading = false;
   bool _profileSaving = false;
   String _appVersion = '';
+  Uint8List? _avatarBytes;
+  String? _avatarFileName;
 
   @override
   void initState() {
@@ -95,9 +102,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       name: _nameController.text.trim(),
       username: username,
       email: _emailController.text.trim(),
+      avatarBytes: _avatarBytes,
+      avatarFileName: _avatarFileName,
     );
     if (!mounted) return;
-    setState(() => _profileSaving = false);
+    setState(() {
+      _profileSaving = false;
+      if (ok) {
+        _avatarBytes = null;
+        _avatarFileName = null;
+      }
+    });
 
     if (ok) {
       ref.invalidate(myLeagueProvider);
@@ -113,6 +128,73 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       SnackBar(
         content: Text(
           ok ? 'Profil bilgilerin güncellendi.' : 'Profil kaydedilemedi.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAvatarFromGallery() =>
+      _pickAvatar(() => _avatarPicker.pickFromGallery());
+
+  Future<void> _pickAvatarFromCamera() =>
+      _pickAvatar(() => _avatarPicker.pickFromCamera());
+
+  Future<void> _pickAvatar(
+    Future<PickedAvatar?> Function() picker,
+  ) async {
+    try {
+      final picked = await picker();
+      if (picked == null || !mounted) return;
+
+      setState(() {
+        _avatarBytes = picked.bytes;
+        _avatarFileName = picked.fileName;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Fotoğraf seçilirken bir hata oluştu.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showAvatarSourceSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Profil fotoğrafı seç',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 14),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Galeriden Seç'),
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  await _pickAvatarFromGallery();
+                },
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: const Text('Kamerayla Çek'),
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  await _pickAvatarFromCamera();
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -202,6 +284,52 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const Text(
                   'Profil Bilgileri',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    _AvatarPreview(
+                      imageUrl: user?.avatarUrl,
+                      imageBytes: _avatarBytes,
+                      name: _nameController.text.isNotEmpty
+                          ? _nameController.text
+                          : (user?.name ?? ''),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Profil Fotoğrafı',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Galeri içinden seçtiğin görsel BunnyCDN üzerinde saklanır.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              height: 1.4,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          OutlinedButton.icon(
+                            onPressed: _showAvatarSourceSheet,
+                            icon: const Icon(Icons.photo_library_outlined),
+                            label: Text(
+                              _avatarBytes != null
+                                  ? 'Fotoğrafı Değiştir'
+                                  : 'Fotoğraf Seç',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -421,6 +549,50 @@ class _LinkRow extends StatelessWidget {
       title: Text(label),
       trailing: const Icon(Icons.open_in_new_rounded, size: 18),
       onTap: onTap,
+    );
+  }
+}
+
+class _AvatarPreview extends StatelessWidget {
+  const _AvatarPreview({
+    required this.imageUrl,
+    required this.imageBytes,
+    required this.name,
+  });
+
+  final String? imageUrl;
+  final Uint8List? imageBytes;
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+
+    return Container(
+      width: 84,
+      height: 84,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: imageBytes != null
+          ? Image.memory(imageBytes!, fit: BoxFit.cover)
+          : imageUrl != null && imageUrl!.isNotEmpty
+          ? Image.network(imageUrl!, fit: BoxFit.cover)
+          : Center(
+              child: Text(
+                initial,
+                style: const TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
     );
   }
 }

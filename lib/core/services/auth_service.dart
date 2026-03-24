@@ -1,3 +1,7 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
+
 import '../api/api_client.dart';
 import '../models/user_model.dart';
 
@@ -62,6 +66,8 @@ class AuthService {
     int? dailyGoal,
     String? preferredTheme,
     int? preferredFontSize,
+    Uint8List? avatarBytes,
+    String? avatarFileName,
   }) async {
     final payload = <String, dynamic>{};
 
@@ -74,7 +80,17 @@ class AuthService {
       payload['preferred_font_size'] = preferredFontSize;
     }
 
-    final res = await _client.put('/me', data: payload);
+    final data = avatarBytes != null
+        ? FormData.fromMap({
+            ...payload,
+            'avatar': MultipartFile.fromBytes(
+              avatarBytes,
+              filename: avatarFileName ?? 'avatar.jpg',
+            ),
+          })
+        : payload;
+
+    final res = await _client.put('/me', data: data);
     return UserModel.fromJson(res.data['data'] as Map<String, dynamic>);
   }
 
