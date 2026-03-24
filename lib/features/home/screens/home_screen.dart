@@ -11,6 +11,7 @@ import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/providers/kids_provider.dart';
 import '../../../app/providers/daily_quote_provider.dart';
+import '../../../app/providers/league_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/daily_quote_model.dart';
 import '../../../core/models/achievement_model.dart';
@@ -1844,6 +1845,8 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
     final notificationEnabled =
         _notificationStatus == NotificationPermissionState.granted;
     final achievementsAsync = ref.watch(earnedAchievementsProvider);
+    final leagueStatus = ref.watch(myLeagueProvider).valueOrNull;
+    final streakShields = leagueStatus?.membership.streakShields ?? 0;
 
     return SafeArea(
       child: Stack(
@@ -1911,6 +1914,14 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                       value: '${favorites.length}',
                       label: 'Favori kitap',
                     ),
+                    if (streakShields > 0)
+                      _ProfileQuickStat(
+                        width: (MediaQuery.of(context).size.width - 42) / 2,
+                        icon: Icons.shield_rounded,
+                        iconColor: Colors.blueAccent,
+                        value: '$streakShields',
+                        label: 'Seri Kalkanı',
+                      ),
                   ],
                 ),
                 const SizedBox(height: 16),

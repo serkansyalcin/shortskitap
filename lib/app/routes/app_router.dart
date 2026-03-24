@@ -21,6 +21,7 @@ import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/settings_screen.dart';
 import '../../features/profile/screens/highlights_screen.dart';
 import '../../features/league/screens/league_screen.dart';
+import '../../features/league/screens/duel_screen.dart';
 import '../../features/subscription/screens/paywall_screen.dart';
 import '../../features/profile/screens/all_achievements_screen.dart';
 import '../../core/models/achievement_model.dart';
@@ -145,6 +146,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             bookIsPremium: extra?['isPremium'] == true,
           );
         },
+      ),
+      GoRoute(
+        path: '/duels/:duelId',
+        builder: (_, state) => DuelScreen(
+          duelId: int.parse(state.pathParameters['duelId']!),
+        ),
       ),
     ],
   );
