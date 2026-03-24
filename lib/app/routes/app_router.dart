@@ -11,6 +11,7 @@ import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/auth/screens/verify_pin_screen.dart';
 import '../../features/auth/screens/reset_password_screen.dart';
 import '../../features/home/screens/home_screen.dart';
+import '../../features/home/screens/notifications_screen.dart';
 import '../../features/discover/screens/discover_screen.dart';
 import '../../features/discover/screens/search_screen.dart';
 import '../../features/book/screens/book_detail_screen.dart';
@@ -52,7 +53,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isProtectedRoute =
           isReadRoute ||
           location == '/league' ||
+          location.startsWith('/duels/') ||
           location == '/home/library' ||
+          location == '/home/notifications' ||
           location == '/home/profile' ||
           location == '/home/settings';
 
@@ -105,6 +108,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: 'discover', builder: (_, __) => const DiscoverScreen()),
           GoRoute(path: 'search', builder: (_, __) => const SearchScreen()),
           GoRoute(path: 'library', builder: (_, __) => const LibraryScreen()),
+          GoRoute(
+            path: 'notifications',
+            builder: (_, __) => const NotificationsScreen(),
+          ),
           GoRoute(path: 'profile', builder: (_, __) => const ProfileScreen()),
           GoRoute(
             path: 'badges',
@@ -149,9 +156,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/duels/:duelId',
-        builder: (_, state) => DuelScreen(
-          duelId: int.parse(state.pathParameters['duelId']!),
-        ),
+        builder: (_, state) =>
+            DuelScreen(duelId: int.parse(state.pathParameters['duelId']!)),
       ),
     ],
   );

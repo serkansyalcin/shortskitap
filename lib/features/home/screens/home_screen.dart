@@ -7,6 +7,7 @@ import '../../../app/providers/achievements_provider.dart';
 import '../../../app/providers/auth_provider.dart';
 import '../../../app/providers/books_provider.dart';
 import '../../../app/providers/library_provider.dart';
+import '../../../app/providers/notification_provider.dart';
 import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/providers/kids_provider.dart';
@@ -36,6 +37,7 @@ import '../../subscription/widgets/premium_badge.dart';
 import '../../../core/widgets/shareable_quote_overlay.dart';
 import '../widgets/kids_mode_exit_dialog.dart';
 import '../widgets/kids_mode_pin_set_dialog.dart';
+import '../widgets/notification_bell_button.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -60,6 +62,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: isAuthenticated
             ? [
                 _HomeTab(
+                  isActive: _selectedIndex == 0,
                   onOpenDiscover: (category) => setState(() {
                     _discoverCategory = category;
                     _selectedIndex = 1;
@@ -78,6 +81,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ]
             : [
                 _HomeTab(
+                  isActive: guestSelectedIndex == 0,
                   onOpenDiscover: (category) => setState(() {
                     _discoverCategory = category;
                     _selectedIndex = 1;
@@ -156,25 +160,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class _HomeTab extends ConsumerStatefulWidget {
-  const _HomeTab({required this.onOpenDiscover});
+  const _HomeTab({required this.onOpenDiscover, required this.isActive});
 
   final ValueChanged<String?> onOpenDiscover;
+  final bool isActive;
 
   @override
   ConsumerState<_HomeTab> createState() => _HomeTabState();
 }
 
-class _HomeTabState extends ConsumerState<_HomeTab> {
+class _HomeTabState extends ConsumerState<_HomeTab>
+    with WidgetsBindingObserver {
   late final ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _scrollController = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.isActive) {
+        refreshNotificationProvidersForWidget(ref);
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _HomeTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isActive && widget.isActive) {
+      refreshNotificationProvidersForWidget(ref);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && widget.isActive) {
+      refreshNotificationProvidersForWidget(ref);
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     super.dispose();
   }
@@ -253,21 +281,28 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                       ],
                     ),
                   ),
-                  // Daily goal ring
-                  Stack(
-                    alignment: Alignment.center,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
-                        width: 52,
-                        height: 52,
-                        child: CircularProgressIndicator(
-                          value: 0.3,
-                          strokeWidth: 4,
-                          backgroundColor: colorScheme.surfaceContainerHighest,
-                          color: AppColors.accent,
-                        ),
+                      if (isAuthenticated) const NotificationBellButton(),
+                      if (isAuthenticated) const SizedBox(width: 4),
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: 52,
+                            height: 52,
+                            child: CircularProgressIndicator(
+                              value: 0.3,
+                              strokeWidth: 4,
+                              backgroundColor:
+                                  colorScheme.surfaceContainerHighest,
+                              color: AppColors.accent,
+                            ),
+                          ),
+                          const Text('🔥', style: TextStyle(fontSize: 20)),
+                        ],
                       ),
-                      const Text('🔥', style: TextStyle(fontSize: 20)),
                     ],
                   ),
                 ],
@@ -474,7 +509,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                           TextButton(
                             onPressed: () => widget.onOpenDiscover(null),
                             child: const Text(
-                            'Tümü',
+                              'Tümü',
                               style: TextStyle(color: AppColors.primary),
                             ),
                           ),
@@ -551,7 +586,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                           TextButton(
                             onPressed: () => widget.onOpenDiscover(null),
                             child: const Text(
-                            'Tümü',
+                              'Tümü',
                               style: TextStyle(color: AppColors.primary),
                             ),
                           ),
@@ -2023,11 +2058,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                         icon: '🎯',
                       ),
                       const SizedBox(width: 12),
-                      const _StatCard(
-                        label: 'Seri',
-                        value: '—',
-                        icon: '🔥',
-                      ),
+                      const _StatCard(label: 'Seri', value: '—', icon: '🔥'),
                       const SizedBox(width: 12),
                       const _StatCard(
                         label: 'Rozetler',

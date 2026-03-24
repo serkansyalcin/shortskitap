@@ -4,6 +4,7 @@ import '../../core/api/api_client.dart';
 import '../../core/models/duel_model.dart';
 import '../../core/services/duel_service.dart';
 import 'league_provider.dart';
+import 'notification_provider.dart';
 
 final duelLiveRevisionProvider = StateProvider<int>((ref) => 0);
 
@@ -110,6 +111,7 @@ class DuelNotifier extends StateNotifier<AsyncValue<List<DuelModel>>> {
     _ref.invalidate(myDuelsProvider);
     _ref.invalidate(myLeagueProvider);
     _ref.invalidate(leaderboardProvider);
+    refreshNotificationProviders(_ref);
 
     if (extraInvalidations != null) {
       for (final provider in extraInvalidations) {
