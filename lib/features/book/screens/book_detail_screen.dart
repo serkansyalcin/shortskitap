@@ -224,61 +224,107 @@ class BookDetailScreen extends ConsumerWidget {
                                         ),
                                       ),
                                       const SizedBox(height: 10),
-                                      ...reviews.map((review) => Padding(
-                                        padding: const EdgeInsets.only(bottom: 12),
-                                        child: Container(
-                                          width: double.infinity,
-                                          padding: const EdgeInsets.all(16),
-                                          decoration: BoxDecoration(
-                                            color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
-                                            borderRadius: BorderRadius.circular(16),
-                                            border: Border.all(color: Colors.white.withOpacity(0.04)),
+                                      ...reviews.map(
+                                        (review) => Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 12,
                                           ),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  CircleAvatar(
-                                                    radius: 12,
-                                                    backgroundColor: accentColor.withOpacity(0.2),
-                                                    backgroundImage: review.userAvatarUrl != null ? CachedNetworkImageProvider(review.userAvatarUrl!) : null,
-                                                    child: review.userAvatarUrl == null ? Icon(Icons.person, size: 14, color: accentColor) : null,
-                                                  ),
-                                                  const SizedBox(width: 8),
+                                          child: Container(
+                                            width: double.infinity,
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
+                                              color: colorScheme
+                                                  .surfaceContainerHighest
+                                                  .withOpacity(0.3),
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              border: Border.all(
+                                                color: Colors.white.withOpacity(
+                                                  0.04,
+                                                ),
+                                              ),
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    CircleAvatar(
+                                                      radius: 12,
+                                                      backgroundColor:
+                                                          accentColor
+                                                              .withOpacity(0.2),
+                                                      backgroundImage:
+                                                          review.userAvatarUrl !=
+                                                              null
+                                                          ? CachedNetworkImageProvider(
+                                                              review
+                                                                  .userAvatarUrl!,
+                                                            )
+                                                          : null,
+                                                      child:
+                                                          review.userAvatarUrl ==
+                                                              null
+                                                          ? Icon(
+                                                              Icons.person,
+                                                              size: 14,
+                                                              color:
+                                                                  accentColor,
+                                                            )
+                                                          : null,
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Text(
+                                                      review.userName ??
+                                                          'İsimsiz',
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        color: colorScheme
+                                                            .onSurface,
+                                                      ),
+                                                    ),
+                                                    const Spacer(),
+                                                    Row(
+                                                      children: List.generate(
+                                                        5,
+                                                        (sIndex) => Icon(
+                                                          sIndex < review.rating
+                                                              ? Icons
+                                                                    .star_rounded
+                                                              : Icons
+                                                                    .star_border_rounded,
+                                                          size: 14,
+                                                          color: const Color(
+                                                            0xFFFFC107,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                if (review.comment != null &&
+                                                    review
+                                                        .comment!
+                                                        .isNotEmpty) ...[
+                                                  const SizedBox(height: 8),
                                                   Text(
-                                                    review.userName ?? 'İsimsiz',
+                                                    review.comment!,
                                                     style: TextStyle(
                                                       fontSize: 13,
-                                                      fontWeight: FontWeight.w700,
-                                                      color: colorScheme.onSurface,
+                                                      height: 1.5,
+                                                      color: colorScheme
+                                                          .onSurfaceVariant,
                                                     ),
                                                   ),
-                                                  const Spacer(),
-                                                  Row(
-                                                    children: List.generate(5, (sIndex) => Icon(
-                                                      sIndex < review.rating ? Icons.star_rounded : Icons.star_border_rounded,
-                                                      size: 14,
-                                                      color: const Color(0xFFFFC107),
-                                                    )),
-                                                  ),
                                                 ],
-                                              ),
-                                              if (review.comment != null && review.comment!.isNotEmpty) ...[
-                                                const SizedBox(height: 8),
-                                                Text(
-                                                  review.comment!,
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                    height: 1.5,
-                                                    color: colorScheme.onSurfaceVariant,
-                                                  ),
-                                                ),
                                               ],
-                                            ],
+                                            ),
                                           ),
                                         ),
-                                      )),
+                                      ),
                                       const SizedBox(height: 20),
                                     ],
                                   ),
@@ -360,12 +406,18 @@ class _BookHeroCard extends StatelessWidget {
 
   String _getLanguageName(String code) {
     switch (code.toLowerCase()) {
-      case 'tr': return 'Türkçe';
-      case 'en': return 'İngilizce';
-      case 'fr': return 'Fransızca';
-      case 'de': return 'Almanca';
-      case 'ru': return 'Rusça';
-      default: return code.toUpperCase();
+      case 'tr':
+        return 'Türkçe';
+      case 'en':
+        return 'İngilizce';
+      case 'fr':
+        return 'Fransızca';
+      case 'de':
+        return 'Almanca';
+      case 'ru':
+        return 'Rusça';
+      default:
+        return code.toUpperCase();
     }
   }
 
@@ -479,7 +531,8 @@ class _BookHeroCard extends StatelessWidget {
                     if (book.rating > 0)
                       _MetaPill(
                         icon: Icons.star_rounded,
-                        label: '${book.rating.toStringAsFixed(1)} (${book.reviewsCount})',
+                        label:
+                            '${book.rating.toStringAsFixed(1)} (${book.reviewsCount})',
                         iconColor: const Color(0xFFFFC107),
                       ),
                     _MetaPill(
@@ -1152,10 +1205,7 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
                 ),
                 child: const Text(
                   'Premium\'u İncele',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
               ),
               const SizedBox(height: 12),
@@ -1207,7 +1257,11 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('İndirme işlemi sırasında bir hata oluştu. Hesabınıza giriş yaptığınızdan emin olun.')),
+        const SnackBar(
+          content: Text(
+            'İndirme işlemi sırasında bir hata oluştu. Hesabınıza giriş yaptığınızdan emin olun.',
+          ),
+        ),
       );
     }
   }
@@ -1235,7 +1289,7 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
     if (!authState.isAuthenticated) {
       if (!mounted) return;
       final returnTo = Uri.encodeComponent('/books/${widget.book.slug}');
-      context.push('/login?returnTo=$returnTo');
+      context.go('/login?returnTo=$returnTo');
       return;
     }
 

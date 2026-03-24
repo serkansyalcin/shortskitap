@@ -101,7 +101,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         onDestinationSelected: (i) {
           if (!isAuthenticated) {
             if (i == 2) {
-              context.push('/login');
+              context.go('/login');
               return;
             }
             setState(() => _selectedIndex = i);

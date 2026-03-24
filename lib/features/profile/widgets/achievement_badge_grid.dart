@@ -30,8 +30,8 @@ class AchievementBadgeGrid extends StatelessWidget {
         final isNarrow = constraints.maxWidth < 540;
         final crossAxisCount = isNarrow ? 2 : 3;
         final spacing = compact ? 10.0 : (isNarrow ? 12.0 : 14.0);
-        final cardHeight = compact ? 156.0 : (isNarrow ? 232.0 : 238.0);
-        final compactCardWidth = isNarrow ? 176.0 : 188.0;
+        final cardHeight = compact ? 182.0 : (isNarrow ? 232.0 : 238.0);
+        final compactCardWidth = isNarrow ? 168.0 : 180.0;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,9 +173,9 @@ class _BadgeTile extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(
         compact ? 10 : 11,
-        8,
+        compact ? 7 : 8,
         compact ? 10 : 11,
-        compact ? 10 : 8,
+        compact ? 8 : 8,
       ),
       decoration: BoxDecoration(
         color: earned ? rarityColor.withValues(alpha: 0.08) : theme.cardColor,
@@ -248,7 +248,7 @@ class _BadgeTile extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(height: compact ? 2 : 4),
+          SizedBox(height: compact ? 4 : 4),
           Align(
             alignment: Alignment.center,
             child: _BadgeIcon(
@@ -258,15 +258,15 @@ class _BadgeTile extends StatelessWidget {
               compact: compact,
             ),
           ),
-          SizedBox(height: compact ? 6 : 8),
+          SizedBox(height: compact ? 5 : 8),
           SizedBox(
-            height: compact ? 28 : _titleHeight,
+            height: compact ? 26 : _titleHeight,
             child: Align(
               alignment: Alignment.topLeft,
               child: Text(
                 title,
                 style: TextStyle(
-                  fontSize: compact ? 11 : 12,
+                  fontSize: compact ? 10.5 : 12,
                   fontWeight: FontWeight.w800,
                   color: earned
                       ? colorScheme.onSurface
@@ -278,14 +278,14 @@ class _BadgeTile extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: compact ? 4 : 6),
+          SizedBox(height: compact ? 3 : 6),
           SizedBox(
-            height: compact ? 28 : _descriptionHeight,
+            height: compact ? 34 : _descriptionHeight,
             child: Text(
               supportingText ?? '',
               style: TextStyle(
-                fontSize: compact ? 9 : 10,
-                height: 1.3,
+                fontSize: compact ? 8.5 : 10,
+                height: compact ? 1.2 : 1.3,
                 color: colorScheme.onSurfaceVariant,
               ),
               maxLines: 2,
@@ -295,24 +295,24 @@ class _BadgeTile extends StatelessWidget {
           const Spacer(),
           if (!earned && achievement.hasProgress) ...[
             SizedBox(
-              height: compact ? 24 : _progressBlockHeight,
+              height: compact ? 22 : _progressBlockHeight,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(999),
                     child: LinearProgressIndicator(
-                      minHeight: compact ? 4 : 5,
+                      minHeight: compact ? 3 : 5,
                       value: achievement.progressRatio,
                       backgroundColor: colorScheme.surfaceContainerHighest,
                       valueColor: AlwaysStoppedAnimation<Color>(rarityColor),
                     ),
                   ),
-                  const SizedBox(height: 5),
+                  SizedBox(height: compact ? 4 : 5),
                   Text(
                     '${achievement.progressCurrent}/${achievement.progressTarget} tamamlandı',
                     style: TextStyle(
-                      fontSize: compact ? 8 : 9,
+                      fontSize: compact ? 7.5 : 9,
                       fontWeight: FontWeight.w700,
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -322,17 +322,17 @@ class _BadgeTile extends StatelessWidget {
                 ],
               ),
             ),
-            SizedBox(height: compact ? 4 : 6),
+            SizedBox(height: compact ? 3 : 6),
           ],
           SizedBox(
-            height: compact ? 12 : 14,
+            height: compact ? 11 : 14,
             child: Row(
               children: [
                 Expanded(
                   child: Text(
                     achievement.rarity.label,
                     style: TextStyle(
-                      fontSize: compact ? 8 : 9,
+                      fontSize: compact ? 7.5 : 9,
                       fontWeight: FontWeight.w800,
                       color: rarityColor,
                     ),
@@ -343,7 +343,7 @@ class _BadgeTile extends StatelessWidget {
                   Text(
                     '+${achievement.xpReward} XP',
                     style: TextStyle(
-                      fontSize: compact ? 8 : 9,
+                      fontSize: compact ? 7.5 : 9,
                       fontWeight: FontWeight.w800,
                       color: earned ? rarityColor : AppColors.primary,
                     ),

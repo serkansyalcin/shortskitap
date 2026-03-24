@@ -29,16 +29,33 @@ import '../../core/models/achievement_model.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
+class _RouterRefreshNotifier extends ChangeNotifier {
+  void refresh() {
+    notifyListeners();
+  }
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final authStatus = ref.watch(authProvider.select((state) => state.status));
-  final onboardingDone = ref.watch(
+  final refreshNotifier = _RouterRefreshNotifier();
+  ref.onDispose(refreshNotifier.dispose);
+
+  ref.listen<AuthStatus>(authProvider.select((state) => state.status), (_, __) {
+    refreshNotifier.refresh();
+  });
+  ref.listen<bool>(
     settingsProvider.select((settings) => settings.onboardingDone),
+    (_, __) {
+      refreshNotifier.refresh();
+    },
   );
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
+    refreshListenable: refreshNotifier,
     redirect: (context, state) {
+      final authStatus = ref.read(authProvider).status;
+      final onboardingDone = ref.read(settingsProvider).onboardingDone;
       final isAuthenticated = authStatus == AuthStatus.authenticated;
       final isUnknown = authStatus == AuthStatus.unknown;
       final location = state.matchedLocation;
