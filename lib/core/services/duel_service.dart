@@ -1,5 +1,6 @@
 import 'package:kitaplig/core/api/api_client.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:kitaplig/core/models/duel_model.dart';
 
 class DuelService {
@@ -22,16 +23,12 @@ class DuelService {
         message:
             response.data['message']?.toString() ??
             'Düello teklifi gönderildi.',
-        duel: _duelFromPayload(response.data),
+        duel: tryParseDuelFromPayload(response.data),
       );
     } on DioException catch (e) {
-      return DuelActionResult(
-        success: false,
-        message: _messageFromError(
-          e,
-          fallback: 'Düello teklifi gönderilemedi.',
-        ),
-        duel: _duelFromPayload(e.response?.data),
+      return actionResultFromError(
+        e,
+        fallback: 'Düello teklifi gönderilemedi.',
       );
     }
   }
@@ -42,14 +39,10 @@ class DuelService {
       return DuelActionResult(
         success: response.data['success'] as bool? ?? true,
         message: response.data['message']?.toString() ?? 'Düello kabul edildi.',
-        duel: _duelFromPayload(response.data),
+        duel: tryParseDuelFromPayload(response.data),
       );
     } on DioException catch (e) {
-      return DuelActionResult(
-        success: false,
-        message: _messageFromError(e, fallback: 'Düello kabul edilemedi.'),
-        duel: _duelFromPayload(e.response?.data),
-      );
+      return actionResultFromError(e, fallback: 'Düello kabul edilemedi.');
     }
   }
 
@@ -61,16 +54,12 @@ class DuelService {
         message:
             response.data['message']?.toString() ??
             'Düello teklifi güncellendi.',
-        duel: _duelFromPayload(response.data),
+        duel: tryParseDuelFromPayload(response.data),
       );
     } on DioException catch (e) {
-      return DuelActionResult(
-        success: false,
-        message: _messageFromError(
-          e,
-          fallback: 'Düello teklifi güncellenemedi.',
-        ),
-        duel: _duelFromPayload(e.response?.data),
+      return actionResultFromError(
+        e,
+        fallback: 'Düello teklifi güncellenemedi.',
       );
     }
   }
@@ -80,7 +69,8 @@ class DuelService {
     return DuelModel.fromJson(response.data['data'] as Map<String, dynamic>);
   }
 
-  DuelModel? _duelFromPayload(dynamic payload) {
+  @visibleForTesting
+  static DuelModel? tryParseDuelFromPayload(dynamic payload) {
     if (payload is! Map<String, dynamic>) {
       return null;
     }
@@ -90,10 +80,31 @@ class DuelService {
       return null;
     }
 
-    return DuelModel.fromJson(duelJson);
+    try {
+      return DuelModel.fromJson(duelJson);
+    } on FormatException {
+      return null;
+    } on TypeError {
+      return null;
+    }
   }
 
-  String _messageFromError(DioException error, {required String fallback}) {
+  @visibleForTesting
+  static DuelActionResult actionResultFromError(
+    DioException error, {
+    required String fallback,
+  }) {
+    return DuelActionResult(
+      success: false,
+      message: _messageFromError(error, fallback: fallback),
+      duel: tryParseDuelFromPayload(error.response?.data),
+    );
+  }
+
+  static String _messageFromError(
+    DioException error, {
+    required String fallback,
+  }) {
     final data = error.response?.data;
     if (data is Map<String, dynamic>) {
       final message = data['message'];

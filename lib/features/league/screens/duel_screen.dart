@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitaplig/app/providers/auth_provider.dart';
@@ -5,13 +7,47 @@ import 'package:kitaplig/app/providers/duel_provider.dart';
 import 'package:kitaplig/core/models/duel_model.dart';
 import 'package:kitaplig/app/theme/app_colors.dart';
 
-class DuelScreen extends ConsumerWidget {
+class DuelScreen extends ConsumerStatefulWidget {
   final int duelId;
 
   const DuelScreen({super.key, required this.duelId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DuelScreen> createState() => _DuelScreenState();
+}
+
+class _DuelScreenState extends ConsumerState<DuelScreen> {
+  Timer? _countdownTimer;
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+    _refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (!mounted) {
+        return;
+      }
+
+      ref.read(duelLiveRevisionProvider.notifier).state++;
+      ref.invalidate(duelStateProvider);
+    });
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final duelId = widget.duelId;
     final duelAsync = ref.watch(duelDetailsProvider(duelId));
 
     return Scaffold(

@@ -29,14 +29,14 @@ class DuelModel {
 
   factory DuelModel.fromJson(Map<String, dynamic> json) {
     return DuelModel(
-      id: json['id'] as int,
-      challengerId: json['challenger_id'] as int,
-      opponentId: json['opponent_id'] as int,
+      id: _DuelJsonParser.requiredInt(json, 'id'),
+      challengerId: _DuelJsonParser.requiredInt(json, 'challenger_id'),
+      opponentId: _DuelJsonParser.requiredInt(json, 'opponent_id'),
       status: json['status'] as String,
-      challengerScore: json['challenger_score'] as int,
-      opponentScore: json['opponent_score'] as int,
-      pointsAtStake: json['points_at_stake'] as int,
-      winnerId: json['winner_id'] as int?,
+      challengerScore: _DuelJsonParser.requiredInt(json, 'challenger_score'),
+      opponentScore: _DuelJsonParser.requiredInt(json, 'opponent_score'),
+      pointsAtStake: _DuelJsonParser.requiredInt(json, 'points_at_stake'),
+      winnerId: _DuelJsonParser.nullableInt(json, 'winner_id'),
       startsAt: json['starts_at'] != null
           ? DateTime.parse(json['starts_at'] as String)
           : null,
@@ -118,9 +118,61 @@ class DuelUserModel {
 
   factory DuelUserModel.fromJson(Map<String, dynamic> json) {
     return DuelUserModel(
-      id: json['id'] as int,
+      id: _DuelJsonParser.requiredInt(json, 'id'),
       name: json['name'] as String,
       avatarUrl: json['avatar_url'] as String?,
     );
+  }
+}
+
+class _DuelJsonParser {
+  static int requiredInt(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    final parsed = _parseInt(value);
+    if (parsed == null) {
+      throw FormatException('`$key` alanı geçerli bir tam sayı değil: $value');
+    }
+    return parsed;
+  }
+
+  static int? nullableInt(Map<String, dynamic> json, String key) {
+    return _parseInt(json[key]);
+  }
+
+  static int? _parseInt(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+
+    if (value is int) {
+      return value;
+    }
+
+    if (value is num) {
+      if (value.isFinite && value == value.roundToDouble()) {
+        return value.toInt();
+      }
+      return null;
+    }
+
+    if (value is String) {
+      final normalized = value.trim();
+      if (normalized.isEmpty) {
+        return null;
+      }
+
+      return int.tryParse(normalized) ??
+          (() {
+            final parsedNum = num.tryParse(normalized);
+            if (parsedNum != null &&
+                parsedNum.isFinite &&
+                parsedNum == parsedNum.roundToDouble()) {
+              return parsedNum.toInt();
+            }
+            return null;
+          })();
+    }
+
+    return null;
   }
 }
