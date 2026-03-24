@@ -185,14 +185,14 @@ class _LeagueContent extends StatelessWidget {
                             ),
                           )
                         : tab == _LeagueTab.duels
-                            ? const KeyedSubtree(
-                                key: ValueKey('duels'),
-                                child: _DuelTabContent(),
-                              )
-                            : const KeyedSubtree(
-                                key: ValueKey('history'),
-                                child: LeagueHistory(),
-                              ),
+                        ? const KeyedSubtree(
+                            key: ValueKey('duels'),
+                            child: _DuelTabContent(),
+                          )
+                        : const KeyedSubtree(
+                            key: ValueKey('history'),
+                            child: LeagueHistory(),
+                          ),
                   ),
                 ),
               ),
@@ -257,9 +257,7 @@ class _LeagueErrorState extends StatelessWidget {
                   Text(
                     'Lig bilgisi şu an alınamadı',
                     textAlign: TextAlign.center,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleLarge?.copyWith(
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: theme.colorScheme.onSurface,
                     ),
                   ),
@@ -296,21 +294,31 @@ class _DuelTabContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final duelsAsync = ref.watch(duelStateProvider);
+    final currentUserId = ref.watch(
+      authProvider.select((state) => state.user?.id),
+    );
 
     return duelsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF22C55E))),
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF22C55E)),
+      ),
       error: (err, __) => Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline_rounded, size: 42, color: Colors.redAccent),
+              const Icon(
+                Icons.error_outline_rounded,
+                size: 42,
+                color: Colors.redAccent,
+              ),
               const SizedBox(height: 12),
               Text('Düellolar yüklenemedi: $err', textAlign: TextAlign.center),
               const SizedBox(height: 12),
               OutlinedButton(
-                onPressed: () => ref.read(duelStateProvider.notifier).loadDuels(),
+                onPressed: () =>
+                    ref.read(duelStateProvider.notifier).loadDuels(),
                 child: const Text('Tekrar Dene'),
               ),
             ],
@@ -318,36 +326,185 @@ class _DuelTabContent extends ConsumerWidget {
         ),
       ),
       data: (duels) {
+        final incomingDuels = currentUserId == null
+            ? const <DuelModel>[]
+            : duels.where((duel) => duel.isIncomingFor(currentUserId)).toList();
+        final activeDuels = duels.where((duel) => duel.isActive).toList();
+        final outgoingDuels = currentUserId == null
+            ? const <DuelModel>[]
+            : duels.where((duel) => duel.isOutgoingFor(currentUserId)).toList();
+
         if (duels.isEmpty) {
           return const LeagueEmptyState(
             icon: Icons.bolt_rounded,
             title: 'Aktif düellon yok',
-            subtitle: 'Liderlik tablosundan rakiplerine meydan okuyarak kıyasıya rekabete başlayabilirsin!',
+            subtitle:
+                'Liderlik tablosundan rakiplerine meydan okuyarak kıyasıya rekabete başlayabilirsin!',
           );
         }
 
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: duels.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            final duel = duels[index];
-            return _DuelListTile(duel: duel);
-          },
+        return RefreshIndicator(
+          onRefresh: () => ref.read(duelStateProvider.notifier).loadDuels(),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (incomingDuels.isNotEmpty) ...[
+                _DuelSection(
+                  title: 'Gelen Teklifler',
+                  subtitle:
+                      'Sana gönderilen düello isteklerini burada kabul edebilir veya reddedebilirsin.',
+                  children: incomingDuels
+                      .map(
+                        (duel) => Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: _DuelListTile(
+                            duel: duel,
+                            currentUserId: currentUserId,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+                const SizedBox(height: 16),
+              ],
+              if (activeDuels.isNotEmpty) ...[
+                _DuelSection(
+                  title: 'Aktif Düellolar',
+                  subtitle:
+                      'Devam eden karşılaşmaların anlık durumunu buradan takip edebilirsin.',
+                  children: activeDuels
+                      .map(
+                        (duel) => Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: _DuelListTile(
+                            duel: duel,
+                            currentUserId: currentUserId,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+                const SizedBox(height: 16),
+              ],
+              if (outgoingDuels.isNotEmpty) ...[
+                _DuelSection(
+                  title: 'Gönderdiğin Teklifler',
+                  subtitle:
+                      'Rakibinin yanıtını bekleyen tekliflerin burada listelenir.',
+                  children: outgoingDuels
+                      .map(
+                        (duel) => Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: _DuelListTile(
+                            duel: duel,
+                            currentUserId: currentUserId,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ],
+          ),
         );
       },
     );
   }
 }
 
-class _DuelListTile extends StatelessWidget {
-  final DuelModel duel;
-  const _DuelListTile({required this.duel});
+class _DuelSection extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final List<Widget> children;
+
+  const _DuelSection({
+    required this.title,
+    required this.subtitle,
+    required this.children,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withOpacity(0.55),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.45,
+            ),
+          ),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _DuelListTile extends ConsumerWidget {
+  final DuelModel duel;
+  final int? currentUserId;
+
+  const _DuelListTile({required this.duel, required this.currentUserId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final counterpart = currentUserId == null
+        ? duel.opponent ?? duel.challenger
+        : duel.otherUserFor(currentUserId!) ?? duel.opponent ?? duel.challenger;
+    final canAccept =
+        currentUserId != null && duel.isIncomingFor(currentUserId!);
+    final canCancel =
+        currentUserId != null && duel.isOutgoingFor(currentUserId!);
+    final statusText = _statusText(duel, currentUserId);
+    final scoreText = duel.isActive
+        ? 'Skor: ${duel.challengerScore} - ${duel.opponentScore}'
+        : '${duel.pointsAtStake} LP riskte';
+
+    Future<void> handleAccept() async {
+      final result = await ref.read(duelStateProvider.notifier).accept(duel.id);
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(result.message)));
+    }
+
+    Future<void> handleDecline() async {
+      final result = await ref
+          .read(duelStateProvider.notifier)
+          .decline(duel.id);
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(result.message)));
+    }
 
     return InkWell(
       onTap: () => context.push('/duels/${duel.id}'),
@@ -355,47 +512,120 @@ class _DuelListTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+          color: isDark
+              ? Colors.white.withOpacity(0.03)
+              : Colors.black.withOpacity(0.02),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
         ),
-        child: Row(
+        child: Column(
           children: [
-            _DuelStatusIcon(status: duel.status),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   Row(
+            Row(
+              children: [
+                _DuelStatusIcon(status: duel.status),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        duel.challenger?.name ?? 'Ben',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                        counterpart?.name ?? 'Rakip',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 6),
-                        child: Text('vs', style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.redAccent)),
-                      ),
+                      const SizedBox(height: 4),
                       Text(
-                        duel.opponent?.name ?? 'Rakip',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                        statusText,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    duel.status == 'pending' ? 'Onay bekliyor...' : 'Skor: ${duel.challengerScore} - ${duel.opponentScore}',
-                    style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
-                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      duel.isActive ? 'Canlı Durum' : 'Düello',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      scoreText,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right_rounded, size: 20),
+              ],
+            ),
+            if (canAccept || canCancel) ...[
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  if (canAccept) ...[
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: handleDecline,
+                        child: const Text('Reddet'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: handleAccept,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF22C55E),
+                        ),
+                        child: const Text('Kabul Et'),
+                      ),
+                    ),
+                  ] else if (canCancel) ...[
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: handleDecline,
+                        child: const Text('Teklifi İptal Et'),
+                      ),
+                    ),
+                  ],
                 ],
               ),
-            ),
-            const Icon(Icons.chevron_right_rounded, size: 20),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  String _statusText(DuelModel duel, int? currentUserId) {
+    if (currentUserId != null && duel.isIncomingFor(currentUserId)) {
+      return 'Sana meydan okundu. İstersen hemen kabul edebilirsin.';
+    }
+
+    if (currentUserId != null && duel.isOutgoingFor(currentUserId)) {
+      return 'Teklif gönderildi, rakibinin yanıtı bekleniyor.';
+    }
+
+    if (duel.isActive) {
+      return duel.expiresAt == null
+          ? 'Düello devam ediyor.'
+          : 'Düello sürüyor. Süre bitmeden daha fazla paragraf oku.';
+    }
+
+    return 'Düello detayı için dokun.';
   }
 }
 

@@ -37,10 +37,18 @@ class DuelModel {
       opponentScore: json['opponent_score'] as int,
       pointsAtStake: json['points_at_stake'] as int,
       winnerId: json['winner_id'] as int?,
-      startsAt: json['starts_at'] != null ? DateTime.parse(json['starts_at'] as String) : null,
-      expiresAt: json['expires_at'] != null ? DateTime.parse(json['expires_at'] as String) : null,
-      challenger: json['challenger'] != null ? DuelUserModel.fromJson(json['challenger'] as Map<String, dynamic>) : null,
-      opponent: json['opponent'] != null ? DuelUserModel.fromJson(json['opponent'] as Map<String, dynamic>) : null,
+      startsAt: json['starts_at'] != null
+          ? DateTime.parse(json['starts_at'] as String)
+          : null,
+      expiresAt: json['expires_at'] != null
+          ? DateTime.parse(json['expires_at'] as String)
+          : null,
+      challenger: json['challenger'] != null
+          ? DuelUserModel.fromJson(json['challenger'] as Map<String, dynamic>)
+          : null,
+      opponent: json['opponent'] != null
+          ? DuelUserModel.fromJson(json['opponent'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -48,6 +56,34 @@ class DuelModel {
   bool get isPending => status == 'pending';
   bool get isCompleted => status == 'completed';
   bool get isExpired => status == 'expired';
+  bool get isDeclined => status == 'declined';
+  bool get isOpen => isPending || isActive;
+
+  bool involvesUser(int userId) {
+    return challengerId == userId || opponentId == userId;
+  }
+
+  bool isIncomingFor(int userId) {
+    return isPending && opponentId == userId;
+  }
+
+  bool isOutgoingFor(int userId) {
+    return isPending && challengerId == userId;
+  }
+
+  int? otherUserIdFor(int userId) {
+    if (!involvesUser(userId)) {
+      return null;
+    }
+    return challengerId == userId ? opponentId : challengerId;
+  }
+
+  DuelUserModel? otherUserFor(int userId) {
+    if (!involvesUser(userId)) {
+      return null;
+    }
+    return challengerId == userId ? opponent : challenger;
+  }
 
   Duration? get timeRemaining {
     if (expiresAt == null) return null;
@@ -61,16 +97,24 @@ class DuelModel {
   }
 }
 
+class DuelActionResult {
+  final bool success;
+  final String message;
+  final DuelModel? duel;
+
+  const DuelActionResult({
+    required this.success,
+    required this.message,
+    this.duel,
+  });
+}
+
 class DuelUserModel {
   final int id;
   final String name;
   final String? avatarUrl;
 
-  const DuelUserModel({
-    required this.id,
-    required this.name,
-    this.avatarUrl,
-  });
+  const DuelUserModel({required this.id, required this.name, this.avatarUrl});
 
   factory DuelUserModel.fromJson(Map<String, dynamic> json) {
     return DuelUserModel(

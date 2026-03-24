@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitaplig/app/providers/league_provider.dart';
 import 'package:kitaplig/app/providers/duel_provider.dart';
 import 'package:kitaplig/core/models/league_model.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../subscription/widgets/premium_badge.dart';
 import 'league_empty_state.dart';
@@ -321,37 +322,66 @@ class _LeaderboardTile extends StatelessWidget {
               color: theme.colorScheme.outline.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Rekabet etmek ister misin?',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: theme.colorScheme.onSurfaceVariant,
+            Consumer(
+              builder: (context, ref, _) {
+                ref.watch(duelStateProvider);
+                final duelNotifier = ref.read(duelStateProvider.notifier);
+                final existingDuel = duelNotifier.findOpenDuelWithUser(
+                  entry.userId,
+                );
+                final hasIncomingPending =
+                    existingDuel != null &&
+                    existingDuel.isPending &&
+                    existingDuel.challengerId == entry.userId;
+                final actionLabel = existingDuel == null
+                    ? 'Düello Et'
+                    : existingDuel.isActive
+                    ? 'Düelloya Git'
+                    : hasIncomingPending
+                    ? 'Teklifi Gör'
+                    : 'Gönderildi';
+                final promptLabel = existingDuel == null
+                    ? 'Rekabet etmek ister misin?'
+                    : existingDuel.isActive
+                    ? 'Bu kullanıcıyla aktif bir düellon var.'
+                    : hasIncomingPending
+                    ? 'Bu kullanıcıdan gelen teklif seni bekliyor.'
+                    : 'Teklif gönderildi, cevap bekleniyor.';
+
+                Future<void> handlePressed() async {
+                  if (existingDuel != null) {
+                    context.push('/duels/${existingDuel.id}');
+                    return;
+                  }
+
+                  final result = await duelNotifier.challenge(entry.userId);
+                  if (!context.mounted) {
+                    return;
+                  }
+
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(SnackBar(content: Text(result.message)));
+                }
+
+                return Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        promptLabel,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  height: 32,
-                  child: Consumer(
-                    builder: (context, ref, _) {
-                      return OutlinedButton.icon(
-                        onPressed: () {
-                          ref
-                              .read(duelStateProvider.notifier)
-                              .challenge(entry.userId);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                '${entry.name} kullanıcısına düello teklifi gönderildi!',
-                              ),
-                            ),
-                          );
-                        },
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      height: 32,
+                      child: OutlinedButton.icon(
+                        onPressed: handlePressed,
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(0, 32),
                           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -364,15 +394,15 @@ class _LeaderboardTile extends StatelessWidget {
                           ),
                         ),
                         icon: const Icon(Icons.bolt_rounded, size: 14),
-                        label: const Text(
-                          'Düello Et',
-                          style: TextStyle(fontSize: 11),
+                        label: Text(
+                          actionLabel,
+                          style: const TextStyle(fontSize: 11),
                         ),
-                      );
-                    },
-                  ),
-                ),
-              ],
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ],

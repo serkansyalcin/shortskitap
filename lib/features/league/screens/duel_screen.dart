@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kitaplig/app/providers/auth_provider.dart';
 import 'package:kitaplig/app/providers/duel_provider.dart';
 import 'package:kitaplig/core/models/duel_model.dart';
 import 'package:kitaplig/app/theme/app_colors.dart';
@@ -77,7 +78,11 @@ class _VersusHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _UserAvatar(user: duel.challenger, score: duel.challengerScore, label: 'Meydan Okuyan'),
+        _UserAvatar(
+          user: duel.challenger,
+          score: duel.challengerScore,
+          label: 'Meydan Okuyan',
+        ),
         const Text(
           'VS',
           style: TextStyle(
@@ -87,7 +92,11 @@ class _VersusHeader extends StatelessWidget {
             color: Colors.redAccent,
           ),
         ),
-        _UserAvatar(user: duel.opponent, score: duel.opponentScore, label: 'Rakip'),
+        _UserAvatar(
+          user: duel.opponent,
+          score: duel.opponentScore,
+          label: 'Rakip',
+        ),
       ],
     );
   }
@@ -107,8 +116,12 @@ class _UserAvatar extends StatelessWidget {
         CircleAvatar(
           radius: 40,
           backgroundColor: AppColors.primary.withOpacity(0.2),
-          backgroundImage: user?.avatarUrl != null ? NetworkImage(user!.avatarUrl!) : null,
-          child: user?.avatarUrl == null ? const Icon(Icons.person, size: 40) : null,
+          backgroundImage: user?.avatarUrl != null
+              ? NetworkImage(user!.avatarUrl!)
+              : null,
+          child: user?.avatarUrl == null
+              ? const Icon(Icons.person, size: 40)
+              : null,
         ),
         const SizedBox(height: 12),
         Text(
@@ -117,7 +130,10 @@ class _UserAvatar extends StatelessWidget {
         ),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       ],
     );
@@ -137,8 +153,14 @@ class _ProgressComparison extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('${duel.challengerScore} Paragraf', style: const TextStyle(fontWeight: FontWeight.w900)),
-              Text('${duel.opponentScore} Paragraf', style: const TextStyle(fontWeight: FontWeight.w900)),
+              Text(
+                '${duel.challengerScore} Paragraf',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+              Text(
+                '${duel.opponentScore} Paragraf',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -149,7 +171,9 @@ class _ProgressComparison extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: duel.progressRatio,
                 backgroundColor: Colors.blueAccent,
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.orangeAccent),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  Colors.orangeAccent,
+                ),
               ),
             ),
           ),
@@ -175,7 +199,10 @@ class _DuelStats extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _StatRow(label: 'Kalan Süre', value: _formatDuration(duel.timeRemaining)),
+          _StatRow(
+            label: 'Kalan Süre',
+            value: _formatDuration(duel.timeRemaining),
+          ),
           const Divider(),
           _StatRow(label: 'Ödül', value: '${duel.pointsAtStake} LP'),
           const Divider(),
@@ -215,7 +242,13 @@ class _StatRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.redAccent)),
+          Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+              color: Colors.redAccent,
+            ),
+          ),
         ],
       ),
     );
@@ -228,26 +261,66 @@ class _PendingActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentUserId = ref.watch(
+      authProvider.select((state) => state.user?.id),
+    );
+    final isIncomingRequest =
+        currentUserId != null && duel.isIncomingFor(currentUserId);
+
+    Future<void> handleAccept() async {
+      final result = await ref.read(duelStateProvider.notifier).accept(duel.id);
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(result.message)));
+    }
+
+    Future<void> handleDecline() async {
+      final result = await ref
+          .read(duelStateProvider.notifier)
+          .decline(duel.id);
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(result.message)));
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () => ref.read(duelStateProvider.notifier).decline(duel.id),
-              child: const Text('Reddet'),
+      child: isIncomingRequest
+          ? Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: handleDecline,
+                    child: const Text('Reddet'),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: handleAccept,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.green,
+                    ),
+                    child: const Text('Kabul Et'),
+                  ),
+                ),
+              ],
+            )
+          : SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: handleDecline,
+                child: const Text('Teklifi İptal Et'),
+              ),
             ),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: FilledButton(
-              onPressed: () => ref.read(duelStateProvider.notifier).accept(duel.id),
-              style: FilledButton.styleFrom(backgroundColor: Colors.green),
-              child: const Text('Kabul Et'),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
