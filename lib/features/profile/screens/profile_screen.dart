@@ -327,28 +327,49 @@ class _HeroCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: isSelf
-                ? [
-                    _ActionButton('Ayarlar', onSettings, filled: true, dark: isDark),
-                    _ActionButton('Alıntılarım', onHighlights, dark: isDark),
-                    _ActionButton('Çıkış Yap', onLogout, dark: isDark),
-                  ]
-                : [
-                    _ActionButton(
-                      followBusy
-                          ? 'İşleniyor...'
-                          : profile.relationship.isFollowing
-                          ? 'Takibi Bırak'
-                          : 'Takip Et',
-                      followBusy ? null : onFollow,
-                      filled: true,
-                      dark: isDark,
-                    ),
-                  ],
-          ),
+          if (isSelf)
+            Row(
+              children: [
+                Expanded(
+                  child: _ActionButton(
+                    'Ayarlar',
+                    onSettings,
+                    filled: true,
+                    dark: isDark,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _ActionButton(
+                    'Alıntılarım',
+                    onHighlights,
+                    dark: isDark,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _ActionButton(
+                    'Çıkış Yap',
+                    onLogout,
+                    dark: isDark,
+                  ),
+                ),
+              ],
+            )
+          else
+            SizedBox(
+              width: double.infinity,
+              child: _ActionButton(
+                followBusy
+                    ? 'İşleniyor...'
+                    : profile.relationship.isFollowing
+                    ? 'Takibi Bırak'
+                    : 'Takip Et',
+                followBusy ? null : onFollow,
+                filled: true,
+                dark: isDark,
+              ),
+            ),
         ],
       ),
     );
@@ -643,28 +664,36 @@ class _ActionButton extends StatelessWidget {
   final bool filled;
   final bool dark;
   @override
-  Widget build(BuildContext context) => FilledButton.tonal(
-        style: FilledButton.styleFrom(
-          backgroundColor: filled
-              ? AppColors.primary
-              : dark
-              ? Colors.white.withOpacity(0.08)
-              : null,
-          foregroundColor: filled
-              ? Colors.white
-              : dark
-              ? Colors.white
-              : null,
-          side: dark && !filled
-              ? BorderSide(color: Colors.white.withOpacity(0.1))
-              : null,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+  Widget build(BuildContext context) => SizedBox(
+        height: 48,
+        child: FilledButton.tonal(
+          style: FilledButton.styleFrom(
+            backgroundColor: filled
+                ? AppColors.primary
+                : dark
+                ? Colors.white.withOpacity(0.08)
+                : null,
+            foregroundColor: filled
+                ? Colors.white
+                : dark
+                ? Colors.white
+                : null,
+            side: dark && !filled
+                ? BorderSide(color: Colors.white.withOpacity(0.1))
+                : null,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          onPressed: onTap,
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
           ),
         ),
-        onPressed: onTap,
-        child: Text(label),
       );
 }
 
