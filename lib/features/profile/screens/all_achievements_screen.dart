@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+
+import '../../../app/theme/app_colors.dart';
 import '../../../core/models/achievement_model.dart';
 import '../widgets/achievement_badge_grid.dart';
-import '../../../app/theme/app_colors.dart';
 
 class AllAchievementsScreen extends StatelessWidget {
   const AllAchievementsScreen({
@@ -16,11 +17,13 @@ class AllAchievementsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-
-    // Group achievements for better organization (optional)
-    final earned = achievements.where((a) => a.isEarned).toList();
-    final inProgress = achievements.where((a) => !a.isEarned && a.hasProgress).toList();
-    final locked = achievements.where((a) => !a.isEarned && !a.hasProgress).toList();
+    final earned = achievements.where((item) => item.isEarned).toList();
+    final inProgress = achievements
+        .where((item) => !item.isEarned && item.hasProgress)
+        .toList();
+    final locked = achievements
+        .where((item) => !item.isEarned && !item.hasProgress)
+        .toList();
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -35,19 +38,15 @@ class AllAchievementsScreen extends StatelessWidget {
         scrolledUnderElevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             _SummaryCard(earnedCount: earnedCount, totalCount: achievements.length),
             const SizedBox(height: 24),
             AchievementBadgeGrid(
-              achievements: [
-                ...earned,
-                ...inProgress,
-                ...locked,
-              ],
+              achievements: [...earned, ...inProgress, ...locked],
               earnedCount: earnedCount,
-              limit: null, // Show all
+              limit: null,
             ),
             const SizedBox(height: 32),
           ],
@@ -65,7 +64,6 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final progress = totalCount > 0 ? earnedCount / totalCount : 0.0;
 
     return Container(

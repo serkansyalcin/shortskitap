@@ -112,14 +112,21 @@ class DuelActionResult {
 class DuelUserModel {
   final int id;
   final String name;
+  final String username;
   final String? avatarUrl;
 
-  const DuelUserModel({required this.id, required this.name, this.avatarUrl});
+  const DuelUserModel({
+    required this.id,
+    required this.name,
+    required this.username,
+    this.avatarUrl,
+  });
 
   factory DuelUserModel.fromJson(Map<String, dynamic> json) {
     return DuelUserModel(
       id: _DuelJsonParser.requiredInt(json, 'id'),
       name: json['name'] as String,
+      username: json['username'] as String? ?? '',
       avatarUrl: json['avatar_url'] as String?,
     );
   }

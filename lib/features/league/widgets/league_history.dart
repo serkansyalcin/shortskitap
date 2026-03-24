@@ -39,9 +39,9 @@ class LeagueHistory extends ConsumerWidget {
 }
 
 class _HistoryCard extends StatelessWidget {
-  final Map<String, dynamic> entry;
-
   const _HistoryCard({required this.entry});
+
+  final Map<String, dynamic> entry;
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +79,7 @@ class _HistoryCard extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: Text(
-              entry['tier_icon'] as String? ?? '🏅',
+              entry['tier_icon'] as String? ?? '?',
               style: const TextStyle(fontSize: 28),
             ),
           ),
@@ -147,15 +147,15 @@ class _HistoryCard extends StatelessWidget {
 }
 
 class _HistoryEmptyState extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
   const _HistoryEmptyState({
     required this.icon,
     required this.title,
     required this.subtitle,
   });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {

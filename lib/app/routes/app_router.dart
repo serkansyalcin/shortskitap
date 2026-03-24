@@ -130,7 +130,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'notifications',
             builder: (_, __) => const NotificationsScreen(),
           ),
-          GoRoute(path: 'profile', builder: (_, __) => const ProfileScreen()),
+          GoRoute(
+            path: 'profile',
+            builder: (_, __) => const ProfileScreen(standalone: true),
+          ),
           GoRoute(
             path: 'badges',
             builder: (_, state) {
@@ -150,6 +153,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       GoRoute(path: '/league', builder: (_, __) => const LeagueScreen()),
+      GoRoute(
+        path: '/profil/:username',
+        builder: (_, state) => ProfileScreen(
+          username: state.pathParameters['username'],
+          standalone: true,
+        ),
+      ),
       GoRoute(path: '/premium', builder: (_, __) => const PaywallScreen()),
       GoRoute(
         path: '/books/:slug',

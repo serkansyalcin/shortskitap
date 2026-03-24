@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kitaplig/app/providers/auth_provider.dart';
 import 'package:kitaplig/app/providers/duel_provider.dart';
 import 'package:kitaplig/app/theme/app_colors.dart';
@@ -139,20 +140,35 @@ class _UserAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        CircleAvatar(
-          radius: 40,
-          backgroundColor: AppColors.primary.withOpacity(0.2),
-          backgroundImage: user?.avatarUrl != null
-              ? NetworkImage(user!.avatarUrl!)
+        InkWell(
+          onTap: user?.username.isNotEmpty == true
+              ? () => context.push('/profil/${user!.username}')
               : null,
-          child: user?.avatarUrl == null
-              ? const Icon(Icons.person, size: 40)
-              : null,
+          borderRadius: BorderRadius.circular(999),
+          child: CircleAvatar(
+            radius: 40,
+            backgroundColor: AppColors.primary.withOpacity(0.2),
+            backgroundImage: user?.avatarUrl != null
+                ? NetworkImage(user!.avatarUrl!)
+                : null,
+            child: user?.avatarUrl == null
+                ? const Icon(Icons.person, size: 40)
+                : null,
+          ),
         ),
         const SizedBox(height: 12),
-        Text(
-          user?.name ?? 'Bilinmiyor',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        InkWell(
+          onTap: user?.username.isNotEmpty == true
+              ? () => context.push('/profil/${user!.username}')
+              : null,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: Text(
+              user?.name ?? 'Bilinmiyor',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ),
         ),
         Text(
           label,

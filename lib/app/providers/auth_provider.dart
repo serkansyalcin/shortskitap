@@ -107,6 +107,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<bool> updateProfile({
     String? name,
+    String? username,
     String? email,
     int? dailyGoal,
     String? preferredTheme,
@@ -115,6 +116,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final user = await _service.updateMe(
         name: name,
+        username: username,
         email: email,
         dailyGoal: dailyGoal,
         preferredTheme: preferredTheme,
@@ -182,6 +184,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   bool _isSameUser(UserModel a, UserModel b) {
     return a.id == b.id &&
         a.name == b.name &&
+        a.username == b.username &&
         a.email == b.email &&
         a.avatarUrl == b.avatarUrl &&
         a.provider == b.provider &&
@@ -217,8 +220,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   String _translateMessage(String message) {
-    if (message.contains('unique')) {
-      return 'Bu e-posta adresi zaten kullanımda.';
+    if (message.contains('unique') ||
+        message.contains('already been taken') ||
+        message.contains('zaten kullanılıyor')) {
+      return 'Bu bilgi zaten kullanımda.';
     }
     if (message.contains('required')) {
       return 'Lütfen tüm alanları doldur.';

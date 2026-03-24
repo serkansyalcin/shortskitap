@@ -143,6 +143,8 @@ IconData _iconForType(String type) {
       return Icons.workspace_premium_rounded;
     case 'rank_changed':
       return Icons.leaderboard_rounded;
+    case 'followed_you':
+      return Icons.person_add_alt_1_rounded;
     default:
       return Icons.notifications_none_rounded;
   }
@@ -166,6 +168,8 @@ Color _iconColor(String type) {
       return const Color(0xFF7C3AED);
     case 'rank_changed':
       return const Color(0xFF0891B2);
+    case 'followed_you':
+      return const Color(0xFF16A34A);
     default:
       return AppColors.primary;
   }

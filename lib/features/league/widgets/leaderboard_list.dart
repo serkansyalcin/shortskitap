@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:kitaplig/app/providers/league_provider.dart';
-import 'package:kitaplig/app/providers/duel_provider.dart';
-import 'package:kitaplig/core/models/league_model.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kitaplig/app/providers/duel_provider.dart';
+import 'package:kitaplig/app/providers/league_provider.dart';
+import 'package:kitaplig/core/models/league_model.dart';
 
 import '../../subscription/widgets/premium_badge.dart';
 import 'league_empty_state.dart';
 
 class LeaderboardList extends ConsumerWidget {
-  final LeagueMembershipModel membership;
-  final bool isKidsMode;
-
   const LeaderboardList({
     super.key,
     required this.membership,
     this.isKidsMode = false,
   });
+
+  final LeagueMembershipModel membership;
+  final bool isKidsMode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -66,19 +66,17 @@ class LeaderboardList extends ConsumerWidget {
           );
         }
 
-        final widgets = _buildRows(entries, isKidsMode);
-
         return ListView(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
-          children: widgets,
+          children: _buildRows(entries),
         );
       },
     );
   }
 
-  List<Widget> _buildRows(List<LeaderboardEntry> entries, bool isKids) {
+  List<Widget> _buildRows(List<LeaderboardEntry> entries) {
     final rows = <Widget>[
-      _LeagueSummaryCard(membership: membership, isKidsMode: isKids),
+      _LeagueSummaryCard(membership: membership, isKidsMode: isKidsMode),
       const SizedBox(height: 14),
     ];
 
@@ -88,7 +86,7 @@ class LeaderboardList extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: _ZoneDivider(
-              label: isKids ? 'Ödül çizgisi' : 'Terfi çizgisi',
+              label: isKidsMode ? 'Ödül çizgisi' : 'Terfi çizgisi',
               color: const Color(0xFF4ADE80),
             ),
           ),
@@ -100,7 +98,7 @@ class LeaderboardList extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: _ZoneDivider(
-              label: isKids ? 'Uyarı çizgisi' : 'Düşme çizgisi',
+              label: isKidsMode ? 'Uyarı çizgisi' : 'Düşme çizgisi',
               color: const Color(0xFFF87171),
             ),
           ),
@@ -114,7 +112,7 @@ class LeaderboardList extends ConsumerWidget {
             entry: entry,
             isPromotionZone: entry.rank <= membership.promotionZone,
             isDemotionZone: entry.rank >= membership.demotionZone,
-            isKidsMode: isKids,
+            isKidsMode: isKidsMode,
           ),
         ),
       );
@@ -125,10 +123,10 @@ class LeaderboardList extends ConsumerWidget {
 }
 
 class _LeagueSummaryCard extends StatelessWidget {
+  const _LeagueSummaryCard({required this.membership, this.isKidsMode = false});
+
   final LeagueMembershipModel membership;
   final bool isKidsMode;
-
-  const _LeagueSummaryCard({required this.membership, this.isKidsMode = false});
 
   @override
   Widget build(BuildContext context) {
@@ -168,7 +166,7 @@ class _LeagueSummaryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '#${membership.rank} sıradasın · ${membership.weeklyLp} ${isKidsMode ? 'Puan' : 'LP'}',
+                  '#${membership.rank} sıradasın • ${membership.weeklyLp} ${isKidsMode ? 'Puan' : 'LP'}',
                   style: TextStyle(
                     color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.w800,
@@ -185,17 +183,17 @@ class _LeagueSummaryCard extends StatelessWidget {
 }
 
 class _LeaderboardTile extends StatelessWidget {
-  final LeaderboardEntry entry;
-  final bool isPromotionZone;
-  final bool isDemotionZone;
-  final bool isKidsMode;
-
   const _LeaderboardTile({
     required this.entry,
     required this.isPromotionZone,
     required this.isDemotionZone,
     this.isKidsMode = false,
   });
+
+  final LeaderboardEntry entry;
+  final bool isPromotionZone;
+  final bool isDemotionZone;
+  final bool isKidsMode;
 
   @override
   Widget build(BuildContext context) {
@@ -232,62 +230,71 @@ class _LeaderboardTile extends StatelessWidget {
               _RankBadge(rank: entry.rank),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                child: InkWell(
+                  onTap: entry.username.isEmpty
+                      ? null
+                      : () => context.push('/profil/${entry.username}'),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Flexible(
-                          child: Text(
-                            entry.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: theme.colorScheme.onSurface,
-                              fontWeight: entry.isMe
-                                  ? FontWeight.w800
-                                  : FontWeight.w700,
-                              fontSize: 17,
-                            ),
-                          ),
-                        ),
-                        if (entry.isPremium) ...[
-                          const SizedBox(width: 6),
-                          const PremiumCrownIcon(size: 14),
-                        ],
-                        if (entry.isMe) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFBBF24),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: const Text(
-                              'Sen',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 11,
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                entry.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurface,
+                                  fontWeight: entry.isMe
+                                      ? FontWeight.w800
+                                      : FontWeight.w700,
+                                  fontSize: 17,
+                                ),
                               ),
                             ),
+                            if (entry.isPremium) ...[
+                              const SizedBox(width: 6),
+                              const PremiumCrownIcon(size: 14),
+                            ],
+                            if (entry.isMe) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFBBF24),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: const Text(
+                                  'Sen',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _resultLabel(entry.resultPreview),
+                          style: TextStyle(
+                            color: _resultColor(entry.resultPreview),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                           ),
-                        ],
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _resultLabel(entry.resultPreview),
-                      style: TextStyle(
-                        color: _resultColor(entry.resultPreview),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -428,9 +435,9 @@ class _LeaderboardTile extends StatelessWidget {
 }
 
 class _RankBadge extends StatelessWidget {
-  final int rank;
-
   const _RankBadge({required this.rank});
+
+  final int rank;
 
   @override
   Widget build(BuildContext context) {
@@ -481,10 +488,10 @@ class _RankBadge extends StatelessWidget {
 }
 
 class _ZoneDivider extends StatelessWidget {
+  const _ZoneDivider({required this.label, required this.color});
+
   final String label;
   final Color color;
-
-  const _ZoneDivider({required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {

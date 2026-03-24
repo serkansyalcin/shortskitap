@@ -100,6 +100,7 @@ class LeaderboardEntry {
   final int rank;
   final int userId;
   final String name;
+  final String username;
   final String? avatarUrl;
   final int weeklyXp;
   final int weeklyLp;
@@ -111,6 +112,7 @@ class LeaderboardEntry {
     required this.rank,
     required this.userId,
     required this.name,
+    required this.username,
     this.avatarUrl,
     required this.weeklyXp,
     required this.weeklyLp,
@@ -124,6 +126,7 @@ class LeaderboardEntry {
       rank: json['rank'] as int,
       userId: json['user_id'] as int,
       name: json['name'] as String,
+      username: json['username'] as String? ?? '',
       avatarUrl: json['avatar_url'] as String?,
       weeklyXp: json['weekly_xp'] as int,
       weeklyLp: json['weekly_lp'] as int? ?? 0,

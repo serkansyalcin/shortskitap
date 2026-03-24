@@ -57,6 +57,7 @@ class AuthService {
 
   Future<UserModel> updateMe({
     String? name,
+    String? username,
     String? email,
     int? dailyGoal,
     String? preferredTheme,
@@ -65,6 +66,7 @@ class AuthService {
     final payload = <String, dynamic>{};
 
     if (name != null) payload['name'] = name;
+    if (username != null) payload['username'] = username;
     if (email != null) payload['email'] = email;
     if (dailyGoal != null) payload['daily_goal'] = dailyGoal;
     if (preferredTheme != null) payload['preferred_theme'] = preferredTheme;

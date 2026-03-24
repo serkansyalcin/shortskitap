@@ -30,6 +30,7 @@ import 'dart:io' show Platform;
 import '../../league/screens/league_screen.dart';
 import '../../league/widgets/league_mini_card.dart';
 import '../../library/widgets/library_view.dart';
+import '../../profile/screens/profile_screen.dart';
 import '../../profile/widgets/achievement_badge_grid.dart';
 import '../../profile/widgets/achievement_celebration_widget.dart';
 import '../../profile/widgets/reading_heatmap_widget.dart';
@@ -77,7 +78,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 const _LeagueTab(),
                 const _LibraryTab(),
-                const _ProfileTab(),
+                const ProfileScreen(),
               ]
             : [
                 _HomeTab(

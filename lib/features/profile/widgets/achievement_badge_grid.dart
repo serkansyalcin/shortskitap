@@ -184,7 +184,7 @@ class _BadgeTile extends StatelessWidget {
           color: earned
               ? rarityColor.withValues(alpha: 0.4)
               : colorScheme.outline.withValues(alpha: 0.28),
-          width: earned ? 1.5 : 1.0,
+          width: earned ? 1.5 : 1,
         ),
         boxShadow: earned
             ? [
