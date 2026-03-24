@@ -9,16 +9,25 @@ final leagueServiceProvider = Provider<LeagueService>((ref) {
 });
 
 final myLeagueProvider = FutureProvider<LeagueStatusModel>((ref) {
-  ref.watch(authProvider.select((state) => state.user?.id));
+  final userId = ref.watch(authProvider.select((state) => state.user?.id));
+  if (userId == null) {
+    throw StateError('Lig verileri için giriş yapmalısın.');
+  }
   return ref.read(leagueServiceProvider).getMyLeague();
 });
 
 final leaderboardProvider = FutureProvider<List<LeaderboardEntry>>((ref) {
-  ref.watch(authProvider.select((state) => state.user?.id));
+  final userId = ref.watch(authProvider.select((state) => state.user?.id));
+  if (userId == null) {
+    return const <LeaderboardEntry>[];
+  }
   return ref.read(leagueServiceProvider).getLeaderboard();
 });
 
 final leagueHistoryProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
-  ref.watch(authProvider.select((state) => state.user?.id));
+  final userId = ref.watch(authProvider.select((state) => state.user?.id));
+  if (userId == null) {
+    return const <Map<String, dynamic>>[];
+  }
   return ref.read(leagueServiceProvider).getHistory();
 });

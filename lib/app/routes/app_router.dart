@@ -30,15 +30,17 @@ import '../../core/models/achievement_model.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
-  final currentSettings = ref.watch(settingsProvider);
+  final authStatus = ref.watch(authProvider.select((state) => state.status));
+  final onboardingDone = ref.watch(
+    settingsProvider.select((settings) => settings.onboardingDone),
+  );
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
     redirect: (context, state) {
-      final isAuthenticated = authState.status == AuthStatus.authenticated;
-      final isUnknown = authState.status == AuthStatus.unknown;
+      final isAuthenticated = authStatus == AuthStatus.authenticated;
+      final isUnknown = authStatus == AuthStatus.unknown;
       final location = state.matchedLocation;
       final returnTo = state.uri.queryParameters['returnTo'];
 
@@ -47,8 +49,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthRoute = location == '/login' || location == '/register';
       final isOnboarding = location == '/onboarding';
       final isSplash = location == '/splash';
-      final needsOnboarding =
-          !currentSettings.onboardingDone && !isAuthenticated;
+      final needsOnboarding = !onboardingDone && !isAuthenticated;
       final isReadRoute = location.startsWith('/read/');
       final isProtectedRoute =
           isReadRoute ||

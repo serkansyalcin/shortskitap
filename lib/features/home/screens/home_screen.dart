@@ -2034,6 +2034,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                           earnedCount: achievements
                               .where((a) => a.isEarned)
                               .length,
+                          compact: true,
                         ),
                         const SizedBox(height: 20),
                       ],

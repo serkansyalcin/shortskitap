@@ -1,9 +1,10 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:dio/dio.dart';
+
+import '../../core/api/api_client.dart';
 import '../../core/models/user_model.dart';
 import '../../core/services/auth_service.dart';
-import '../../core/api/api_client.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
@@ -12,17 +13,14 @@ class AuthState {
   final UserModel? user;
   final String? error;
 
-  const AuthState({
-    required this.status,
-    this.user,
-    this.error,
-  });
+  const AuthState({required this.status, this.user, this.error});
 
   const AuthState.unknown() : this(status: AuthStatus.unknown);
+
   const AuthState.authenticated(UserModel user)
-      : this(status: AuthStatus.authenticated, user: user);
-  const AuthState.unauthenticated()
-      : this(status: AuthStatus.unauthenticated);
+    : this(status: AuthStatus.authenticated, user: user);
+
+  const AuthState.unauthenticated() : this(status: AuthStatus.unauthenticated);
 
   bool get isAuthenticated => status == AuthStatus.authenticated;
 }
@@ -40,6 +38,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = const AuthState.unauthenticated();
       return;
     }
+
     final user = await _service.getMe();
     if (user != null) {
       state = AuthState.authenticated(user);
@@ -58,7 +57,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (e) {
       state = AuthState(
         status: AuthStatus.unauthenticated,
-        error: e.toString(),
+        error: _parseError(e),
       );
       return false;
     }
@@ -83,10 +82,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       _syncOnboardingPrefs();
       return true;
     } catch (e) {
-      final errorMsg = _parseError(e);
       state = AuthState(
         status: AuthStatus.unauthenticated,
-        error: errorMsg,
+        error: _parseError(e),
       );
       return false;
     }
@@ -102,7 +100,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _service.deleteAccount(password);
       state = const AuthState.unauthenticated();
       return true;
-    } catch (e) {
+    } catch (_) {
       return false;
     }
   }
@@ -128,7 +126,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(
         status: AuthStatus.authenticated,
         user: state.user,
-        error: e.toString(),
+        error: _parseError(e),
       );
       return false;
     }
@@ -154,7 +152,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(
         status: state.status,
         user: state.user,
-        error: e.toString(),
+        error: _parseError(e),
       );
       return false;
     }
@@ -171,10 +169,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final savedPrefs = prefs.getStringList('onboarding_prefs');
       if (savedPrefs != null && savedPrefs.isNotEmpty) {
         final savedGoal = prefs.getInt('daily_goal') ?? 10;
-        await ApiClient.instance.put('/me', data: {
-          'daily_goal': savedGoal,
-          'preferences': savedPrefs,
-        });
+        await ApiClient.instance.put(
+          '/me',
+          data: {'daily_goal': savedGoal, 'preferences': savedPrefs},
+        );
         await prefs.remove('onboarding_prefs');
         await refreshMe();
       }
@@ -196,29 +194,43 @@ class AuthNotifier extends StateNotifier<AuthState> {
         a.privacyPolicyAcceptedAt == b.privacyPolicyAcceptedAt;
   }
 
-  String _parseError(dynamic e) {
-    if (e is DioException) {
-      final data = e.response?.data;
+  String _parseError(dynamic error) {
+    if (error is DioException) {
+      final data = error.response?.data;
       if (data is Map<String, dynamic>) {
-        if (data.containsKey('errors')) {
-          final errors = data['errors'] as Map<String, dynamic>;
+        final errors = data['errors'];
+        if (errors is Map<String, dynamic> && errors.isNotEmpty) {
           final firstError = errors.values.first;
           if (firstError is List && firstError.isNotEmpty) {
-            final msg = firstError.first.toString();
-            // Basit çeviriler
-            if (msg.contains('unique')) return 'Bu e-posta adresi zaten kullanımda.';
-            if (msg.contains('required')) return 'Lütfen tüm alanları doldurun.';
-            return msg;
+            return _translateMessage(firstError.first.toString());
           }
         }
-        if (data.containsKey('message')) {
-          final msg = data['message'].toString();
-          if (msg == 'invalid_credentials') return 'E-posta veya şifre hatalı.';
-          return msg;
+
+        final message = data['message'];
+        if (message != null) {
+          return _translateMessage(message.toString());
         }
       }
     }
+
     return 'Bir hata oluştu. Lütfen tekrar deneyin.';
+  }
+
+  String _translateMessage(String message) {
+    if (message.contains('unique')) {
+      return 'Bu e-posta adresi zaten kullanımda.';
+    }
+    if (message.contains('required')) {
+      return 'Lütfen tüm alanları doldur.';
+    }
+    if (message == 'invalid_credentials' ||
+        message == 'The provided credentials are incorrect.') {
+      return 'E-posta veya şifre hatalı. Bilgilerini kontrol edip tekrar dene.';
+    }
+    if (message == 'Unauthenticated.') {
+      return 'Oturumun sona ermiş görünüyor. Lütfen tekrar giriş yap.';
+    }
+    return message;
   }
 }
 

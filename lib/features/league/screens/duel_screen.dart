@@ -16,13 +16,16 @@ class DuelScreen extends ConsumerStatefulWidget {
   ConsumerState<DuelScreen> createState() => _DuelScreenState();
 }
 
-class _DuelScreenState extends ConsumerState<DuelScreen> {
+class _DuelScreenState extends ConsumerState<DuelScreen>
+    with WidgetsBindingObserver {
   Timer? _countdownTimer;
   Timer? _refreshTimer;
+  bool _isRefreshing = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
         setState(() {});
@@ -33,16 +36,49 @@ class _DuelScreenState extends ConsumerState<DuelScreen> {
         return;
       }
 
-      ref.read(duelLiveRevisionProvider.notifier).state++;
-      ref.invalidate(duelStateProvider);
+      _refreshLiveData();
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshLiveData();
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _countdownTimer?.cancel();
     _refreshTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshLiveData();
+    }
+  }
+
+  Future<void> _refreshLiveData() async {
+    if (!mounted || _isRefreshing) {
+      return;
+    }
+
+    _isRefreshing = true;
+    try {
+      ref.read(duelLiveRevisionProvider.notifier).state++;
+      ref.invalidate(myDuelsProvider);
+      ref.invalidate(duelStateProvider);
+      final refreshedDuel = await ref.refresh(
+        duelDetailsProvider(widget.duelId).future,
+      );
+      if (refreshedDuel.id != widget.duelId) {
+        return;
+      }
+    } catch (_) {
+      // Canlı yenileme hataları ekranı bozmasın.
+    } finally {
+      _isRefreshing = false;
+    }
   }
 
   @override
