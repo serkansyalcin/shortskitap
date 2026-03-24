@@ -1,5 +1,6 @@
 import '../api/api_client.dart';
 import '../models/public_profile_model.dart';
+import '../models/user_search_result_model.dart';
 
 class ProfileService {
   final ApiClient _client;
@@ -55,5 +56,25 @@ class ProfileService {
     return ProfileFollowPageModel.fromJson(
       response.data['data'] as Map<String, dynamic>,
     );
+  }
+
+  Future<List<UserSearchResultModel>> searchUsers(
+    String query, {
+    int limit = 6,
+  }) async {
+    final response = await _client.get(
+      '/search/users',
+      params: {
+        'q': query,
+        'limit': limit,
+      },
+    );
+
+    final data = response.data['data'] as List<dynamic>? ?? const [];
+
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map(UserSearchResultModel.fromJson)
+        .toList(growable: false);
   }
 }

@@ -334,7 +334,7 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                       child: _HomeActionButton(
                         icon: Icons.search_rounded,
                         title: 'Ara',
-                        subtitle: 'Yazar veya kitap',
+                        subtitle: 'Kitap, yazar, kullanıcı',
                         onTap: () => context.push('/home/search'),
                       ),
                     ),
@@ -1181,7 +1181,7 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
                           Icon(Icons.search, color: textSecondary, size: 20),
                           const SizedBox(width: 10),
                           Text(
-                            'Kitap veya yazar ara...',
+                            'Kitap, yazar veya kullanıcı ara...',
                             style: TextStyle(
                               color: textSecondary,
                               fontSize: 14,

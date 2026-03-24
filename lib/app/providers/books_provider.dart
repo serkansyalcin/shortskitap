@@ -102,7 +102,7 @@ final searchProvider = FutureProvider.family<List<BookModel>, String>((
   ref,
   query,
 ) async {
-  if (query.trim().isEmpty) return [];
+  if (query.trim().length < 2) return [];
   final books = await ref.read(bookServiceProvider).search(query);
   final isKids = ref.read(kidsModeProvider);
   if (isKids) {
