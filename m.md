@@ -23,6 +23,8 @@ Backend:
   Artik gelen sosyal auth istegi bir servis uzerinden dogrulaniyor.
 - `shortskitap-api/app/Services/SocialAuthService.php`
   Google ve Apple token dogrulama mantigi eklendi.
+- `shortskitap-api/tests/Feature/Api/SocialAuthApiTest.php`
+  Google ve Apple sosyal giris akislari icin feature testleri eklendi.
 - `shortskitap-api/config/services.php`
   Apple/Google sosyal auth config alanlari eklendi.
 - `shortskitap-api/.env.example`
@@ -203,3 +205,12 @@ Eger istersen bir sonraki adimda ben senin icin:
 - Flutter `.env.example` olusturabilirim
 - sosyal login icin test senaryolari yazabilirim
 - `user_social_accounts` tablosuna gecen daha temiz mimariyi de kurabilirim
+
+## Yazilan testler
+
+Su anda otomatik olarak kontrol edilen senaryolar:
+
+- Google social login dogru token ile kullanici olusturuyor mu
+- Google gecersiz token'i dogru sekilde reddediyor mu
+- Apple verify edilmis identity token ile kullanici olusturuyor mu
+- Apple sonraki girislerde email claim olmadan mevcut kullaniciyi iceri alabiliyor mu
