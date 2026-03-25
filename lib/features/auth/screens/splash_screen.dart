@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kitaplig/app/providers/subscription_provider.dart';
+import 'package:kitaplig/core/services/subscription_service.dart';
 
 import '../../../app/providers/auth_provider.dart';
 import '../../../app/providers/settings_provider.dart';
@@ -37,6 +39,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     Future.delayed(const Duration(milliseconds: 1850), _navigate);
   }
 
+  Future<void> _initSubscription() async {
+    try {
+      final auth = ref.read(authProvider);
+      if (auth.isAuthenticated && auth.user != null) {
+        // Logged-in: configure with real user ID
+        await SubscriptionService.configure(auth.user!.id.toString());
+        await ref.read(subscriptionProvider.future);
+      } else {
+        // Anonymous: configure without user ID so RC is ready
+        await SubscriptionService.configureAnonymous();
+      }
+    } catch (e) {
+      debugPrint('[Splash] Subscription init error: $e');
+    }
+  }
+
   void _navigate() {
     if (!mounted) return;
 
@@ -47,6 +65,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       Future.delayed(const Duration(milliseconds: 250), _navigate);
       return;
     }
+    _initSubscription();
 
     if (authState.status == AuthStatus.authenticated) {
       context.go('/home');
@@ -132,7 +151,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           child: Text(
                             'Okuma alışkanlığını hafiflet, sürekliliği büyüt',
                             style: textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
+                              color: theme.colorScheme.onSurfaceVariant,
                               fontWeight: FontWeight.w700,
                             ),
                             textAlign: TextAlign.center,
