@@ -9,6 +9,7 @@ import '../../../app/providers/profile_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/public_profile_model.dart';
 import '../widgets/achievement_badge_grid.dart';
+import '../widgets/delete_account_dialog.dart';
 import '../widgets/reading_heatmap_widget.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -91,6 +92,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (approved != true) return;
     await ref.read(authProvider.notifier).logout();
     if (mounted) context.go('/login');
+  }
+
+  Future<void> _showDeleteAccountDialog() async {
+    final password = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const DeleteAccountDialog(),
+    );
+    if (password != null && password.isNotEmpty && mounted) {
+      final ok = await ref.read(authProvider.notifier).deleteAccount(password);
+      if (ok && mounted) {
+        context.go('/login');
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Şifreniz yanlış veya bir hata oluştu. Lütfen tekrar deneyin.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -180,6 +204,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ],
               const SizedBox(height: 16),
               _HistorySection(history: profile.leagueHistory),
+              if (_isSelf) ...[
+                const SizedBox(height: 20),
+                _DeleteAccountSection(onTap: _showDeleteAccountDialog),
+              ],
             ],
           );
         },
@@ -437,6 +465,90 @@ class _LeagueCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Profil sonunda — ayarlardaki “Tehlikeli alan” ile aynı görsel dil (açık/koyu).
+class _DeleteAccountSection extends StatelessWidget {
+  const _DeleteAccountSection({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final borderColor = const Color(0xFFDC2626).withOpacity(isDark ? 0.45 : 0.35);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'TEHLİKELİ ALAN',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onSurfaceVariant,
+              letterSpacing: 0.4,
+            ),
+          ),
+        ),
+        Material(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(24),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: borderColor),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.delete_forever_outlined,
+                    color: const Color(0xFFDC2626),
+                    size: 26,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hesabı Sil',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFFDC2626),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Tüm verilerin kalıcı olarak silinir',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
