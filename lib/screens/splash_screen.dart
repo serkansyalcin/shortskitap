@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:kitaplig/app/providers/auth_provider.dart';
+import 'package:kitaplig/app/providers/subscription_provider.dart';
 import '../core/theme/app_colors.dart';
+import '../core/services/subscription_service.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key, required this.onDone});
 
   final VoidCallback onDone;
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
@@ -36,8 +40,35 @@ class _SplashScreenState extends State<SplashScreen>
         curve: const Interval(0, 0.6, curve: Curves.easeOutCubic),
       ),
     );
+
     _controller.forward();
-    Future.delayed(const Duration(milliseconds: 2200), widget.onDone);
+    _initAndNavigate();
+  }
+
+  Future<void> _initAndNavigate() async {
+    // Run animation minimum + subscription init in parallel
+    await Future.wait([
+      Future.delayed(const Duration(milliseconds: 2200)),
+      _initSubscription(),
+    ]);
+
+    if (mounted) widget.onDone();
+  }
+
+  Future<void> _initSubscription() async {
+    try {
+      final auth = ref.read(authProvider);
+      if (auth.isAuthenticated && auth.user != null) {
+        // Configure RevenueCat with the logged-in user's ID
+        await SubscriptionService.configure(auth.user!.id.toString());
+
+        // Warm up the subscription status in the provider
+        await ref.read(subscriptionProvider.future);
+      }
+    } catch (e) {
+      // Non-fatal — app continues even if RC init fails
+      debugPrint('[Splash] Subscription init error: $e');
+    }
   }
 
   @override
