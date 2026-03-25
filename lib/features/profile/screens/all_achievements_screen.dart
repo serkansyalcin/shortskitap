@@ -65,7 +65,6 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final progress = totalCount > 0 ? earnedCount / totalCount : 0.0;
 
     return Container(

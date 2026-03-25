@@ -190,7 +190,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authProvider).user;
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
     final theme = Theme.of(context);
@@ -795,7 +794,7 @@ class _BlockHeader extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
-  });
+});
 
   final IconData icon;
   final String title;

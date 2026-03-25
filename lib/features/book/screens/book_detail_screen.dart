@@ -18,7 +18,6 @@ import '../../../features/subscription/widgets/premium_badge.dart';
 import '../widgets/character_card_widget.dart';
 import '../widgets/podcast_player_widget.dart';
 import '../widgets/series_info_widget.dart';
-import '../../../core/models/review_model.dart';
 
 class BookDetailScreen extends ConsumerWidget {
   final String slug;

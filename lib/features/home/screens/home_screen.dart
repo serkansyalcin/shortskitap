@@ -24,7 +24,6 @@ import '../../../core/services/subscription_service.dart';
 import '../../../core/services/notification_permission_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:screenshot/screenshot.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io' show Platform;
 import '../../league/screens/league_screen.dart';
@@ -38,6 +37,7 @@ import '../../../core/widgets/shareable_quote_overlay.dart';
 import '../widgets/kids_mode_exit_dialog.dart';
 import '../widgets/kids_mode_pin_set_dialog.dart';
 import '../widgets/notification_bell_button.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -747,13 +747,17 @@ class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
             ),
           );
         }
-      } else {
+      } else {final result = await ImageGallerySaverPlus.saveImage(
+  image,
+  quality: 100,
+  name: 'kitaplig_quote_${quote.id}',
+);
         // 3b. Mobile: save to gallery
-        final result = await ImageGallerySaver.saveImage(
-          image,
-          quality: 100,
-          name: 'kitaplig_quote_${quote.id}',
-        );
+        // final result = await ImageGallerySaver.saveImage(
+        //   image,
+        //   quality: 100,
+        //   name: 'kitaplig_quote_${quote.id}',
+        // );
         if (mounted) {
           if (result['isSuccess'] == true) {
             ScaffoldMessenger.of(context).showSnackBar(
