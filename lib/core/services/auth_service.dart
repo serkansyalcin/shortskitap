@@ -142,16 +142,22 @@ class AuthService {
 
   Future<({UserModel user, String token})> socialLogin({
     required String provider,
-    required String providerId,
-    required String name,
-    required String email,
+    String? idToken,
+    String? accessToken,
+    String? identityToken,
+    String? authorizationCode,
+    String? name,
+    String? email,
     String? avatarUrl,
   }) async {
     final res = await _client.post('/auth/social', data: {
       'provider': provider,
-      'provider_id': providerId,
-      'name': name,
-      'email': email,
+      if (idToken != null) 'id_token': idToken,
+      if (accessToken != null) 'access_token': accessToken,
+      if (identityToken != null) 'identity_token': identityToken,
+      if (authorizationCode != null) 'authorization_code': authorizationCode,
+      if (name != null) 'name': name,
+      if (email != null) 'email': email,
       if (avatarUrl != null) 'avatar_url': avatarUrl,
     });
     final data = res.data['data'] as Map<String, dynamic>;

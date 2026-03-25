@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -43,14 +44,21 @@ class _SocialAuthButtonsState extends ConsumerState<SocialAuthButtons> {
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoadingGoogle = true);
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email']);
+      final serverClientId =
+          (dotenv.env['GOOGLE_SERVER_CLIENT_ID'] ?? '').trim();
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        scopes: const ['email'],
+        serverClientId: serverClientId.isEmpty ? null : serverClientId,
+      );
       final GoogleSignInAccount? account = await googleSignIn.signIn();
 
       if (account != null) {
+        final authentication = await account.authentication;
         final authService = AuthService();
         final result = await authService.socialLogin(
           provider: 'google',
-          providerId: account.id,
+          idToken: authentication.idToken,
+          accessToken: authentication.accessToken,
           name: account.displayName ?? 'Google User',
           email: account.email,
           avatarUrl: account.photoUrl,
@@ -74,17 +82,19 @@ class _SocialAuthButtonsState extends ConsumerState<SocialAuthButtons> {
         ],
       );
 
-      final email = credential.email ?? '${credential.userIdentifier}@apple.com';
-      final name = credential.givenName != null 
-          ? '${credential.givenName} ${credential.familyName}'
-          : 'Apple User';
+      final nameParts = [
+        credential.givenName,
+        credential.familyName,
+      ].whereType<String>().where((part) => part.trim().isNotEmpty).toList();
+      final name = nameParts.join(' ').trim();
 
       final authService = AuthService();
       final result = await authService.socialLogin(
         provider: 'apple',
-        providerId: credential.userIdentifier!,
-        name: name,
-        email: email,
+        identityToken: credential.identityToken,
+        authorizationCode: credential.authorizationCode,
+        name: name.isEmpty ? null : name,
+        email: credential.email,
       );
       _handleSuccess(result.user);
     } catch (e) {
