@@ -124,7 +124,7 @@ Sol menü → **Project Settings** → **API Keys**
 - `.env` dosyasına yaz:
 
 ```
-REVENUECAT_API_KEY=sk_buraya_yapistir
+REVENUECAT_IOS_API_KEY=sk_buraya_yapistir
 ```
 
 ---
@@ -269,7 +269,7 @@ Abonelikler için ayrıca:
 API_BASE_URL=https://senindomain.com/api
 
 # RevenueCat
-REVENUECAT_API_KEY=sk_BURAYA_PUBLIC_KEY
+REVENUECAT_IOS_API_KEY=sk_BURAYA_PUBLIC_KEY
 
 RC_PRODUCT_MONTHLY=kitaplig_premium_monthly
 RC_PRODUCT_YEARLY=kitaplig_premium_yearly
@@ -292,7 +292,7 @@ ADMOB_BANNER_IOS=ca-app-pub-XXXX/XXXX
 
 ```env
 REVENUECAT_WEBHOOK_SECRET=webhook_sifren_buraya
-REVENUECAT_API_KEY=sk_BURAYA_SECRET_KEY
+REVENUECAT_IOS_API_KEY=sk_BURAYA_SECRET_KEY
 ```
 
 ---
@@ -308,7 +308,7 @@ REVENUECAT_API_KEY=sk_BURAYA_SECRET_KEY
 - [ ] `flutter pub get` çalıştırıldı
 - [ ] `AndroidManifest.xml`'de gerçek AdMob App ID girildi
 - [ ] `Info.plist`'te gerçek AdMob App ID girildi
-- [ ] `.env`'de gerçek `REVENUECAT_API_KEY` girildi
+- [ ] `.env`'de gerçek `REVENUECAT_IOS_API_KEY` girildi
 - [ ] `.env`'de gerçek `ADMOB_BANNER_ANDROID` ve `ADMOB_BANNER_IOS` girildi
 - [ ] API_BASE_URL production adresine güncellendi
 
