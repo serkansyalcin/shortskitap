@@ -711,18 +711,28 @@ class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
             }
             return;
           }
-        } else if (Platform.isIOS) {
-          final status = await Permission.photos.request();
-          if (!status.isGranted) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Galeriye kaydetmek için izin vermelisiniz.'),
+        }
+      } else if (Platform.isIOS) {
+        final status = await Permission.photos.request();
+
+        // iOS 14+ may return .limited instead of .granted
+        if (!status.isGranted && !status.isLimited) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Galeriye kaydetmek için izin vermelisiniz.',
                 ),
-              );
-            }
-            return;
+                action: status.isPermanentlyDenied
+                    ? SnackBarAction(
+                        label: 'Ayarlar',
+                        onPressed: () => openAppSettings(),
+                      )
+                    : null,
+              ),
+            );
           }
+          return;
         }
       }
 
@@ -749,11 +759,12 @@ class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
             ),
           );
         }
-      } else {final result = await ImageGallerySaverPlus.saveImage(
-  image,
-  quality: 100,
-  name: 'kitaplig_quote_${quote.id}',
-);
+      } else {
+        final result = await ImageGallerySaverPlus.saveImage(
+          image,
+          quality: 100,
+          name: 'kitaplig_quote_${quote.id}',
+        );
         // 3b. Mobile: save to gallery
         // final result = await ImageGallerySaver.saveImage(
         //   image,
