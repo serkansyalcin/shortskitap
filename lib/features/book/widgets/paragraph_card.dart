@@ -475,22 +475,26 @@ class _ParagraphCardState extends State<ParagraphCard>
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _isCapturing
-                            ? null
-                            : () {
-                                Navigator.pop(dialogCtx);
-                                _captureAndShare(selectedTheme, parentCtx);
-                              },
-                        icon: const Icon(Icons.download_rounded, size: 18),
-                        label: const Text('İndir'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
+                      child: Builder(
+                        builder: (BuildContext context) {
+                          return ElevatedButton.icon(
+                            onPressed: _isCapturing
+                                ? null
+                                : () {
+                                    Navigator.pop(dialogCtx);
+                                    _captureAndShare(selectedTheme, parentCtx);
+                                  },
+                            icon: const Icon(Icons.download_rounded, size: 18),
+                            label: const Text('İndir'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -543,9 +547,17 @@ class _ParagraphCardState extends State<ParagraphCard>
           mimeType: 'image/png',
           name: 'kitaplig_quote.png',
         );
-        await Share.shareXFiles([
-          xFile,
-        ], text: '— ${widget.bookTitle ?? 'KitapLig'}\n\nkitaplig.com');
+        // await Share.shareXFiles([
+        //   xFile,
+        // ], text: '— ${widget.bookTitle ?? 'KitapLig'}\n\nkitaplig.com');
+
+        final box = parentCtx.findRenderObject() as RenderBox;
+
+        await Share.shareXFiles(
+          [xFile],
+          text: '— ${widget.bookTitle ?? 'KitapLig'}\n\nkitaplig.com',
+          sharePositionOrigin: box.localToGlobal(Offset.zero) & box.size,
+        );
       }
     } catch (e) {
       debugPrint('Capture error: $e');
