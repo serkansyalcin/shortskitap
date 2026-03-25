@@ -1,3 +1,10 @@
+import java.util.Properties
+import java.io.FileInputStream
+
+
+
+
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -5,9 +12,28 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.reader(Charsets.UTF_8).use { load(it) }
+    }
+}
+
+val flutterVersionCode = localProperties.getProperty("flutter.versionCode")?.toIntOrNull() ?: 1
+val flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "1.0"
+
+val keystoreProperties = Properties().apply {
+    val keystoreFile = rootProject.file("key.properties")
+    if (keystoreFile.exists()) {
+        load(FileInputStream(keystoreFile))
+    }
+}
+
+
+
 android {
     namespace = "com.kitaplig.app"
-    compileSdk = 36
+    compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     packaging {
@@ -21,19 +47,30 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
+}
 
     defaultConfig {
         applicationId = "com.kitaplig.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
+
+
         versionName = flutter.versionName
         multiDexEnabled = true
     }
-
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties.getProperty("keyAlias")
+            keyPassword = keystoreProperties.getProperty("keyPassword")
+            storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
+            storePassword = keystoreProperties.getProperty("storePassword")
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -42,7 +79,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
         debug {
             isDebuggable = true
@@ -52,8 +89,8 @@ android {
 
 dependencies {
     // Flutter embedding deferred components (Play Store split install)
-    implementation("com.google.android.play:core:1.10.3")
-
+    implementation("com.google.android.play:review:2.0.1")
+    implementation("com.google.android.play:app-update:2.1.0")
     // MultiDex support when minSdk < 21
     implementation("androidx.multidex:multidex:2.0.1")
 

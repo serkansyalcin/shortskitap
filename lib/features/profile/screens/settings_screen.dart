@@ -229,6 +229,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
+=======
+    final settings = ref.watch(settingsProvider);
+    final notifier = ref.read(settingsProvider.notifier);
+>>>>>>> 407dc54a40ea07243180d48f8dc1e437549e519f
     final theme = Theme.of(context);
     final settings = ref.watch(settingsProvider);
     final settingsNotifier = ref.read(settingsProvider.notifier);
@@ -536,6 +541,7 @@ class _Card extends StatelessWidget {
   }
 }
 
+<<<<<<< HEAD
 class _LinkRow extends StatelessWidget {
   const _LinkRow({required this.label, required this.onTap});
 
@@ -559,6 +565,14 @@ class _AvatarPreview extends StatelessWidget {
     required this.imageBytes,
     required this.name,
   });
+=======
+class _BlockHeader extends StatelessWidget {
+  const _BlockHeader({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+});
+>>>>>>> 407dc54a40ea07243180d48f8dc1e437549e519f
 
   final String? imageUrl;
   final Uint8List? imageBytes;

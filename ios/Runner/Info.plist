@@ -54,7 +54,7 @@
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>KitapLig, günlük okuma hatırlatıcıları ve lig güncellemeleri için bildirim göndermek istiyor.</string>
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>ca-app-pub-7495037570099853~2532260849</string>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>
