@@ -1,28 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
-	<key>CFBundleDisplayName</key>
-	<string>KitapLig</string>
-	<key>CFBundleExecutable</key>
-	<string>$(EXECUTABLE_NAME)</string>
-	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>KitapLig</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>$(FLUTTER_BUILD_NAME)</string>
-	<key>CFBundleSignature</key>
-	<string>????</string>
-	<key>CFBundleVersion</key>
-	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<!-- <key>GIDClientID</key>
+	<dict>
+		<key>CFBundleDevelopmentRegion</key>
+		<string>$(DEVELOPMENT_LANGUAGE)</string>
+		<key>CFBundleDisplayName</key>
+		<string>KitapLig</string>
+		<key>CFBundleExecutable</key>
+		<string>$(EXECUTABLE_NAME)</string>
+		<key>CFBundleIdentifier</key>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+		<key>CFBundleInfoDictionaryVersion</key>
+		<string>6.0</string>
+		<key>CFBundleName</key>
+		<string>KitapLig</string>
+		<key>CFBundlePackageType</key>
+		<string>APPL</string>
+		<key>CFBundleShortVersionString</key>
+		<string>$(FLUTTER_BUILD_NAME)</string>
+		<key>CFBundleSignature</key>
+		<string>????</string>
+		<key>CFBundleVersion</key>
+		<string>$(FLUTTER_BUILD_NUMBER)</string>
+		<!-- <key>GIDClientID</key>
 	<string>$(GOOGLE_IOS_CLIENT_ID)</string>
 	<key>GIDServerClientID</key>
 	<string>$(GOOGLE_SERVER_CLIENT_ID_IOS)</string>
@@ -36,61 +36,68 @@
 				<string>$(GOOGLE_REVERSED_CLIENT_ID)</string>
 			</array>
 		</dict> -->
-	<!-- </array> -->
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
-	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen</string>
-	<key>UIMainStoryboardFile</key>
-	<string>Main</string>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>KitapLig, profil fotoğrafınızı yüklemek için fotoğraf kütüphanenize erişmek istiyor.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>KitapLig, alıntıları galerinize kaydetmek için izin istiyor.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>KitapLig, profil fotoğrafı çekmek için kamera erişimi istiyor.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>KitapLig, sesli kitap dinleme özelliği için mikrofon erişimi istiyor.</string>
-	<key>NSUserNotificationsUsageDescription</key>
-	<string>KitapLig, günlük okuma hatırlatıcıları ve lig güncellemeleri için bildirim göndermek istiyor.</string>
-	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-7495037570099853~2532260849</string>
-	<key>SKAdNetworkItems</key>
-	<array>
-		<dict>
-			<key>SKAdNetworkIdentifier</key>
-			<string>cstr6suwn9.skadnetwork</string>
-		</dict>
-	</array>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<false/>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>kitaplig.com</key>
+		<!-- </array> -->
+		<key>LSRequiresIPhoneOS</key>
+		<true />
+		<key>UILaunchStoryboardName</key>
+		<string>LaunchScreen</string>
+		<key>UIMainStoryboardFile</key>
+		<string>Main</string>
+		<key>UISupportedInterfaceOrientations</key>
+		<array>
+			<string>UIInterfaceOrientationPortrait</string>
+		</array>
+		<key>UISupportedInterfaceOrientations~ipad</key>
+		<array>
+			<string>UIInterfaceOrientationPortrait</string>
+			<string>UIInterfaceOrientationPortraitUpsideDown</string>
+			<string>UIInterfaceOrientationLandscapeLeft</string>
+			<string>UIInterfaceOrientationLandscapeRight</string>
+		</array>
+		<key>CADisableMinimumFrameDurationOnPhone</key>
+		<true />
+		<key>UIApplicationSupportsIndirectInputEvents</key>
+		<true />
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>KitapLig, profil fotoğrafınızı yüklemek için fotoğraf kütüphanenize erişmek istiyor.</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>KitapLig, alıntıları galerinize kaydetmek için izin istiyor.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>KitapLig, profil fotoğrafı çekmek için kamera erişimi istiyor.</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>KitapLig, sesli kitap dinleme özelliği için mikrofon erişimi istiyor.</string>
+		<key>NSUserNotificationsUsageDescription</key>
+		<string>KitapLig, günlük okuma hatırlatıcıları ve lig güncellemeleri için bildirim göndermek
+			istiyor.</string>
+		<key>GADApplicationIdentifier</key>
+		<string>ca-app-pub-7495037570099853~2532260849</string>
+		<key>SKAdNetworkItems</key>
+		<array>
 			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<false/>
-				<key>NSIncludesSubdomains</key>
-				<true/>
+				<key>SKAdNetworkIdentifier</key>
+				<string>cstr6suwn9.skadnetwork</string>
+			</dict>
+		</array>
+		<key>NSAppTransportSecurity</key>
+		<dict>
+			<key>NSAllowsArbitraryLoads</key>
+			<false />
+			<key>NSExceptionDomains</key>
+			<dict>
+				<key>kitaplig.com</key>
+				<dict>
+					<key>NSExceptionAllowsInsecureHTTPLoads</key>
+					<false />
+					<key>NSIncludesSubdomains</key>
+					<true />
+				</dict>
 			</dict>
 		</dict>
+
+		<key>NSAppTransportSecurity</key>
+		<dict>
+			<key>NSAllowsLocalNetworking</key>
+			<true />
+		</dict>
 	</dict>
-</dict>
 </plist>
