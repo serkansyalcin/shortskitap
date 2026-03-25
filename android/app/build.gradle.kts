@@ -47,9 +47,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
+}
 
     defaultConfig {
         applicationId = "com.kitaplig.app"
@@ -87,8 +89,8 @@ android {
 
 dependencies {
     // Flutter embedding deferred components (Play Store split install)
-    implementation("com.google.android.play:core:1.10.3")
-
+    implementation("com.google.android.play:review:2.0.1")
+    implementation("com.google.android.play:app-update:2.1.0")
     // MultiDex support when minSdk < 21
     implementation("androidx.multidex:multidex:2.0.1")
 
