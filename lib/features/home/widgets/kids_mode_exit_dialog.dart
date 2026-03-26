@@ -60,6 +60,8 @@ class _KidsModeExitDialogState extends State<KidsModeExitDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    const accent = Color(0xFFE91E63);
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -68,10 +70,14 @@ class _KidsModeExitDialogState extends State<KidsModeExitDialog> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.pink.shade100,
+              color: isDark ? accent.withOpacity(0.22) : Colors.pink.shade100,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(Icons.lock_rounded, color: Colors.pink.shade700, size: 28),
+            child: Icon(
+              Icons.lock_rounded,
+              color: isDark ? accent : Colors.pink.shade700,
+              size: 28,
+            ),
           ),
           const SizedBox(width: 14),
           const Expanded(
@@ -124,7 +130,7 @@ class _KidsModeExitDialogState extends State<KidsModeExitDialog> {
         FilledButton(
           onPressed: _submit,
           style: FilledButton.styleFrom(
-            backgroundColor: Colors.pink.shade600,
+            backgroundColor: accent,
             foregroundColor: Colors.white,
           ),
           child: const Text('Doğrula'),

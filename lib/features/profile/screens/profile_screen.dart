@@ -5,12 +5,15 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/providers/achievements_provider.dart';
 import '../../../app/providers/auth_provider.dart';
+import '../../../app/providers/kids_provider.dart';
 import '../../../app/providers/profile_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/public_profile_model.dart';
 import '../widgets/achievement_badge_grid.dart';
 import '../widgets/delete_account_dialog.dart';
 import '../widgets/reading_heatmap_widget.dart';
+import '../../home/widgets/kids_mode_exit_dialog.dart';
+import '../../home/widgets/kids_mode_pin_set_dialog.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key, this.username, this.standalone = false});
@@ -117,6 +120,52 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  static const Color _kidsAccent = Color(0xFFE91E63);
+
+  Future<void> _onKidsModeSwitch(bool wantOn) async {
+    if (wantOn) {
+      ref.read(kidsModeProvider.notifier).state = true;
+      return;
+    }
+    final svc = await ref.read(kidsModePinServiceProvider.future);
+    if (!svc.hasPin()) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Çocuk modundan çıkmak için önce ebeveyn şifresi belirleyin.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    final ok = await KidsModeExitDialog.show(
+      context,
+      verifyPin: svc.verifyPin,
+    );
+    if (ok == true && mounted) {
+      ref.read(kidsModeProvider.notifier).state = false;
+    }
+  }
+
+  Future<void> _onOpenParentPinDialog() async {
+    final ok = await KidsModePinSetDialog.show(
+      context,
+      onSave: (pin) async {
+        final service = await ref.read(kidsModePinServiceProvider.future);
+        await service.setPin(pin);
+        ref.invalidate(kidsModePinServiceProvider);
+      },
+    );
+    if (ok == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ebeveyn şifresi kaydedildi.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final username = _username;
@@ -201,6 +250,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               if (_isSelf) ...[
                 const SizedBox(height: 16),
                 const ReadingHeatmapWidget(),
+                const SizedBox(height: 16),
+                _KidsModeProfileSection(
+                  accent: _kidsAccent,
+                  onToggleKidsMode: _onKidsModeSwitch,
+                  onOpenParentPin: _onOpenParentPinDialog,
+                ),
               ],
               const SizedBox(height: 16),
               _HistorySection(history: profile.leagueHistory),
@@ -465,6 +520,182 @@ class _LeagueCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Ana sayfa profil sekmesiyle aynı mantık; `_DeleteAccountSection` kart diliyle uyumlu.
+class _KidsModeProfileSection extends ConsumerWidget {
+  const _KidsModeProfileSection({
+    required this.accent,
+    required this.onToggleKidsMode,
+    required this.onOpenParentPin,
+  });
+
+  final Color accent;
+  final Future<void> Function(bool wantOn) onToggleKidsMode;
+  final Future<void> Function() onOpenParentPin;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final borderColor = accent.withOpacity(isDark ? 0.45 : 0.35);
+    final kidsOn = ref.watch(kidsModeProvider);
+    final pinAsync = ref.watch(kidsModePinServiceProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'ÇOCUK MODU',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onSurfaceVariant,
+              letterSpacing: 0.4,
+            ),
+          ),
+        ),
+        Material(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(24),
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: borderColor),
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: accent.withOpacity(isDark ? 0.22 : 0.12),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(Icons.child_care_rounded, color: accent, size: 24),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Çocuk modu',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Yalnızca çocuklara uygun kitaplar gösterilir',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: kidsOn,
+                        onChanged: (v) => onToggleKidsMode(v),
+                        activeThumbColor: accent,
+                        activeTrackColor: accent.withOpacity(0.45),
+                        inactiveThumbColor: isDark
+                            ? Colors.grey.shade600
+                            : Colors.grey.shade400,
+                        inactiveTrackColor: isDark
+                            ? Colors.white.withOpacity(0.12)
+                            : Colors.grey.shade300,
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  indent: 16,
+                  endIndent: 16,
+                  color: theme.colorScheme.outline.withOpacity(isDark ? 0.2 : 0.35),
+                ),
+                pinAsync.when(
+                  data: (svc) => InkWell(
+                    onTap: () => onOpenParentPin(),
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(24),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.lock_outline_rounded,
+                            color: accent,
+                            size: 26,
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Ebeveyn şifresi',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: theme.colorScheme.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  svc.hasPin()
+                                      ? 'Çıkış için şifre tanımlı — değiştirmek için dokun'
+                                      : 'Çocuk modundan çıkmak için şifre belirleyin',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  loading: () => const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
