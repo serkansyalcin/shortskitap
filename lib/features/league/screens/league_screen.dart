@@ -13,6 +13,7 @@ import '../widgets/league_history.dart';
 import '../widgets/league_empty_state.dart';
 import 'package:kitaplig/app/providers/duel_provider.dart';
 import 'package:kitaplig/core/models/duel_model.dart';
+import 'package:kitaplig/core/utils/user_friendly_error.dart';
 import 'package:go_router/go_router.dart';
 
 enum _LeagueTab { leaderboard, duels, history }
@@ -308,14 +309,35 @@ class _DuelTabContent extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.error_outline_rounded,
+              Icon(
+                Icons.cloud_off_rounded,
                 size: 42,
-                color: Colors.redAccent,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(height: 12),
-              Text('Düellolar yüklenemedi: $err', textAlign: TextAlign.center),
-              const SizedBox(height: 12),
+              Text(
+                'Düellolar yüklenemedi',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                userFacingErrorMessage(
+                  err,
+                  fallback:
+                      'Bağlantını kontrol edip tekrar dene.',
+                ),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.45,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
               OutlinedButton(
                 onPressed: () =>
                     ref.read(duelStateProvider.notifier).loadDuels(),

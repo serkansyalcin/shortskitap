@@ -7,6 +7,7 @@ import 'package:kitaplig/app/providers/auth_provider.dart';
 import 'package:kitaplig/app/providers/duel_provider.dart';
 import 'package:kitaplig/app/theme/app_colors.dart';
 import 'package:kitaplig/core/models/duel_model.dart';
+import 'package:kitaplig/core/utils/user_friendly_error.dart';
 
 class DuelScreen extends ConsumerStatefulWidget {
   final int duelId;
@@ -49,7 +50,51 @@ class _DuelScreenState extends ConsumerState<DuelScreen> {
       extendBodyBehindAppBar: true,
       body: duelAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, __) => Center(child: Text('Hata: $err')),
+        error: (err, __) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.cloud_off_rounded,
+                  size: 48,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Düello yüklenemedi',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  userFacingErrorMessage(
+                    err,
+                    fallback:
+                        'Bilgiler alınamadı. Bağlantını kontrol edip tekrar dene.',
+                  ),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.45,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                FilledButton.tonal(
+                  onPressed: () =>
+                      ref.invalidate(duelDetailsProvider(widget.duelId)),
+                  child: const Text('Tekrar Dene'),
+                ),
+              ],
+            ),
+          ),
+        ),
         data: (duel) => _DuelContent(duel: duel),
       ),
     );

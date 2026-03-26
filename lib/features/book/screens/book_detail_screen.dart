@@ -13,6 +13,7 @@ import '../../../app/providers/series_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/book_model.dart';
+import '../../../core/utils/user_friendly_error.dart';
 import '../../../core/models/progress_model.dart';
 import '../../../features/subscription/widgets/premium_badge.dart';
 import '../widgets/character_card_widget.dart';
@@ -353,7 +354,7 @@ class BookDetailScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  Icons.error_outline_rounded,
+                  Icons.cloud_off_rounded,
                   size: 52,
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -368,9 +369,14 @@ class BookDetailScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '$e',
+                  userFacingErrorMessage(
+                    e,
+                    fallback:
+                        'Kitap bilgileri alınamadı. Bağlantını kontrol edip tekrar dene.',
+                  ),
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
+                    height: 1.45,
                     color: colorScheme.onSurfaceVariant,
                   ),
                   textAlign: TextAlign.center,

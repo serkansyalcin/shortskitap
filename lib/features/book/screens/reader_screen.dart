@@ -15,6 +15,7 @@ import '../../../app/providers/voiceover_provider.dart';
 import '../../../core/services/auto_voiceover_service.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/paragraph_model.dart';
+import '../../../core/utils/user_friendly_error.dart';
 import '../../../core/platform/platform_support.dart';
 import '../../../features/subscription/widgets/ad_banner.dart';
 import '../widgets/paragraph_card.dart';
@@ -557,25 +558,54 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           loading: () => Center(
             child: CircularProgressIndicator(color: AppColors.primary),
           ),
-          error: (e, _) => Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Text('Yüklenemedi: $e', textAlign: TextAlign.center),
+          error: (e, _) {
+            final colorScheme = Theme.of(context).colorScheme;
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.cloud_off_rounded,
+                      size: 52,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Metinler yüklenemedi',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      userFacingErrorMessage(
+                        e,
+                        fallback:
+                            'Paragraflar alınamadı. Bağlantını kontrol edip tekrar dene.',
+                      ),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.45,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton.tonal(
+                      onPressed: () =>
+                          ref.refresh(paragraphsProvider(widget.bookId)),
+                      child: const Text('Tekrar Dene'),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () =>
-                      ref.refresh(paragraphsProvider(widget.bookId)),
-                  child: const Text('Tekrar Dene'),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/utils/user_friendly_error.dart';
 import '../../../core/services/highlight_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -38,7 +39,10 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = userFacingErrorMessage(
+          e,
+          fallback: 'Alıntılar yüklenemedi. Bağlantını kontrol edip tekrar dene.',
+        );
         _isLoading = false;
       });
     }
@@ -101,9 +105,31 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
-            const SizedBox(height: 16),
-            Text('Yüklenemedi: $_error', textAlign: TextAlign.center, style: TextStyle(color: theme.colorScheme.onSurface)),
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 48,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Alıntılar yüklenemedi',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.45,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 16),
             ElevatedButton(onPressed: _fetchHighlights, child: const Text('Tekrar Dene')),
           ],
