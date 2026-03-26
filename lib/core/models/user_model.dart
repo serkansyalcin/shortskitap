@@ -51,6 +51,22 @@ class UserModel {
             : null,
       );
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'username': username,
+        'email': email,
+        'avatar_url': avatarUrl,
+        'provider': provider,
+        'is_premium': isPremium,
+        'premium_expires_at': premiumExpiresAt?.toIso8601String(),
+        'daily_goal': dailyGoal,
+        'preferred_theme': preferredTheme,
+        'preferred_font_size': preferredFontSize,
+        'terms_accepted_at': termsAcceptedAt?.toIso8601String(),
+        'privacy_policy_accepted_at': privacyPolicyAcceptedAt?.toIso8601String(),
+      };
+
   UserModel copyWith({
     String? name,
     String? username,

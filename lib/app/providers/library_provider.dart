@@ -2,10 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/bookmark_model.dart';
 import '../../core/models/favorite_model.dart';
+import '../../core/models/highlight_model.dart';
 import '../../core/services/bookmark_service.dart';
 import '../../core/services/favorite_service.dart';
-import '../../core/models/highlight_model.dart';
 import '../../core/services/highlight_service.dart';
+
+/// When set to true, [LibraryView] opens the "İndirilenler" segment once.
+final libraryFocusDownloadsProvider = StateProvider<bool>((ref) => false);
 
 final favoriteServiceProvider = Provider<FavoriteService>((ref) {
   return FavoriteService();

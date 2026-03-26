@@ -36,6 +36,13 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<bool>(libraryFocusDownloadsProvider, (previous, next) {
+      if (next == true && mounted) {
+        setState(() => _mode = _LibraryMode.downloaded);
+        ref.read(libraryFocusDownloadsProvider.notifier).state = false;
+      }
+    });
+
     final authState = ref.watch(authProvider);
     if (authState.status == AuthStatus.unknown) {
       return const SafeArea(

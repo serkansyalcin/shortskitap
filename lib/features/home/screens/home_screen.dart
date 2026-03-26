@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../app/providers/achievements_provider.dart';
 import '../../../app/providers/auth_provider.dart';
 import '../../../app/providers/books_provider.dart';
+import '../../../app/providers/connectivity_provider.dart';
+import '../../../app/providers/home_shell_provider.dart';
 import '../../../app/providers/library_provider.dart';
 import '../../../app/providers/notification_provider.dart';
 import '../../../app/providers/progress_provider.dart';
@@ -57,6 +60,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final authState = ref.watch(authProvider);
     final isAuthenticated = authState.isAuthenticated;
     final guestSelectedIndex = _selectedIndex > 1 ? 0 : _selectedIndex;
+
+    ref.listen<int?>(homeTabRequestProvider, (previous, next) {
+      if (next == null || !isAuthenticated) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => _selectedIndex = next);
+        ref.read(homeTabRequestProvider.notifier).state = null;
+      });
+    });
+
+    ref.listen<AsyncValue<List<ConnectivityResult>>>(
+      connectivityProvider,
+      (previous, next) {
+        next.whenData((list) {
+          if (!connectivityListOnline(list)) return;
+          final auth = ref.read(authProvider);
+          if (auth.isOfflineSession) {
+            ref.read(authProvider.notifier).refreshMe();
+          }
+        });
+      },
+    );
 
     return Scaffold(
       body: IndexedStack(
@@ -248,6 +273,19 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                 const SizedBox(height: 10),
                 _KidsModeInfoCard(),
                 const SizedBox(height: 10),
+              ],
+              if (isAuthenticated &&
+                  (authState.isOfflineSession ||
+                      ref.watch(isDeviceOfflineProvider))) ...[
+                _OfflineReadingBanner(
+                  onOpenDownloads: () {
+                    ref.read(homeTabRequestProvider.notifier).state =
+                        kHomeShellLibraryTabIndex;
+                    ref.read(libraryFocusDownloadsProvider.notifier).state =
+                        true;
+                  },
+                ),
+                const SizedBox(height: 12),
               ],
               const SizedBox(height: 12),
               // Greeting
@@ -1053,22 +1091,117 @@ class _HomeActionButton extends StatelessWidget {
   }
 }
 
+class _OfflineReadingBanner extends StatelessWidget {
+  const _OfflineReadingBanner({required this.onOpenDownloads});
+
+  final VoidCallback onOpenDownloads;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Material(
+      color: isDark
+          ? AppColors.spotifyPanel.withValues(alpha: 0.92)
+          : colorScheme.surfaceContainerHighest.withValues(alpha: 0.65),
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: colorScheme.outline.withValues(alpha: isDark ? 0.35 : 0.5),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.cloud_off_rounded,
+                  color: AppColors.primary,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Çevrimdışısın',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'İnternet yokken yalnızca cihazına indirdiğin kitaplara '
+              'kütüphanedeki İndirilenler bölümünden devam edebilirsin.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              onPressed: onOpenDownloads,
+              icon: const Icon(Icons.download_for_offline_rounded, size: 20),
+              label: const Text('İndirilenlere git'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _KidsModeInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    const accent = Color(0xFFE91E63);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.pink.shade50, Colors.pink.shade50.withOpacity(0.6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: isDark
+            ? LinearGradient(
+                colors: [
+                  accent.withValues(alpha: 0.18),
+                  const Color(0xFF2D1520),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : LinearGradient(
+                colors: [
+                  Colors.pink.shade50,
+                  Colors.pink.shade50.withOpacity(0.6),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.pink.shade200.withOpacity(0.6)),
+        border: Border.all(
+          color: isDark
+              ? accent.withValues(alpha: 0.45)
+              : Colors.pink.shade200.withOpacity(0.6),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1076,12 +1209,14 @@ class _KidsModeInfoCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.pink.shade100,
+              color: isDark
+                  ? accent.withValues(alpha: 0.22)
+                  : Colors.pink.shade100,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
               Icons.shield_rounded,
-              color: Colors.pink.shade700,
+              color: isDark ? accent : Colors.pink.shade700,
               size: 24,
             ),
           ),
@@ -1095,7 +1230,7 @@ class _KidsModeInfoCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: Colors.pink.shade800,
+                    color: isDark ? accent : Colors.pink.shade800,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -1105,7 +1240,9 @@ class _KidsModeInfoCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.45,
-                    color: colorScheme.onSurfaceVariant,
+                    color: isDark
+                        ? colorScheme.onSurface.withValues(alpha: 0.88)
+                        : colorScheme.onSurface.withValues(alpha: 0.75),
                   ),
                 ),
               ],

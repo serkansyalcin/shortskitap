@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/subscription_service.dart';
 import 'auth_provider.dart';
@@ -15,10 +16,19 @@ class SubscriptionStatusNotifier extends AsyncNotifier<SubscriptionStatus> {
       return const SubscriptionStatus.free();
     }
 
-    // Configure RevenueCat with the user's ID on first build.
-    await SubscriptionService.configure(auth.user!.id.toString());
+    try {
+      await SubscriptionService.configure(auth.user!.id.toString());
+    } catch (e, st) {
+      debugPrint('[Subscription] configure error: $e\n$st');
+    }
 
-    final status = await _subscriptionService.getStatusFromBackend();
+    SubscriptionStatus status;
+    try {
+      status = await _subscriptionService.getStatusFromBackend();
+    } catch (e, st) {
+      debugPrint('[Subscription] getStatusFromBackend error: $e\n$st');
+      status = const SubscriptionStatus.free();
+    }
     if (!status.isPremium && auth.user!.isPremium) {
       return SubscriptionStatus(
         isPremium: true,
@@ -40,7 +50,13 @@ class SubscriptionStatusNotifier extends AsyncNotifier<SubscriptionStatus> {
 
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      final status = await _subscriptionService.getStatusFromBackend();
+      SubscriptionStatus status;
+      try {
+        status = await _subscriptionService.getStatusFromBackend();
+      } catch (e, st) {
+        debugPrint('[Subscription] refresh getStatus error: $e\n$st');
+        status = const SubscriptionStatus.free();
+      }
       if (!status.isPremium && fallbackUserPremium) {
         return SubscriptionStatus(
           isPremium: true,
@@ -83,5 +99,7 @@ final subscriptionProvider =
 final isPremiumProvider = Provider<bool>((ref) {
   final auth = ref.watch(authProvider);
   final subscription = ref.watch(subscriptionProvider).valueOrNull;
-  return subscription?.isPremium ?? auth.user?.isPremium ?? false;
+  final fromSub = subscription?.isPremium ?? false;
+  final fromUser = auth.user?.isPremium ?? false;
+  return fromSub || fromUser;
 });
