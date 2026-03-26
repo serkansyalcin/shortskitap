@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/utils/user_friendly_error.dart';
 import '../../../core/widgets/brand_logo.dart';
 
 class VerifyPinScreen extends ConsumerStatefulWidget {
@@ -45,12 +46,18 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.response?.data['message'] ?? 'Geçersiz doğrulama kodu.';
+        _error = apiFormErrorMessage(
+          e,
+          fallback: 'Geçersiz doğrulama kodu veya süre doldu.',
+        );
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Bağlantı hatası oluştu.';
+        _error = userFacingErrorMessage(
+          e,
+          fallback: 'Bağlantı hatası oluştu. Tekrar dene.',
+        );
       });
     } finally {
       if (mounted) setState(() => _loading = false);

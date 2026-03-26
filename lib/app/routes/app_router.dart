@@ -15,6 +15,7 @@ import '../../features/home/screens/notifications_screen.dart';
 import '../../features/discover/screens/discover_screen.dart';
 import '../../features/discover/screens/search_screen.dart';
 import '../../features/book/screens/book_detail_screen.dart';
+import '../../features/book/screens/book_reviews_screen.dart';
 import '../../features/book/screens/reader_screen.dart';
 import '../../features/book/screens/series_screen.dart';
 import '../../features/library/screens/library_screen.dart';
@@ -161,6 +162,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(path: '/premium', builder: (_, __) => const PaywallScreen()),
+      GoRoute(
+        path: '/books/:slug/reviews',
+        builder: (_, state) => BookReviewsScreen(
+          slug: state.pathParameters['slug']!,
+        ),
+      ),
       GoRoute(
         path: '/books/:slug',
         builder: (_, state) =>

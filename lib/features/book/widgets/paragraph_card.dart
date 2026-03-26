@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/paragraph_model.dart';
+import '../../../core/utils/user_friendly_error.dart';
 import '../../../core/platform/browser_file_download.dart';
 import '../../../core/widgets/shareable_paragraph_overlay.dart';
 
@@ -328,19 +330,22 @@ class _ParagraphCardState extends State<ParagraphCard>
                 },
               ),
 
-              // Plain text share
               ListTile(
                 leading: const Icon(
-                  Icons.share_rounded,
+                  Icons.copy_rounded,
                   color: AppColors.primary,
                 ),
                 title: const Text(
-                  'Metin Olarak Paylaş',
+                  'Kopyala',
                   style: TextStyle(color: Colors.white),
+                ),
+                subtitle: Text(
+                  'Paragrafı panoya kopyala',
+                  style: TextStyle(color: Colors.white54, fontSize: 12),
                 ),
                 onTap: () {
                   Navigator.pop(sheetCtx);
-                  _shareParagraph();
+                  _copyParagraph(ctx);
                 },
               ),
 
@@ -564,17 +569,30 @@ class _ParagraphCardState extends State<ParagraphCard>
       if (parentCtx.mounted) {
         ScaffoldMessenger.of(
           parentCtx,
-        ).showSnackBar(SnackBar(content: Text('Hata: $e')));
+        ).showSnackBar(
+          SnackBar(
+            content: Text(
+              userFacingErrorMessage(
+                e,
+                fallback:
+                    'Görsel paylaşılamadı. Bağlantını kontrol edip tekrar dene.',
+              ),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isCapturing = false);
     }
   }
 
-  void _shareParagraph() {
-    Share.share(
-      '"${widget.paragraph.content}"\n\n— Kitaplig uygulamasından',
-      subject: 'Kitaplig',
+  Future<void> _copyParagraph(BuildContext messengerCtx) async {
+    final text = widget.paragraph.content.trim();
+    if (text.isEmpty) return;
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!messengerCtx.mounted) return;
+    ScaffoldMessenger.of(messengerCtx).showSnackBar(
+      const SnackBar(content: Text('Paragraf panoya kopyalandı')),
     );
   }
 }

@@ -38,11 +38,68 @@ import '../../profile/widgets/achievement_celebration_widget.dart';
 import '../../profile/widgets/delete_account_dialog.dart';
 import '../../profile/widgets/reading_heatmap_widget.dart';
 import '../../subscription/widgets/premium_badge.dart';
+import '../../../core/utils/user_friendly_error.dart';
 import '../../../core/widgets/shareable_quote_overlay.dart';
 import '../widgets/kids_mode_exit_dialog.dart';
 import '../widgets/kids_mode_pin_set_dialog.dart';
 import '../widgets/notification_bell_button.dart';
 import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
+
+Widget homeAsyncInlineRetry(
+  BuildContext context, {
+  required WidgetRef ref,
+  required Object error,
+  required VoidCallback onRetry,
+  required String hint,
+}) {
+  final cs = Theme.of(context).colorScheme;
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Material(
+      color: cs.surfaceContainerHighest.withValues(alpha: 0.45),
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.wifi_off_rounded, size: 22, color: cs.onSurfaceVariant),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    hint,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    userFacingErrorMessage(error),
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.35,
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: onRetry,
+              child: const Text('Tekrar'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -600,7 +657,13 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                   );
                 },
                 loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (err, _) => homeAsyncInlineRetry(
+                  context,
+                  ref: ref,
+                  error: err,
+                  onRetry: () => ref.invalidate(homeQuickCategoriesProvider),
+                  hint: 'Hızlı kategoriler yüklenemedi',
+                ),
               ),
 
               const SizedBox(height: 24),
@@ -708,7 +771,13 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                 loading: () => Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 ),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (err, _) => homeAsyncInlineRetry(
+                  context,
+                  ref: ref,
+                  error: err,
+                  onRetry: () => ref.invalidate(featuredBooksProvider),
+                  hint: 'Öne çıkan kitaplar yüklenemedi',
+                ),
               ),
             ],
           ),
@@ -827,9 +896,17 @@ class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
     } catch (e) {
       debugPrint('Share error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Hata: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userFacingErrorMessage(
+                e,
+                fallback:
+                    'Paylaşım veya kayıt sırasında bir sorun oluştu. Tekrar dene.',
+              ),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -1011,7 +1088,13 @@ class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
         ),
         child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       ),
-      error: (err, stack) => const SizedBox.shrink(),
+      error: (err, _) => homeAsyncInlineRetry(
+        context,
+        ref: ref,
+        error: err,
+        onRetry: () => ref.invalidate(dailyQuoteProvider),
+        hint: 'Günün sözü yüklenemedi',
+      ),
     );
   }
 }
@@ -1437,7 +1520,16 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
                 ),
               ),
               loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
+              error: (err, _) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: homeAsyncInlineRetry(
+                  context,
+                  ref: ref,
+                  error: err,
+                  onRetry: () => ref.invalidate(categoriesProvider),
+                  hint: 'Kategoriler yüklenemedi',
+                ),
+              ),
             ),
           ),
 
@@ -2195,7 +2287,13 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                     );
                   },
                   loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
+                  error: (err, _) => homeAsyncInlineRetry(
+                    context,
+                    ref: ref,
+                    error: err,
+                    onRetry: () => ref.invalidate(earnedAchievementsProvider),
+                    hint: 'Rozetler yüklenemedi',
+                  ),
                 ),
 
                 // --- Heatmap ---
@@ -3022,7 +3120,21 @@ class _KidsModePinMenuItem extends ConsumerWidget {
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
       ),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (err, _) => ListTile(
+        leading: Icon(Icons.error_outline_rounded, color: color),
+        title: const Text('Ebeveyn Şifresi'),
+        subtitle: Text(
+          userFacingErrorMessage(
+            err,
+            fallback: 'Yerel şifre bilgisi okunamadı.',
+          ),
+          maxLines: 3,
+        ),
+        trailing: TextButton(
+          onPressed: () => ref.invalidate(kidsModePinServiceProvider),
+          child: const Text('Tekrar'),
+        ),
+      ),
     );
   }
 }

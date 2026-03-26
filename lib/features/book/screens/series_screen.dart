@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/providers/series_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/utils/user_friendly_error.dart';
 
 class SeriesScreen extends ConsumerWidget {
   final int seriesId;
@@ -268,39 +269,101 @@ class SeriesScreen extends ConsumerWidget {
             ],
           );
         },
-        loading: () => Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
+        loading: () => _SeriesAsyncShell(
+          colorScheme: colorScheme,
+          child: const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
         ),
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.error_outline_rounded,
-                  size: 52,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Seri yüklenemedi',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
+        error: (e, _) => _SeriesAsyncShell(
+          colorScheme: colorScheme,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(32, 80, 32, 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.cloud_off_rounded,
+                    size: 52,
+                    color: colorScheme.onSurfaceVariant,
                   ),
-                ),
-                const SizedBox(height: 20),
-                FilledButton.tonal(
-                  onPressed: () => ref.refresh(seriesDetailProvider(seriesId)),
-                  child: const Text('Tekrar Dene'),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Text(
+                    'Seri yüklenemedi',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    userFacingErrorMessage(
+                      e,
+                      fallback:
+                          'Seri bilgisi alınamadı. Bağlantını kontrol edip tekrar dene.',
+                    ),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.45,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton.tonal(
+                    onPressed: () =>
+                        ref.refresh(seriesDetailProvider(seriesId)),
+                    child: const Text('Tekrar Dene'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SeriesAsyncShell extends StatelessWidget {
+  const _SeriesAsyncShell({
+    required this.colorScheme,
+    required this.child,
+  });
+
+  final ColorScheme colorScheme;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final pad = MediaQuery.paddingOf(context);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ColoredBox(color: colorScheme.surface, child: child),
+        Positioned(
+          top: pad.top + 6,
+          left: 12,
+          child: IconButton(
+            onPressed: () => context.pop(),
+            style: IconButton.styleFrom(
+              backgroundColor: colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.72),
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(40, 40),
+              maximumSize: const Size(40, 40),
+            ),
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: colorScheme.onSurface,
+              size: 16,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

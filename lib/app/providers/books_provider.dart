@@ -3,7 +3,6 @@ import '../../core/models/book_model.dart';
 import '../../core/models/category_model.dart';
 import '../../core/models/paragraph_model.dart';
 import '../../core/models/podcast_model.dart';
-import '../../core/models/review_model.dart';
 import '../../core/services/book_service.dart';
 import '../../core/services/offline_cache_service.dart';
 import '../../core/services/podcast_service.dart';
@@ -119,13 +118,14 @@ final podcastsProvider = FutureProvider.family<List<PodcastModel>, int>((
   return ref.read(podcastServiceProvider).getPodcasts(bookId);
 });
 
-final bookReviewsProvider = FutureProvider.family<List<ReviewModel>, int>((
-  ref,
-  bookId,
-) async {
-  final res = await ref.read(reviewServiceProvider).getReviews(bookId);
-  final data = res['data']['data'] as List<dynamic>;
-  return data.map((e) => ReviewModel.fromJson(e as Map<String, dynamic>)).toList();
+/// Kitap detayında ilk birkaç değerlendirme (tam liste için [BookReviewsScreen]).
+final bookReviewsPreviewProvider =
+    FutureProvider.family<ReviewPageResult, int>((ref, bookId) async {
+  return ref.read(reviewServiceProvider).fetchReviewsPage(
+        bookId: bookId,
+        page: 1,
+        perPage: 6,
+      );
 });
 
 final downloadedBooksProvider = FutureProvider<List<BookModel>>((ref) async {

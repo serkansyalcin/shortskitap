@@ -63,3 +63,30 @@ String _dioMessage(DioException e, {required String fallback}) {
       return fallback;
   }
 }
+
+String apiFormErrorMessage(
+  Object? error, {
+  String fallback = 'İşlem tamamlanamadı. Tekrar dene.',
+}) {
+  if (error is DioException) {
+    if (error.type != DioExceptionType.badResponse) {
+      return userFacingErrorMessage(error, fallback: fallback);
+    }
+    final data = error.response?.data;
+    if (data is Map<String, dynamic>) {
+      final msg = data['message'];
+      if (msg is String && msg.trim().isNotEmpty) {
+        return msg.trim();
+      }
+      final errors = data['errors'];
+      if (errors is Map && errors.isNotEmpty) {
+        final first = errors.values.first;
+        if (first is List && first.isNotEmpty) {
+          return first.first.toString();
+        }
+      }
+    }
+    return fallback;
+  }
+  return userFacingErrorMessage(error, fallback: fallback);
+}
