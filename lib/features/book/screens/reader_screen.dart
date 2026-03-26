@@ -418,17 +418,104 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         body: paragraphsAsync.when(
           data: (paragraphs) {
             if (paragraphs.isEmpty) {
-              return Center(
-                child: Text(
-                  'Bu kitapta henüz içerik yok.',
-                  style: TextStyle(color: palette.text),
-                ),
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          palette.background,
+                          palette.background.withValues(alpha: 0.98),
+                        ],
+                      ),
+                    ),
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(28, 88, 28, 32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.menu_book_rounded,
+                              size: 56,
+                              color: palette.muted,
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'Bu kitapta henüz içerik yok.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                                color: palette.text,
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Sol üstteki ok ile çıkabilirsin.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                height: 1.45,
+                                color: palette.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: _ReaderTopBar(
+                      readerTheme: readerTheme,
+                      fontFamily: readerFontFamily,
+                      isDownloaded: isDownloaded,
+                      isDownloading: isDownloading,
+                      onBack: () => _handleBack(context),
+                      onDownload: isDownloaded || isDownloading
+                          ? null
+                          : _downloadBook,
+                      onSettings: () =>
+                          _showReaderSettings(context, readerTheme),
+                    ),
+                  ),
+                ],
               );
             }
 
             if (progressAsync.isLoading && !progressAsync.hasValue) {
-              return Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  ColoredBox(color: palette.background),
+                  const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  ),
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: _ReaderTopBar(
+                      readerTheme: readerTheme,
+                      fontFamily: readerFontFamily,
+                      isDownloaded: isDownloaded,
+                      isDownloading: isDownloading,
+                      onBack: () => _handleBack(context),
+                      onDownload: isDownloaded || isDownloading
+                          ? null
+                          : _downloadBook,
+                      onSettings: () =>
+                          _showReaderSettings(context, readerTheme),
+                    ),
+                  ),
+                ],
               );
             }
 
@@ -555,55 +642,99 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               ],
             );
           },
-          loading: () => Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
+          loading: () => Stack(
+            fit: StackFit.expand,
+            children: [
+              ColoredBox(color: palette.background),
+              const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: _ReaderTopBar(
+                  readerTheme: readerTheme,
+                  fontFamily: readerFontFamily,
+                  isDownloaded: isDownloaded,
+                  isDownloading: isDownloading,
+                  onBack: () => _handleBack(context),
+                  onDownload:
+                      isDownloaded || isDownloading ? null : _downloadBook,
+                  onSettings: () =>
+                      _showReaderSettings(context, readerTheme),
+                ),
+              ),
+            ],
           ),
           error: (e, _) {
             final colorScheme = Theme.of(context).colorScheme;
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.cloud_off_rounded,
-                      size: 52,
-                      color: colorScheme.onSurfaceVariant,
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                ColoredBox(color: palette.background),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(28, 88, 28, 32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.cloud_off_rounded,
+                          size: 52,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Metinler yüklenemedi',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.onSurface,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          userFacingErrorMessage(
+                            e,
+                            fallback:
+                                'Paragraflar alınamadı. Bağlantını kontrol edip tekrar dene.',
+                          ),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.45,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        FilledButton.tonal(
+                          onPressed: () =>
+                              ref.refresh(paragraphsProvider(widget.bookId)),
+                          child: const Text('Tekrar Dene'),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Metinler yüklenemedi',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.onSurface,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      userFacingErrorMessage(
-                        e,
-                        fallback:
-                            'Paragraflar alınamadı. Bağlantını kontrol edip tekrar dene.',
-                      ),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        height: 1.45,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    FilledButton.tonal(
-                      onPressed: () =>
-                          ref.refresh(paragraphsProvider(widget.bookId)),
-                      child: const Text('Tekrar Dene'),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: _ReaderTopBar(
+                    readerTheme: readerTheme,
+                    fontFamily: readerFontFamily,
+                    isDownloaded: isDownloaded,
+                    isDownloading: isDownloading,
+                    onBack: () => _handleBack(context),
+                    onDownload:
+                        isDownloaded || isDownloading ? null : _downloadBook,
+                    onSettings: () =>
+                        _showReaderSettings(context, readerTheme),
+                  ),
+                ),
+              ],
             );
           },
         ),
