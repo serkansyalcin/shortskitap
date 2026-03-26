@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
@@ -522,7 +523,60 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                       ),
                     ),
                   ),
-                  SliverToBoxAdapter(child: SizedBox(height: bottomInset + 12)),
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                          child: Column(
+                            children: [
+                              Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 12,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      launchUrl(
+                                        Uri.parse(
+                                          'https://kitaplig.com/gizlilik-politikasi',
+                                        ),
+                                      );
+                                    },
+                                    child: const Text(
+                                      'Gizlilik Politikası',
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                        decoration: TextDecoration.underline,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () {
+                                      launchUrl(
+                                        Uri.parse(
+                                          'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
+                                        ),
+                                      );
+                                    },
+                                    child: const Text(
+                                      'Kullanım Şartları',
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                        decoration: TextDecoration.underline,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: bottomInset + 12),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -755,11 +809,16 @@ class _FeatureGrid extends StatelessWidget {
             (item) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF131313),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.07),
+                  ),
                 ),
                 child: Row(
                   children: [
