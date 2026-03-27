@@ -118,7 +118,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           children: [
                             const Align(
                               alignment: Alignment.center,
-                              child: BrandLogo(height: 72),
+                              child: BrandLogo(
+                                height: 72,
+                                trimRightPadding: true,
+                              ),
                             ),
                             const SizedBox(height: 24),
                             Text(

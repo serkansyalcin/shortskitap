@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/providers/achievements_provider.dart';
@@ -472,11 +473,11 @@ class _StatsGrid extends StatelessWidget {
       mainAxisSpacing: 10,
       crossAxisSpacing: 10,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.62,
+      childAspectRatio: 1.8,
       children: [
-        _StatCard('Okunan', '${stats.totalParagraphsRead}', Icons.menu_book_rounded),
+        _StatCard('Okunan', '${stats.totalParagraphsRead}', 'assets/icons/books-read.svg'),
         _StatCard('Başlanan', '${stats.startedBooks}', Icons.auto_stories_rounded),
-        _StatCard('Biten', '${stats.completedBooks}', Icons.task_alt_rounded),
+        _StatCard('Biten', '${stats.completedBooks}', 'assets/icons/line-dock.svg'),
         _StatCard('Seri', '${stats.currentStreak} gün', Icons.local_fire_department_rounded),
       ],
     );
@@ -1044,21 +1045,64 @@ class _StatCard extends StatelessWidget {
   const _StatCard(this.label, this.value, this.icon);
   final String label;
   final String value;
-  final IconData icon;
+  final Object icon;
   @override
-  Widget build(BuildContext context) => _Card(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: AppColors.primary, size: 28),
-            const SizedBox(height: 18),
-            Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 2),
-            Text(label),
-          ],
+  Widget build(BuildContext context) {
+    final mappedAsset = switch (label) {
+      'Okunan' => 'assets/icons/books-read.svg',
+      'Başlanan' || 'BaÅŸlanan' => 'assets/icons/books.svg',
+      'Biten' => 'assets/icons/line-dock.svg',
+      'Seri' => 'assets/icons/time.svg',
+      _ => null,
+    };
+    final svgAsset = icon is String ? icon as String : mappedAsset;
+
+    return _Card(
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: svgAsset != null
+                    ? SvgPicture.asset(
+                        svgAsset,
+                        colorFilter: const ColorFilter.mode(
+                          AppColors.primary,
+                          BlendMode.srcIn,
+                        ),
+                      )
+                    : Icon(icon as IconData, color: AppColors.primary, size: 26),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      value,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(label),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       );
+  }
 }
 
 class _MiniPill extends StatelessWidget {
