@@ -68,41 +68,10 @@ class KitapLigApp extends ConsumerWidget {
       themeMode: switch (settings.theme) {
         'dark' => ThemeMode.dark,
         'system' => ThemeMode.system,
-        'sepia' => ThemeMode.light,
         _ => ThemeMode.light,
       },
       routerConfig: router,
-      builder: (context, child) {
-        // Apply sepia overlay for sepia theme
-        if (settings.theme == 'sepia') {
-          return ColorFiltered(
-            colorFilter: const ColorFilter.matrix([
-              0.89,
-              0.09,
-              0.02,
-              0,
-              0,
-              0.60,
-              0.52,
-              0.08,
-              0,
-              0,
-              0.22,
-              0.18,
-              0.10,
-              0,
-              0,
-              0,
-              0,
-              0,
-              1,
-              0,
-            ]),
-            child: child!,
-          );
-        }
-        return child!;
-      },
+      builder: (context, child) => child!,
     );
   }
 }

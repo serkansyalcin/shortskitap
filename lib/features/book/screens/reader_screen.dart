@@ -208,7 +208,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 height: 64,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -821,22 +821,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     _ReaderSettingsSection(
                       title: 'Tema',
                       child: Row(
-                        children: ['light', 'dark', 'sepia'].map((t) {
+                        children: ['light', 'dark'].map((t) {
                           final labels = {
                             'light': 'Açık',
                             'dark': 'Koyu',
-                            'sepia': 'Sepya',
                           };
                           final icons = {
                             'light': Icons.light_mode_rounded,
                             'dark': Icons.dark_mode_rounded,
-                            'sepia': Icons.auto_stories_rounded,
                           };
                           return Expanded(
                             child: Padding(
-                              padding: EdgeInsets.only(
-                                right: t == 'sepia' ? 0 : 8,
-                              ),
+                              padding: EdgeInsets.only(right: t == 'dark' ? 0 : 8),
                               child: _ReaderOptionChip(
                                 label: labels[t]!,
                                 icon: icons[t]!,
@@ -1017,13 +1013,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         muted: Color(0xFF7A746B),
         divider: Color(0xFFD9D3C8),
         accent: AppColors.primary,
-      ),
-      'sepia' => const _ReaderPalette(
-        background: Color(0xFFF1E4C8),
-        text: Color(0xFF4A3928),
-        muted: Color(0xFF8E745C),
-        divider: Color(0xFFD7C3A1),
-        accent: Color(0xFF9A6B33),
       ),
       _ => const _ReaderPalette(
         background: Color(0xFF050505),

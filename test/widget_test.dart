@@ -17,7 +17,7 @@ void main() {
         routes: [
           GoRoute(
             path: '/test',
-            builder: (_, __) =>
+            builder: (context, state) =>
                 const Scaffold(body: Center(child: Text('Test Route Content'))),
           ),
         ],
@@ -43,7 +43,7 @@ void main() {
       expect(find.byType(MaterialApp), findsOneWidget);
     });
 
-    testWidgets('applies sepia builder wrapper when sepia theme is active', (
+    testWidgets('renders router content with dark theme override', (
       WidgetTester tester,
     ) async {
       final router = GoRouter(
@@ -51,8 +51,8 @@ void main() {
         routes: [
           GoRoute(
             path: '/test',
-            builder: (_, __) =>
-                const Scaffold(body: Center(child: Text('Sepia Route'))),
+            builder: (context, state) =>
+                const Scaffold(body: Center(child: Text('Dark Route'))),
           ),
         ],
       );
@@ -63,7 +63,7 @@ void main() {
             routerProvider.overrideWithValue(router),
             settingsProvider.overrideWith(
               (ref) => _TestSettingsNotifier(
-                const UserSettings(theme: 'sepia', onboardingDone: true),
+                const UserSettings(theme: 'dark', onboardingDone: true),
               ),
             ),
           ],
@@ -73,8 +73,9 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Sepia Route'), findsOneWidget);
-      expect(find.byType(ColorFiltered), findsWidgets);
+      expect(find.text('Dark Route'), findsOneWidget);
+      expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
+          ThemeMode.dark);
     });
   });
 }

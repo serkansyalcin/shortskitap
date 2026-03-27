@@ -157,7 +157,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
             child: Column(
               children: [
                 const SizedBox(height: 24),
-                const BrandLogo(height: 42),
+                const Center(
+                  child: BrandLogo(
+                    height: 52,
+                    trimRightPadding: true,
+                  ),
+                ),
                 Expanded(
                   child: PageView(
                     controller: _pageController,

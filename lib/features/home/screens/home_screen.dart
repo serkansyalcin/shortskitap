@@ -382,7 +382,7 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (isAuthenticated) const NotificationBellButton(),
-                      if (isAuthenticated) const SizedBox(width: 4),
+                      if (isAuthenticated) const SizedBox(width: 14),
                       Stack(
                         alignment: Alignment.center,
                         children: [

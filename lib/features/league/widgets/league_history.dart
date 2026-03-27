@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitaplig/app/providers/league_provider.dart';
+import 'package:kitaplig/app/theme/app_colors.dart';
 
 class LeagueHistory extends ConsumerWidget {
   const LeagueHistory({super.key});
@@ -11,9 +12,9 @@ class LeagueHistory extends ConsumerWidget {
 
     return historyAsync.when(
       loading: () => const Center(
-        child: CircularProgressIndicator(color: Color(0xFF22C55E)),
+        child: CircularProgressIndicator(color: AppColors.primary),
       ),
-      error: (_, __) => const _HistoryEmptyState(
+      error: (error, stackTrace) => const _HistoryEmptyState(
         icon: Icons.history_toggle_off_rounded,
         title: 'Geçmiş şu an alınamadı',
         subtitle: 'Sezon kayıtlarını birazdan tekrar yükleyebilirsin.',
@@ -30,7 +31,7 @@ class LeagueHistory extends ConsumerWidget {
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
           itemCount: history.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          separatorBuilder: (context, index) => const SizedBox(height: 10),
           itemBuilder: (context, i) => _HistoryCard(entry: history[i]),
         );
       },
@@ -43,15 +44,17 @@ class _HistoryCard extends StatelessWidget {
 
   final Map<String, dynamic> entry;
 
+  static const _dangerColor = Color(0xFFD95C5C);
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final result = entry['result'] as String?;
     final tone = switch (result) {
-      'promoted' => const Color(0xFF4ADE80),
-      'demoted' => const Color(0xFFF87171),
-      'stayed' => const Color(0xFFFBBF24),
+      'promoted' => AppColors.primary,
+      'demoted' => _dangerColor,
+      'stayed' => AppColors.accent,
       _ => theme.colorScheme.onSurfaceVariant,
     };
     final label = switch (result) {
@@ -64,9 +67,9 @@ class _HistoryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF151515) : theme.cardColor,
+        color: isDark ? AppColors.darkSurface : theme.cardColor,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
+        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.75)),
       ),
       child: Row(
         children: [
@@ -74,7 +77,7 @@ class _HistoryCard extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: tone.withOpacity(0.12),
+              color: tone.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(18),
             ),
             alignment: Alignment.center,
@@ -167,7 +170,7 @@ class _HistoryEmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 42, color: const Color(0xFF22C55E)),
+            Icon(icon, size: 42, color: AppColors.primary),
             const SizedBox(height: 12),
             Text(
               title,

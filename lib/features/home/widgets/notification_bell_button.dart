@@ -109,7 +109,11 @@ class _NotificationBellButtonState
   }
 
   Future<void> _handleNotificationTap(AppNotificationModel notification) async {
-    await ref.read(notificationCenterServiceProvider).markRead(notification.id);
+    try {
+      await ref
+          .read(notificationCenterServiceProvider)
+          .markRead(notification.id);
+    } catch (_) {}
     refreshNotificationProvidersForWidget(ref);
 
     if (!mounted || notification.deeplink == null) {
@@ -214,22 +218,34 @@ class _NotificationBellButtonState
         ),
         if (unreadCount > 0)
           Positioned(
-            right: 8,
-            top: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEF4444),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-              child: Text(
-                unreadCount > 99 ? '99+' : '$unreadCount',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
+            right: 2,
+            top: 2,
+            child: IgnorePointer(
+              child: Transform.translate(
+                offset: const Offset(6, -6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      width: 2,
+                    ),
+                  ),
+                  constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                  child: Text(
+                    unreadCount > 99 ? '99+' : '$unreadCount',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ),
               ),
             ),

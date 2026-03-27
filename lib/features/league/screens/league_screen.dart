@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kitaplig/app/theme/app_colors.dart';
 
 import 'package:kitaplig/app/providers/auth_provider.dart';
 import 'package:kitaplig/app/providers/kids_provider.dart';
@@ -53,7 +54,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
             color: Theme.of(context).colorScheme.primary,
           ),
         ),
-        error: (_, __) => _LeagueErrorState(
+        error: (error, stackTrace) => _LeagueErrorState(
           embedded: widget.embedded,
           onRetry: () => ref.refresh(myLeagueProvider),
         ),
@@ -105,8 +106,8 @@ class _LeagueContent extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: isDark
-              ? const [Color(0xFF0E1712), Color(0xFF0A0A0A)]
-              : const [Color(0xFFF7FAF5), Color(0xFFF0F5EF)],
+              ? const [AppColors.darkSurfaceHigh, AppColors.darkBackground]
+              : const [Color(0xFFFFFFFF), AppColors.lpGreen50],
         ),
       ),
       child: SafeArea(
@@ -153,13 +154,14 @@ class _LeagueContent extends StatelessWidget {
                     color: theme.cardColor,
                     borderRadius: BorderRadius.circular(30),
                     border: Border.all(
-                      color: theme.colorScheme.outline.withOpacity(0.75),
+                      color: theme.colorScheme.outline.withValues(alpha: 0.75),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(isDark ? 0.2 : 0.06),
+                        color: (isDark ? Colors.black : AppColors.accent)
+                            .withValues(alpha: isDark ? 0.2 : 0.06),
                         blurRadius: 26,
-                        offset: Offset(0, 16),
+                        offset: const Offset(0, 16),
                       ),
                     ],
                   ),
@@ -221,8 +223,8 @@ class _LeagueErrorState extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: isDark
-              ? const [Color(0xFF0E1712), Color(0xFF0A0A0A)]
-              : const [Color(0xFFF7FAF5), Color(0xFFF0F5EF)],
+              ? const [AppColors.darkSurfaceHigh, AppColors.darkBackground]
+              : const [Color(0xFFFFFFFF), AppColors.lpGreen50],
         ),
       ),
       child: SafeArea(
@@ -235,7 +237,7 @@ class _LeagueErrorState extends StatelessWidget {
                 color: theme.cardColor,
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(
-                  color: theme.colorScheme.outline.withOpacity(0.75),
+                  color: theme.colorScheme.outline.withValues(alpha: 0.75),
                 ),
               ),
               child: Column(
@@ -245,12 +247,12 @@ class _LeagueErrorState extends StatelessWidget {
                     width: 72,
                     height: 72,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF22C55E).withOpacity(0.12),
+                      color: AppColors.primary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: const Icon(
                       Icons.emoji_events_rounded,
-                      color: Color(0xFF22C55E),
+                      color: AppColors.primary,
                       size: 34,
                     ),
                   ),
@@ -301,9 +303,9 @@ class _DuelTabContent extends ConsumerWidget {
 
     return duelsAsync.when(
       loading: () => const Center(
-        child: CircularProgressIndicator(color: Color(0xFF22C55E)),
+        child: CircularProgressIndicator(color: AppColors.primary),
       ),
-      error: (err, __) => Center(
+      error: (err, stackTrace) => Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -452,9 +454,9 @@ class _DuelSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withOpacity(0.55),
+        color: theme.colorScheme.surface.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.18)),
+        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.18)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -535,10 +537,10 @@ class _DuelListTile extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isDark
-              ? Colors.white.withOpacity(0.03)
-              : Colors.black.withOpacity(0.02),
+              ? Colors.white.withValues(alpha: 0.03)
+              : AppColors.accent.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
+          border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
         ),
         child: Column(
           children: [
@@ -610,7 +612,7 @@ class _DuelListTile extends ConsumerWidget {
                       child: FilledButton(
                         onPressed: handleAccept,
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF22C55E),
+                          backgroundColor: AppColors.primary,
                         ),
                         child: const Text('Kabul Et'),
                       ),
@@ -658,9 +660,9 @@ class _DuelStatusIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = switch (status) {
-      'active' => Colors.orangeAccent,
-      'pending' => Colors.blueAccent,
-      'completed' => Colors.greenAccent,
+      'active' => AppColors.accent,
+      'pending' => AppColors.lpDGreen300,
+      'completed' => AppColors.primary,
       _ => Colors.grey,
     };
 
@@ -668,7 +670,7 @@ class _DuelStatusIcon extends StatelessWidget {
       width: 44,
       height: 44,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
       child: Icon(

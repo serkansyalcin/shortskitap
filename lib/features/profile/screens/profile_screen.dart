@@ -472,7 +472,7 @@ class _StatsGrid extends StatelessWidget {
       mainAxisSpacing: 10,
       crossAxisSpacing: 10,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.4,
+      childAspectRatio: 1.62,
       children: [
         _StatCard('Okunan', '${stats.totalParagraphsRead}', Icons.menu_book_rounded),
         _StatCard('Başlanan', '${stats.startedBooks}', Icons.auto_stories_rounded),
@@ -1049,10 +1049,12 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) => _Card(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: AppColors.primary),
-            const Spacer(),
+            Icon(icon, color: AppColors.primary, size: 28),
+            const SizedBox(height: 18),
             Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 2),
             Text(label),
           ],
         ),
