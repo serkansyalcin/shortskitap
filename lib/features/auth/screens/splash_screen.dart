@@ -43,11 +43,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     try {
       final auth = ref.read(authProvider);
       if (auth.isAuthenticated && auth.user != null) {
-        // Logged-in: configure with real user ID
         await SubscriptionService.configure(auth.user!.id.toString());
         await ref.read(subscriptionProvider.future);
       } else {
-        // Anonymous: configure without user ID so RC is ready
         await SubscriptionService.configureAnonymous();
       }
     } catch (e) {
@@ -65,6 +63,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       Future.delayed(const Duration(milliseconds: 250), _navigate);
       return;
     }
+
     _initSubscription();
 
     if (authState.status == AuthStatus.authenticated) {
@@ -86,7 +85,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final textTheme = Theme.of(context).textTheme;
+    final textTheme = theme.textTheme;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -110,54 +109,70 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         ),
                       );
                     },
-                    child: Column(
-                      children: [
-                        const BrandLogo(height: 72),
-                        const SizedBox(height: 24),
-                        Text(
-                          'Kısa paragraflarla daha çok oku.',
-                          style: textTheme.headlineLarge?.copyWith(
-                            color: theme.colorScheme.onSurface,
-                            height: 1.05,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Okuma ritmini kur, kategorilerini keşfet, ligde yüksel.',
-                          style: textTheme.bodyLarge?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            height: 1.55,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 22),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 9,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? AppColors.spotifyPanel.withValues(alpha: 0.92)
-                                : Colors.white.withValues(alpha: 0.82),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                              color: isDark
-                                  ? AppColors.outline
-                                  : theme.colorScheme.outline.withOpacity(0.75),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 560),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Align(
+                              alignment: Alignment.center,
+                              child: BrandLogo(
+                                height: 72,
+                                trimRightPadding: true,
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            'Okuma alışkanlığını hafiflet, sürekliliği büyüt',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w700,
+                            const SizedBox(height: 24),
+                            Text(
+                              'Kisa paragraflarla daha cok oku.',
+                              style: textTheme.headlineLarge?.copyWith(
+                                color: theme.colorScheme.onSurface,
+                                height: 1.05,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Okuma ritmini kur, kategorilerini kesfet, ligde yuksel.',
+                              style: textTheme.bodyLarge?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                height: 1.55,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 22),
+                            Align(
+                              alignment: Alignment.center,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 9,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? AppColors.spotifyPanel.withValues(alpha: 0.92)
+                                      : Colors.white.withValues(alpha: 0.82),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? AppColors.outline
+                                        : theme.colorScheme.outline.withValues(alpha: 0.75),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Okuma aliskanligini hafiflet, surekliligi buyut',
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                   const Spacer(),
@@ -178,7 +193,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       ),
                       const SizedBox(height: 14),
                       Text(
-                        'Hazırlanıyor',
+                        'Hazirlaniyor',
                         style: textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                           letterSpacing: 0.4,

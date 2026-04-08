@@ -15,6 +15,7 @@ import '../../../app/providers/voiceover_provider.dart';
 import '../../../core/services/auto_voiceover_service.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/paragraph_model.dart';
+import '../../../core/utils/user_friendly_error.dart';
 import '../../../core/platform/platform_support.dart';
 import '../../../features/subscription/widgets/ad_banner.dart';
 import '../widgets/paragraph_card.dart';
@@ -59,7 +60,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   double? _readerLineHeightOverride;
   bool _restoredInitialPage = false;
   bool _voiceoverLoading = false;
-  int? _currentParagraphId;
+  bool _currentParagraphHasAudio = false;
   late final AutoVoiceoverService _voiceoverService;
   final Map<int, String> _localHighlights = {};
 
@@ -116,13 +117,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   void _onPageChanged(int index) {
     final items = _lastBuiltItems;
     final paragraphOrder = _paragraphOrderForIndex(items, index);
-    final item = index < items.length ? items[index] : null;
-    final paragraphId = item is _ParagraphItem ? item.paragraph.id : null;
+    final paragraph = _paragraphForIndex(items, index);
 
     setState(() {
       _currentIndex = index;
       _currentParagraphOrder = paragraphOrder;
-      _currentParagraphId = paragraphId;
+      _currentParagraphHasAudio = paragraph?.hasAudio ?? false;
     });
     _showControlsTemporarily();
 
@@ -137,27 +137,34 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
 
     final voiceEnabled = ref.read(voiceoverEnabledProvider);
-    if (voiceEnabled && paragraphId != null) {
-      _triggerVoiceover(paragraphId, index);
-
-      // Trigger preload for the next page
-      if (index + 1 < items.length) {
-        final nextItem = items[index + 1];
-        if (nextItem is _ParagraphItem) {
-          _voiceoverService.preloadNextParagraph(
-            widget.bookId,
-            nextItem.paragraph.id,
-          );
-        }
-      }
+    if (voiceEnabled && paragraph != null && paragraph.hasAudio) {
+      unawaited(_syncVoiceoverForPage(items, paragraph, index));
+    } else if (voiceEnabled) {
+      _voiceoverService.stop();
+      setState(() => _voiceoverLoading = false);
     }
   }
 
-  Future<void> _triggerVoiceover(int paragraphId, int index) async {
+  Future<void> _syncVoiceoverForPage(
+    List<dynamic> items,
+    ParagraphModel paragraph,
+    int index,
+  ) async {
+    await _triggerVoiceover(paragraph, index);
+    if (!mounted || _currentIndex != index) return;
+
+    final nextParagraph = _nextParagraphAfterIndex(items, index);
+    if (nextParagraph != null && nextParagraph.hasAudio) {
+      await _voiceoverService.preloadNextParagraph(nextParagraph);
+    }
+  }
+
+  Future<void> _triggerVoiceover(ParagraphModel paragraph, int index) async {
+    if (!paragraph.hasAudio) return;
     if (!mounted) return;
     setState(() => _voiceoverLoading = true);
     try {
-      await _voiceoverService.playParagraph(widget.bookId, paragraphId);
+      await _voiceoverService.playParagraph(paragraph);
     } finally {
       if (mounted && _currentIndex == index) {
         setState(() => _voiceoverLoading = false);
@@ -170,12 +177,23 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (voiceEnabled) {
       ref.read(voiceoverEnabledProvider.notifier).state = false;
       _voiceoverService.disable();
+      setState(() => _voiceoverLoading = false);
     } else {
+      final currentParagraph = _paragraphForIndex(_lastBuiltItems, _currentIndex);
+      if (currentParagraph == null || !currentParagraph.hasAudio) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bu paragraf için hazır seslendirme bulunmuyor.'),
+          ),
+        );
+        return;
+      }
+
       ref.read(voiceoverEnabledProvider.notifier).state = true;
       _voiceoverService.enable();
-      if (_currentParagraphId != null) {
-        _triggerVoiceover(_currentParagraphId!, _currentIndex);
-      }
+      unawaited(
+        _syncVoiceoverForPage(_lastBuiltItems, currentParagraph, _currentIndex),
+      );
     }
   }
 
@@ -207,7 +225,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                 height: 64,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -340,11 +358,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   void _restoreInitialPageIfNeeded(int initialIndex) {
     if (_restoredInitialPage) return;
     _restoredInitialPage = true;
+    final paragraph = _paragraphForIndex(_lastBuiltItems, initialIndex);
     _currentIndex = initialIndex;
     _currentParagraphOrder = _paragraphOrderForIndex(
       _lastBuiltItems,
       initialIndex,
     );
+    _currentParagraphHasAudio = paragraph?.hasAudio ?? false;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_pageController.hasClients) return;
@@ -383,6 +403,24 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     return 1;
   }
 
+  ParagraphModel? _paragraphForIndex(List<dynamic> items, int index) {
+    if (items.isEmpty) return null;
+    final safeIndex = index.clamp(0, items.length - 1);
+    final item = items[safeIndex];
+    if (item is _ParagraphItem) return item.paragraph;
+    return null;
+  }
+
+  ParagraphModel? _nextParagraphAfterIndex(List<dynamic> items, int index) {
+    for (var i = index + 1; i < items.length; i++) {
+      final item = items[i];
+      if (item is _ParagraphItem) {
+        return item.paragraph;
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final paragraphsAsync = ref.watch(paragraphsProvider(widget.bookId));
@@ -417,17 +455,104 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         body: paragraphsAsync.when(
           data: (paragraphs) {
             if (paragraphs.isEmpty) {
-              return Center(
-                child: Text(
-                  'Bu kitapta henüz içerik yok.',
-                  style: TextStyle(color: palette.text),
-                ),
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          palette.background,
+                          palette.background.withValues(alpha: 0.98),
+                        ],
+                      ),
+                    ),
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(28, 88, 28, 32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.menu_book_rounded,
+                              size: 56,
+                              color: palette.muted,
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'Bu kitapta henüz içerik yok.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                                color: palette.text,
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Sol üstteki ok ile çıkabilirsin.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                height: 1.45,
+                                color: palette.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: _ReaderTopBar(
+                      readerTheme: readerTheme,
+                      fontFamily: readerFontFamily,
+                      isDownloaded: isDownloaded,
+                      isDownloading: isDownloading,
+                      onBack: () => _handleBack(context),
+                      onDownload: isDownloaded || isDownloading
+                          ? null
+                          : _downloadBook,
+                      onSettings: () =>
+                          _showReaderSettings(context, readerTheme),
+                    ),
+                  ),
+                ],
               );
             }
 
             if (progressAsync.isLoading && !progressAsync.hasValue) {
-              return Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  ColoredBox(color: palette.background),
+                  const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  ),
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: _ReaderTopBar(
+                      readerTheme: readerTheme,
+                      fontFamily: readerFontFamily,
+                      isDownloaded: isDownloaded,
+                      isDownloading: isDownloading,
+                      onBack: () => _handleBack(context),
+                      onDownload: isDownloaded || isDownloading
+                          ? null
+                          : _downloadBook,
+                      onSettings: () =>
+                          _showReaderSettings(context, readerTheme),
+                    ),
+                  ),
+                ],
               );
             }
 
@@ -546,6 +671,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       onPrev: _currentIndex > 0 ? _goPrev : null,
                       onNext: () => _goNext(items.length),
                       voiceoverEnabled: ref.watch(voiceoverEnabledProvider),
+                      voiceoverAvailable: _currentParagraphHasAudio,
                       voiceoverLoading: _voiceoverLoading,
                       onVoiceoverToggle: _toggleVoiceover,
                     ),
@@ -554,28 +680,101 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               ],
             );
           },
-          loading: () => Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
-          ),
-          error: (e, _) => Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Text('Yüklenemedi: $e', textAlign: TextAlign.center),
+          loading: () => Stack(
+            fit: StackFit.expand,
+            children: [
+              ColoredBox(color: palette.background),
+              const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: _ReaderTopBar(
+                  readerTheme: readerTheme,
+                  fontFamily: readerFontFamily,
+                  isDownloaded: isDownloaded,
+                  isDownloading: isDownloading,
+                  onBack: () => _handleBack(context),
+                  onDownload:
+                      isDownloaded || isDownloading ? null : _downloadBook,
+                  onSettings: () =>
+                      _showReaderSettings(context, readerTheme),
                 ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () =>
-                      ref.refresh(paragraphsProvider(widget.bookId)),
-                  child: const Text('Tekrar Dene'),
+              ),
+            ],
+          ),
+          error: (e, _) {
+            final colorScheme = Theme.of(context).colorScheme;
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                ColoredBox(color: palette.background),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(28, 88, 28, 32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.cloud_off_rounded,
+                          size: 52,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Metinler yüklenemedi',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.onSurface,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          userFacingErrorMessage(
+                            e,
+                            fallback:
+                                'Paragraflar alınamadı. Bağlantını kontrol edip tekrar dene.',
+                          ),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.45,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        FilledButton.tonal(
+                          onPressed: () =>
+                              ref.refresh(paragraphsProvider(widget.bookId)),
+                          child: const Text('Tekrar Dene'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: _ReaderTopBar(
+                    readerTheme: readerTheme,
+                    fontFamily: readerFontFamily,
+                    isDownloaded: isDownloaded,
+                    isDownloading: isDownloading,
+                    onBack: () => _handleBack(context),
+                    onDownload:
+                        isDownloaded || isDownloading ? null : _downloadBook,
+                    onSettings: () =>
+                        _showReaderSettings(context, readerTheme),
+                  ),
                 ),
               ],
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -660,22 +859,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     _ReaderSettingsSection(
                       title: 'Tema',
                       child: Row(
-                        children: ['light', 'dark', 'sepia'].map((t) {
+                        children: ['light', 'dark'].map((t) {
                           final labels = {
                             'light': 'Açık',
                             'dark': 'Koyu',
-                            'sepia': 'Sepya',
                           };
                           final icons = {
                             'light': Icons.light_mode_rounded,
                             'dark': Icons.dark_mode_rounded,
-                            'sepia': Icons.auto_stories_rounded,
                           };
                           return Expanded(
                             child: Padding(
-                              padding: EdgeInsets.only(
-                                right: t == 'sepia' ? 0 : 8,
-                              ),
+                              padding: EdgeInsets.only(right: t == 'dark' ? 0 : 8),
                               child: _ReaderOptionChip(
                                 label: labels[t]!,
                                 icon: icons[t]!,
@@ -856,13 +1051,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         muted: Color(0xFF7A746B),
         divider: Color(0xFFD9D3C8),
         accent: AppColors.primary,
-      ),
-      'sepia' => const _ReaderPalette(
-        background: Color(0xFFF1E4C8),
-        text: Color(0xFF4A3928),
-        muted: Color(0xFF8E745C),
-        divider: Color(0xFFD7C3A1),
-        accent: Color(0xFF9A6B33),
       ),
       _ => const _ReaderPalette(
         background: Color(0xFF050505),
@@ -1067,6 +1255,7 @@ class _ReaderBottomBar extends StatelessWidget {
   final VoidCallback? onPrev;
   final VoidCallback? onNext;
   final bool voiceoverEnabled;
+  final bool voiceoverAvailable;
   final bool voiceoverLoading;
   final VoidCallback? onVoiceoverToggle;
 
@@ -1078,6 +1267,7 @@ class _ReaderBottomBar extends StatelessWidget {
     this.onPrev,
     this.onNext,
     this.voiceoverEnabled = false,
+    this.voiceoverAvailable = false,
     this.voiceoverLoading = false,
     this.onVoiceoverToggle,
   });
@@ -1160,12 +1350,16 @@ class _ReaderBottomBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: voiceoverEnabled
                         ? AppColors.accent.withValues(alpha: 0.22)
-                        : Colors.white.withValues(alpha: isDark ? 0.08 : 0.18),
+                        : voiceoverAvailable
+                        ? Colors.white.withValues(alpha: isDark ? 0.08 : 0.18)
+                        : Colors.white.withValues(alpha: isDark ? 0.04 : 0.1),
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(
                       color: voiceoverEnabled
                           ? AppColors.accent.withValues(alpha: 0.55)
-                          : Colors.transparent,
+                          : voiceoverAvailable
+                          ? Colors.transparent
+                          : textColor.withValues(alpha: 0.15),
                     ),
                   ),
                   child: voiceoverLoading
@@ -1184,7 +1378,9 @@ class _ReaderBottomBar extends StatelessWidget {
                           size: 16,
                           color: voiceoverEnabled
                               ? AppColors.accent
-                              : textColor,
+                              : voiceoverAvailable
+                              ? textColor
+                              : textColor.withValues(alpha: 0.45),
                         ),
                 ),
               ),

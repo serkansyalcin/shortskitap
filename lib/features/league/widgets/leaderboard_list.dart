@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kitaplig/app/providers/duel_provider.dart';
 import 'package:kitaplig/app/providers/league_provider.dart';
+import 'package:kitaplig/app/theme/app_colors.dart';
 import 'package:kitaplig/core/models/league_model.dart';
 
 import '../../subscription/widgets/premium_badge.dart';
@@ -18,6 +19,8 @@ class LeaderboardList extends ConsumerWidget {
   final LeagueMembershipModel membership;
   final bool isKidsMode;
 
+  static const _dangerColor = Color(0xFFD95C5C);
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -25,9 +28,9 @@ class LeaderboardList extends ConsumerWidget {
 
     return boardAsync.when(
       loading: () => const Center(
-        child: CircularProgressIndicator(color: Color(0xFF22C55E)),
+        child: CircularProgressIndicator(color: AppColors.primary),
       ),
-      error: (_, __) => Center(
+      error: (error, stackTrace) => Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -83,11 +86,11 @@ class LeaderboardList extends ConsumerWidget {
     for (final entry in entries) {
       if (entry.rank == membership.promotionZone + 1) {
         rows.add(
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
             child: _ZoneDivider(
-              label: isKidsMode ? 'Ödül çizgisi' : 'Terfi çizgisi',
-              color: const Color(0xFF4ADE80),
+              label: 'Terfi çizgisi',
+              color: AppColors.primary,
             ),
           ),
         );
@@ -95,11 +98,11 @@ class LeaderboardList extends ConsumerWidget {
 
       if (entry.rank == membership.demotionZone) {
         rows.add(
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
             child: _ZoneDivider(
-              label: isKidsMode ? 'Uyarı çizgisi' : 'Düşme çizgisi',
-              color: const Color(0xFFF87171),
+              label: 'Düşme çizgisi',
+              color: _dangerColor,
             ),
           ),
         );
@@ -136,9 +139,9 @@ class _LeagueSummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF181818) : theme.cardColor,
+        color: isDark ? AppColors.darkSurfaceHigh : theme.cardColor,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
+        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.75)),
       ),
       child: Row(
         children: [
@@ -146,10 +149,10 @@ class _LeagueSummaryCard extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: const Color(0xFF22C55E).withOpacity(0.14),
+              color: AppColors.primary.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(Icons.insights_rounded, color: Color(0xFF22C55E)),
+            child: const Icon(Icons.insights_rounded, color: AppColors.primary),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -195,26 +198,28 @@ class _LeaderboardTile extends StatelessWidget {
   final bool isDemotionZone;
   final bool isKidsMode;
 
+  static const _dangerColor = Color(0xFFD95C5C);
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     final borderColor = entry.isMe
-        ? const Color(0xFFFBBF24)
+        ? AppColors.accent
         : isPromotionZone
-        ? const Color(0xFF4ADE80)
+        ? AppColors.primary
         : isDemotionZone
-        ? const Color(0xFFF87171)
-        : theme.colorScheme.outline.withOpacity(isDark ? 0.8 : 0.7);
+        ? _dangerColor
+        : theme.colorScheme.outline.withValues(alpha: isDark ? 0.8 : 0.7);
 
     final background = entry.isMe
-        ? (isDark ? const Color(0xFF201A08) : const Color(0xFFFFF6DE))
+        ? (isDark ? AppColors.darkSurfaceMuted : AppColors.lpGreen50)
         : isPromotionZone
-        ? (isDark ? const Color(0xFF102014) : const Color(0xFFEFFBF1))
+        ? (isDark ? const Color(0xFF102014) : const Color(0xFFF1F8EC))
         : isDemotionZone
-        ? (isDark ? const Color(0xFF231212) : const Color(0xFFFFF0F0))
-        : (isDark ? const Color(0xFF151515) : theme.cardColor);
+        ? (isDark ? const Color(0xFF231212) : const Color(0xFFFFF2F2))
+        : (isDark ? AppColors.darkSurface : theme.cardColor);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -268,13 +273,13 @@ class _LeaderboardTile extends StatelessWidget {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFBBF24),
+                                  color: AppColors.primary,
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: const Text(
                                   'Sen',
                                   style: TextStyle(
-                                    color: Colors.black,
+                                    color: Colors.white,
                                     fontWeight: FontWeight.w800,
                                     fontSize: 11,
                                   ),
@@ -341,11 +346,11 @@ class _LeaderboardTile extends StatelessWidget {
                     existingDuel.isPending &&
                     existingDuel.challengerId == entry.userId;
                 final actionLabel = existingDuel == null
-                    ? 'Düello Et'
+                    ? 'Düello et'
                     : existingDuel.isActive
-                    ? 'Düelloya Git'
+                    ? 'Düelloya git'
                     : hasIncomingPending
-                    ? 'Teklifi Gör'
+                    ? 'Teklifi gör'
                     : 'Gönderildi';
                 final promptLabel = existingDuel == null
                     ? 'Rekabet etmek ister misin?'
@@ -427,9 +432,9 @@ class _LeaderboardTile extends StatelessWidget {
 
   Color _resultColor(String result) {
     return switch (result) {
-      'promoted' => const Color(0xFF4ADE80),
-      'demoted' => const Color(0xFFF87171),
-      _ => Colors.grey.shade500,
+      'promoted' => AppColors.primary,
+      'demoted' => _dangerColor,
+      _ => AppColors.lpDGreen300,
     };
   }
 }
@@ -447,21 +452,21 @@ class _RankBadge extends StatelessWidget {
     if (rank == 1) {
       return const Icon(
         Icons.workspace_premium,
-        color: Color(0xFFFBBF24),
+        color: Color(0xFFB5892E),
         size: 30,
       );
     }
     if (rank == 2) {
       return const Icon(
         Icons.workspace_premium,
-        color: Color(0xFFD1D5DB),
+        color: Color(0xFF94A3B8),
         size: 30,
       );
     }
     if (rank == 3) {
       return const Icon(
         Icons.workspace_premium,
-        color: Color(0xFFB45309),
+        color: Color(0xFF8F6135),
         size: 30,
       );
     }
@@ -471,7 +476,7 @@ class _RankBadge extends StatelessWidget {
       height: 42,
       decoration: BoxDecoration(
         color: isDark
-            ? const Color(0xFF1F1F1F)
+            ? AppColors.darkSurfaceMuted
             : theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(14),
       ),
@@ -497,7 +502,7 @@ class _ZoneDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Divider(color: color.withOpacity(0.7))),
+        Expanded(child: Divider(color: color.withValues(alpha: 0.7))),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Text(
@@ -509,7 +514,7 @@ class _ZoneDivider extends StatelessWidget {
             ),
           ),
         ),
-        Expanded(child: Divider(color: color.withOpacity(0.7))),
+        Expanded(child: Divider(color: color.withValues(alpha: 0.7))),
       ],
     );
   }

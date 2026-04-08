@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kitaplig/app/theme/app_colors.dart';
 
 class LeagueEmptyState extends StatelessWidget {
   final IconData icon;
@@ -22,7 +23,7 @@ class LeagueEmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 42, color: const Color(0xFF22C55E)),
+            Icon(icon, size: 42, color: AppColors.primary),
             const SizedBox(height: 12),
             Text(
               title,

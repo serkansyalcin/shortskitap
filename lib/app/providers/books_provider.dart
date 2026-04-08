@@ -3,11 +3,11 @@ import '../../core/models/book_model.dart';
 import '../../core/models/category_model.dart';
 import '../../core/models/paragraph_model.dart';
 import '../../core/models/podcast_model.dart';
-import '../../core/models/review_model.dart';
 import '../../core/services/book_service.dart';
 import '../../core/services/offline_cache_service.dart';
 import '../../core/services/podcast_service.dart';
 import '../../core/services/review_service.dart';
+import 'auth_provider.dart';
 import 'kids_provider.dart';
 import 'subscription_provider.dart';
 
@@ -118,21 +118,29 @@ final podcastsProvider = FutureProvider.family<List<PodcastModel>, int>((
   return ref.read(podcastServiceProvider).getPodcasts(bookId);
 });
 
-final bookReviewsProvider = FutureProvider.family<List<ReviewModel>, int>((
-  ref,
-  bookId,
-) async {
-  final res = await ref.read(reviewServiceProvider).getReviews(bookId);
-  final data = res['data']['data'] as List<dynamic>;
-  return data.map((e) => ReviewModel.fromJson(e as Map<String, dynamic>)).toList();
+/// Kitap detayında ilk birkaç değerlendirme (tam liste için [BookReviewsScreen]).
+final bookReviewsPreviewProvider =
+    FutureProvider.family<ReviewPageResult, int>((ref, bookId) async {
+  return ref.read(reviewServiceProvider).fetchReviewsPage(
+        bookId: bookId,
+        page: 1,
+        perPage: 6,
+      );
 });
 
 final downloadedBooksProvider = FutureProvider<List<BookModel>>((ref) async {
+  final auth = ref.watch(authProvider);
   final isPremium = ref.watch(isPremiumProvider);
-  if (!isPremium) return const <BookModel>[];
+  final books = await ref.read(offlineCacheServiceProvider).getCachedBooks();
+
+  final allowOfflineDownloads =
+      auth.isOfflineSession && books.isNotEmpty;
+
+  if (!isPremium && !allowOfflineDownloads) {
+    return const <BookModel>[];
+  }
 
   final isKids = ref.watch(kidsModeProvider);
-  final books = await ref.read(offlineCacheServiceProvider).getCachedBooks();
   if (isKids) {
     return books.where((book) => book.isKids).toList(growable: false);
   }

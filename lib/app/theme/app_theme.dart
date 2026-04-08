@@ -9,29 +9,25 @@ class AppTheme {
     background: AppColors.lightBackground,
     surface: AppColors.lightSurface,
     surfaceHigh: AppColors.lightSurfaceHigh,
+    surfaceMuted: AppColors.lightSurfaceMuted,
     text: AppColors.lightText,
     textSecondary: AppColors.lightTextSecondary,
     outline: AppColors.lightOutline,
+    primaryForeground: AppColors.textOnBrand,
+    snackBarBackground: AppColors.lpDGreen500,
   );
 
   static ThemeData get dark => _buildTheme(
     brightness: Brightness.dark,
     background: AppColors.darkBackground,
     surface: AppColors.darkSurface,
-    surfaceHigh: AppColors.spotifyPanel,
+    surfaceHigh: AppColors.darkSurfaceHigh,
+    surfaceMuted: AppColors.darkSurfaceMuted,
     text: AppColors.darkText,
     textSecondary: AppColors.darkTextSecondary,
     outline: AppColors.outline,
-  );
-
-  static ThemeData get sepia => _buildTheme(
-    brightness: Brightness.light,
-    background: AppColors.sepiaBackground,
-    surface: AppColors.sepiaSurface,
-    surfaceHigh: AppColors.sepiaSurface,
-    text: AppColors.sepiaText,
-    textSecondary: AppColors.sepiaTextSecondary,
-    outline: const Color(0xFFD1C1A2),
+    primaryForeground: AppColors.textOnBrand,
+    snackBarBackground: AppColors.spotifyPanelHigh,
   );
 
   static ThemeData _buildTheme({
@@ -39,9 +35,12 @@ class AppTheme {
     required Color background,
     required Color surface,
     required Color surfaceHigh,
+    required Color surfaceMuted,
     required Color text,
     required Color textSecondary,
     required Color outline,
+    required Color primaryForeground,
+    required Color snackBarBackground,
   }) {
     final isDark = brightness == Brightness.dark;
     final colorScheme =
@@ -51,11 +50,27 @@ class AppTheme {
           surface: surface,
         ).copyWith(
           primary: AppColors.primary,
-          onPrimary: Colors.black,
-          secondary: AppColors.primaryLight,
-          onSecondary: Colors.black,
+          onPrimary: primaryForeground,
+          primaryContainer: isDark
+              ? AppColors.lpDGreen600
+              : AppColors.lpGreen100,
+          onPrimaryContainer: isDark
+              ? AppColors.lpGreen100
+              : AppColors.lpGreen900,
+          secondary: AppColors.accent,
+          onSecondary: Colors.white,
+          secondaryContainer: isDark
+              ? AppColors.lpDGreen500
+              : AppColors.lpGreen50,
+          onSecondaryContainer: isDark
+              ? AppColors.lpDGreen50
+              : AppColors.lpDGreen500,
           surface: surface,
           onSurface: text,
+          surfaceTint: Colors.transparent,
+          surfaceContainerHighest: surfaceMuted,
+          surfaceContainerHigh: surfaceHigh,
+          onSurfaceVariant: textSecondary,
           outline: outline,
           error: const Color(0xFFFF6B6B),
           onError: Colors.white,
@@ -122,6 +137,13 @@ class AppTheme {
       dividerColor: outline,
       splashColor: AppColors.primary.withValues(alpha: 0.12),
       highlightColor: AppColors.primary.withValues(alpha: 0.08),
+      cardTheme: CardThemeData(
+        color: surfaceHigh,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
       textTheme: textTheme,
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
@@ -151,23 +173,39 @@ class AppTheme {
           );
         }),
       ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: primaryForeground,
+          disabledBackgroundColor: surfaceMuted,
+          disabledForegroundColor: textSecondary,
+          minimumSize: const Size(double.infinity, 56),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          textStyle: textTheme.titleMedium,
+        ),
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
-          foregroundColor: Colors.black,
-          disabledBackgroundColor: surfaceHigh,
+          foregroundColor: primaryForeground,
+          disabledBackgroundColor: surfaceMuted,
           disabledForegroundColor: textSecondary,
           minimumSize: const Size(double.infinity, 56),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
           elevation: 0,
           shadowColor: Colors.transparent,
-          shape: const StadiumBorder(),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           textStyle: textTheme.titleMedium,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.primaryLight,
+          foregroundColor: AppColors.primary,
           textStyle: textTheme.labelLarge,
         ),
       ),
@@ -241,7 +279,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surfaceHigh,
+        fillColor: surfaceMuted,
         labelStyle: TextStyle(color: textSecondary),
         hintStyle: TextStyle(color: textSecondary),
         prefixIconColor: textSecondary,
@@ -280,12 +318,13 @@ class AppTheme {
         ),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: isDark
-            ? AppColors.spotifyPanelHigh
-            : AppColors.sepiaText,
+        backgroundColor: snackBarBackground,
         contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: AppColors.primary,
       ),
       useMaterial3: true,
     );
@@ -295,8 +334,6 @@ class AppTheme {
     switch (theme) {
       case 'dark':
         return dark;
-      case 'sepia':
-        return sepia;
       default:
         return light;
     }

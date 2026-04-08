@@ -1,9 +1,10 @@
+import 'dart:async';
+
 import 'package:just_audio/just_audio.dart';
 
-import '../api/api_client.dart';
+import '../models/paragraph_model.dart';
 
 class AutoVoiceoverService {
-  final ApiClient _client = ApiClient.instance;
   final AudioPlayer _player1 = AudioPlayer();
   final AudioPlayer _player2 = AudioPlayer();
   bool _usePlayer1 = true;
@@ -16,7 +17,9 @@ class AutoVoiceoverService {
 
   int? _currentParagraphId;
   int? _nextPreloadedParagraphId;
-  int? _fetchingParagraphId;
+  String? _nextPreloadedAudioUrl;
+  int _playRequestVersion = 0;
+  int _preloadRequestVersion = 0;
 
   bool get isEnabled => _enabled;
   bool get isLoading => _loading;
@@ -31,83 +34,91 @@ class AutoVoiceoverService {
     stop();
   }
 
-  /// Fetches (or returns cached) TTS audio URL and plays it.
-  /// [paragraphId] is the DB id of the paragraph.
-  Future<bool> playParagraph(int bookId, int paragraphId) async {
+  Future<bool> playParagraph(ParagraphModel paragraph) async {
     if (!_enabled) return false;
+    if (!paragraph.hasAudio) return false;
 
-    _currentParagraphId = paragraphId;
+    final requestVersion = ++_playRequestVersion;
+    _preloadRequestVersion++;
+    _currentParagraphId = paragraph.id;
+    final audioUrl = paragraph.audioUrl!;
+    final activePlayer = _currentPlayer;
+    final standbyPlayer = _nextPlayer;
 
-    // Is it already preloaded in the inactive player?
-    if (_nextPreloadedParagraphId == paragraphId) {
-      await _currentPlayer.stop();
-      _usePlayer1 = !_usePlayer1; // Swap players
-      _currentPlayer.play(); // Play instantly from the already buffered player
-      _nextPreloadedParagraphId = null;
+    if (_nextPreloadedParagraphId == paragraph.id &&
+        _nextPreloadedAudioUrl == audioUrl) {
+      await activePlayer.stop();
+      if (!_isLatestPlayRequest(requestVersion, paragraph.id)) return false;
+      _usePlayer1 = !_usePlayer1;
+      await standbyPlayer.seek(Duration.zero);
+      if (!_isLatestPlayRequest(requestVersion, paragraph.id)) return false;
+      unawaited(standbyPlayer.play());
+      _clearPreloadedState();
       return true;
     }
 
-    // Standard cold fetch
     _loading = true;
-    _fetchingParagraphId = paragraphId;
     try {
-      await _currentPlayer.stop();
-      await _nextPlayer.stop();
+      await activePlayer.stop();
+      await standbyPlayer.stop();
+      _clearPreloadedState();
+      await activePlayer.setUrl(audioUrl);
+      if (!_isLatestPlayRequest(requestVersion, paragraph.id)) return false;
 
-      final res = await _client.get(
-        '/books/$bookId/paragraphs/$paragraphId/audio',
-      );
-
-      // Stop processing if user already swiped away
-      if (_fetchingParagraphId != paragraphId) return false;
-
-      final audioUrl = res.data['data']?['audio_url'] as String?;
-      if (audioUrl == null || audioUrl.isEmpty) return false;
-
-      await _currentPlayer.setUrl(audioUrl);
-      
-      // Stop processing if user swiped away while setUrl was buffering
-      if (_fetchingParagraphId != paragraphId) return false;
-
-      await _currentPlayer.play();
+      await activePlayer.seek(Duration.zero);
+      if (!_isLatestPlayRequest(requestVersion, paragraph.id)) return false;
+      unawaited(activePlayer.play());
       return true;
     } catch (_) {
       return false;
     } finally {
-      if (_fetchingParagraphId == paragraphId) {
+      if (_playRequestVersion == requestVersion) {
         _loading = false;
-        _fetchingParagraphId = null;
       }
     }
   }
 
-  /// Preloads the audio for the next paragraph in the background.
-  Future<void> preloadNextParagraph(int bookId, int paragraphId) async {
+  Future<void> preloadNextParagraph(ParagraphModel paragraph) async {
     if (!_enabled) return;
-    if (_nextPreloadedParagraphId == paragraphId) return; // already buffering the right one
-    if (_currentParagraphId == paragraphId || _fetchingParagraphId == paragraphId) return;
+    if (!paragraph.hasAudio) return;
+    if (_nextPreloadedParagraphId == paragraph.id &&
+        _nextPreloadedAudioUrl == paragraph.audioUrl) {
+      return;
+    }
+    if (_currentParagraphId == paragraph.id) return;
 
-    _nextPreloadedParagraphId = paragraphId;
+    final requestVersion = ++_preloadRequestVersion;
+    final preloadPlayer = _nextPlayer;
+    _clearPreloadedState();
     try {
-      final res = await _client.get('/books/$bookId/paragraphs/$paragraphId/audio');
-      
-      if (_nextPreloadedParagraphId != paragraphId) return;
-
-      final audioUrl = res.data['data']?['audio_url'] as String?;
-      if (audioUrl == null || audioUrl.isEmpty) return;
-      
-      // Buffer it into the inactive player
-      await _nextPlayer.setUrl(audioUrl);
+      await preloadPlayer.stop();
+      if (_preloadRequestVersion != requestVersion) return;
+      await preloadPlayer.setUrl(paragraph.audioUrl!);
+      if (_preloadRequestVersion != requestVersion) return;
+      if (_currentParagraphId == paragraph.id) return;
+      _nextPreloadedParagraphId = paragraph.id;
+      _nextPreloadedAudioUrl = paragraph.audioUrl;
     } catch (_) {}
   }
 
   Future<void> stop() async {
+    _playRequestVersion++;
+    _preloadRequestVersion++;
     await _player1.stop();
     await _player2.stop();
     _currentParagraphId = null;
-    _nextPreloadedParagraphId = null;
-    _fetchingParagraphId = null;
+    _clearPreloadedState();
     _loading = false;
+  }
+
+  bool _isLatestPlayRequest(int requestVersion, int paragraphId) {
+    return _playRequestVersion == requestVersion &&
+        _currentParagraphId == paragraphId;
+  }
+
+  void _clearPreloadedState() {
+    _nextPreloadedParagraphId = null;
+    _nextPreloadedAudioUrl = null;
   }
 
   void dispose() {

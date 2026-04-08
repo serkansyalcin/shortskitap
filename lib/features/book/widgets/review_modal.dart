@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
-import '../../../core/services/review_service.dart';
-import '../../../app/theme/app_colors.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ReviewModal extends StatefulWidget {
+import '../../../app/providers/books_provider.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../../core/services/review_service.dart';
+import '../../../core/utils/user_friendly_error.dart';
+
+class ReviewModal extends ConsumerStatefulWidget {
   final int bookId;
 
   const ReviewModal({super.key, required this.bookId});
 
   @override
-  State<ReviewModal> createState() => _ReviewModalState();
+  ConsumerState<ReviewModal> createState() => _ReviewModalState();
 
   static void show(BuildContext context, int bookId) {
     showModalBottomSheet<void>(
@@ -20,7 +24,7 @@ class ReviewModal extends StatefulWidget {
   }
 }
 
-class _ReviewModalState extends State<ReviewModal> {
+class _ReviewModalState extends ConsumerState<ReviewModal> {
   final _commentCtrl = TextEditingController();
   int _rating = 0;
   bool _isSubmitting = false;
@@ -49,6 +53,7 @@ class _ReviewModalState extends State<ReviewModal> {
         comment: _commentCtrl.text,
       );
       if (!mounted) return;
+      ref.invalidate(bookReviewsPreviewProvider(widget.bookId));
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Değerlendirmeniz için teşekkürler!')),
@@ -56,7 +61,15 @@ class _ReviewModalState extends State<ReviewModal> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Değerlendirme kaydedilemedi. Lütfen giriş yaptığınızı kontrol edin.')),
+        SnackBar(
+          content: Text(
+            userFacingErrorMessage(
+              e,
+              fallback:
+                  'Değerlendirme kaydedilemedi. Giriş yaptığını kontrol edip tekrar dene.',
+            ),
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -66,7 +79,6 @@ class _ReviewModalState extends State<ReviewModal> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // final isDark = theme.brightness == Brightness.dark;
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -119,7 +131,9 @@ class _ReviewModalState extends State<ReviewModal> {
                   onPressed: () => setState(() => _rating = starValue),
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   icon: Icon(
-                    starValue <= _rating ? Icons.star_rounded : Icons.star_border_rounded,
+                    starValue <= _rating
+                        ? Icons.star_rounded
+                        : Icons.star_border_rounded,
                     size: 42,
                     color: const Color(0xFFFFC107),
                   ),
@@ -134,7 +148,8 @@ class _ReviewModalState extends State<ReviewModal> {
               decoration: InputDecoration(
                 hintText: 'Kitap hakkında düşünceleriniz... (İsteğe bağlı)',
                 filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+                fillColor:
+                    theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
@@ -154,8 +169,19 @@ class _ReviewModalState extends State<ReviewModal> {
                 elevation: 0,
               ),
               child: _isSubmitting
-                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('Değerlendirmeyi Gönder', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text(
+                      'Değerlendirmeyi Gönder',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
             ),
           ],
         ),

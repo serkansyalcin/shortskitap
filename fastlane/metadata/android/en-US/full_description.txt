@@ -24,7 +24,7 @@ Scroll like social media, read books. One paragraph per screen — stay focused,
 • Track your progress with detailed stats
 
 🌙 Customizable Reading Experience
-• Light, dark, and sepia themes
+• Light and dark themes
 • Font size adjustment
 • Offline reading support
 

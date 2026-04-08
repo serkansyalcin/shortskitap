@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kitaplig/app/providers/auth_provider.dart';
 import 'package:kitaplig/app/providers/league_provider.dart';
+import 'package:kitaplig/app/theme/app_colors.dart';
 
 /// Compact league card shown on the home screen.
 class LeagueMiniCard extends ConsumerWidget {
@@ -16,19 +17,17 @@ class LeagueMiniCard extends ConsumerWidget {
     }
 
     final leagueAsync = ref.watch(myLeagueProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return leagueAsync.when(
       loading: () => const SizedBox(
         height: 72,
         child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
       ),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (error, stackTrace) => const SizedBox.shrink(),
       data: (status) {
         final m = status.membership;
         final s = status.season;
-        final tierColor = Color(
-          int.parse(m.tierColor.replaceFirst('#', 'FF'), radix: 16),
-        );
 
         return GestureDetector(
           onTap: () => context.go('/league'),
@@ -36,14 +35,22 @@ class LeagueMiniCard extends ConsumerWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [tierColor, tierColor.withOpacity(0.75)],
+                colors: isDark
+                    ? const [AppColors.darkSurfaceHigh, AppColors.darkSurface]
+                    : const [AppColors.primary, AppColors.lpGreen600],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark
+                    ? AppColors.primary.withValues(alpha: 0.18)
+                    : AppColors.lpGreen700.withValues(alpha: 0.18),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: tierColor.withOpacity(0.35),
+                  color: (isDark ? AppColors.primary : AppColors.accent)
+                      .withValues(alpha: isDark ? 0.16 : 0.2),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -69,7 +76,7 @@ class LeagueMiniCard extends ConsumerWidget {
                       Text(
                         '#${m.rank} sıra  •  ${m.weeklyLp} LP  •  ${s.daysRemaining}g kaldı',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.86),
                           fontSize: 12,
                         ),
                       ),
@@ -77,12 +84,16 @@ class LeagueMiniCard extends ConsumerWidget {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.shield_rounded, color: Colors.white, size: 12),
+                            const Icon(
+                              Icons.shield_rounded,
+                              color: Colors.white,
+                              size: 12,
+                            ),
                             const SizedBox(width: 4),
                             Text(
-                              '${m.streakShields} Kalkan Aktif',
+                              '${m.streakShields} Kalkan aktif',
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
+                                color: Colors.white.withValues(alpha: 0.92),
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -93,7 +104,6 @@ class LeagueMiniCard extends ConsumerWidget {
                     ],
                   ),
                 ),
-                // Mini progress to promotion
                 Column(
                   children: [
                     if (m.isInPromotionZone)
@@ -103,7 +113,7 @@ class LeagueMiniCard extends ConsumerWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text(
@@ -130,16 +140,16 @@ class LeagueMiniCard extends ConsumerWidget {
                           Text(
                             'terfiye',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.6),
+                              color: Colors.white.withValues(alpha: 0.7),
                               fontSize: 10,
                             ),
                           ),
                         ],
                       ),
                     const SizedBox(height: 6),
-                    const Icon(
+                    Icon(
                       Icons.chevron_right,
-                      color: Colors.white54,
+                      color: Colors.white.withValues(alpha: 0.7),
                       size: 18,
                     ),
                   ],

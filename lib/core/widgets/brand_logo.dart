@@ -6,12 +6,14 @@ class BrandLogo extends StatelessWidget {
   final BrandLogoVariant variant;
   final double height;
   final BoxFit fit;
+  final bool trimRightPadding;
 
   const BrandLogo({
     super.key,
     this.variant = BrandLogoVariant.auto,
     this.height = 44,
     this.fit = BoxFit.contain,
+    this.trimRightPadding = false,
   });
 
   String _assetPath(BuildContext context) {
@@ -31,12 +33,23 @@ class BrandLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final image = Image.asset(
+      _assetPath(context),
+      fit: fit,
+      alignment: Alignment.centerLeft,
+    );
+
     return SizedBox(
       height: height,
-      child: Image.asset(
-        _assetPath(context),
-        fit: fit,
-      ),
+      child: trimRightPadding
+          ? ClipRect(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                widthFactor: 0.6,
+                child: image,
+              ),
+            )
+          : image,
     );
   }
 }

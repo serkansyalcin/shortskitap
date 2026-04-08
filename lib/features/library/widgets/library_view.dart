@@ -13,6 +13,7 @@ import '../../../core/models/book_model.dart';
 import '../../../core/models/favorite_model.dart';
 import '../../../core/models/highlight_model.dart';
 import '../../../core/models/progress_model.dart';
+import '../../../core/utils/user_friendly_error.dart';
 import '../../../core/widgets/animated_segmented_control.dart';
 
 enum _LibraryMode {
@@ -36,6 +37,13 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<bool>(libraryFocusDownloadsProvider, (previous, next) {
+      if (next == true && mounted) {
+        setState(() => _mode = _LibraryMode.downloaded);
+        ref.read(libraryFocusDownloadsProvider.notifier).state = false;
+      }
+    });
+
     final authState = ref.watch(authProvider);
     if (authState.status == AuthStatus.unknown) {
       return const SafeArea(
@@ -54,7 +62,7 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
     final rawProgress = progressAsync.valueOrNull ?? const <ProgressModel>[];
     final rawFavorites = favoritesAsync.valueOrNull ?? const <FavoriteModel>[];
     final rawHighlights =
-        highlightsAsync.valueOrNull ?? const <HighlightModel>[];
+        highlightsAsync.valueOrNull?.items ?? const <HighlightModel>[];
 
     final allProgress = isKidsMode
         ? rawProgress
@@ -97,7 +105,8 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
                       completed: completedProgress.length,
                       downloaded: downloadedBooks.length,
                       favorites: favorites.length,
-                      highlights: highlights.length,
+                      highlights: highlightsAsync.valueOrNull?.total ??
+                          highlights.length,
                     )
                   : null,
             ),
@@ -161,6 +170,20 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
                   onRetryProgress: () => ref.invalidate(allProgressProvider),
                   onRetryFavorites: () => ref.invalidate(favoritesProvider),
                   onRetryHighlights: () => ref.invalidate(highlightsProvider),
+                  onOpenHighlightsTab: () =>
+                      setState(() => _mode = _LibraryMode.highlights),
+                  onLoadMoreHighlights: () async {
+                    try {
+                      await ref.read(highlightsProvider.notifier).loadMore();
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(userFacingErrorMessage(e)),
+                        ),
+                      );
+                    }
+                  },
                   progressAsync: progressAsync,
                   favoritesAsync: favoritesAsync,
                   highlightsAsync: highlightsAsync,
@@ -186,9 +209,11 @@ class _LibraryModeContent extends StatelessWidget {
   final VoidCallback onRetryProgress;
   final VoidCallback onRetryFavorites;
   final VoidCallback onRetryHighlights;
+  final VoidCallback onOpenHighlightsTab;
+  final Future<void> Function() onLoadMoreHighlights;
   final AsyncValue<List<ProgressModel>> progressAsync;
   final AsyncValue<List<FavoriteModel>> favoritesAsync;
-  final AsyncValue<List<HighlightModel>> highlightsAsync;
+  final AsyncValue<HighlightsListState> highlightsAsync;
   final AsyncValue<List<BookModel>> downloadedAsync;
   final List<ProgressModel> allProgress;
   final List<ProgressModel> activeProgress;
@@ -202,6 +227,8 @@ class _LibraryModeContent extends StatelessWidget {
     required this.onRetryProgress,
     required this.onRetryFavorites,
     required this.onRetryHighlights,
+    required this.onOpenHighlightsTab,
+    required this.onLoadMoreHighlights,
     required this.progressAsync,
     required this.favoritesAsync,
     required this.highlightsAsync,
@@ -381,7 +408,7 @@ class _LibraryModeContent extends StatelessWidget {
               buttonLabel: 'Tekrar dene',
               onPressed: onRetryHighlights,
             ),
-            data: (_) {
+            data: (hlState) {
               if (highlights.isEmpty) {
                 return const _InlineInfoCard(
                   title: 'Henüz kayıtlı alıntın yok',
@@ -390,17 +417,65 @@ class _LibraryModeContent extends StatelessWidget {
                 );
               }
 
-              final limit = mode == _LibraryMode.highlights ? 12 : 8;
+              final overviewPreview = mode == _LibraryMode.overview;
+              final previewCap = 6;
+              final displayCount = overviewPreview
+                  ? (highlights.length < previewCap
+                      ? highlights.length
+                      : previewCap)
+                  : highlights.length;
+
               return Column(
-                children: List.generate(
-                  highlights.length.clamp(0, limit),
-                  (index) => Padding(
-                    padding: EdgeInsets.only(
-                      bottom: index == limit - 1 ? 0 : 12,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ...List.generate(
+                    displayCount,
+                    (index) => Padding(
+                      padding: EdgeInsets.only(
+                        bottom: index == displayCount - 1 ? 0 : 12,
+                      ),
+                      child: _HighlightCard(highlight: highlights[index]),
                     ),
-                    child: _HighlightCard(highlight: highlights[index]),
                   ),
-                ),
+                  if (overviewPreview &&
+                      hlState.total > displayCount) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Toplam ${hlState.total} alıntı kayıtlı. Hepsini görmek için Alıntı sekmesine geçebilirsin.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
+                            height: 1.4,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: onOpenHighlightsTab,
+                        child: const Text('Alıntıları aç'),
+                      ),
+                    ),
+                  ],
+                  if (mode == _LibraryMode.highlights) ...[
+                    if (hlState.isLoadingMore)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      )
+                    else if (hlState.hasMore)
+                      TextButton.icon(
+                        onPressed: () => onLoadMoreHighlights(),
+                        icon: const Icon(Icons.expand_more_rounded),
+                        label: const Text('Daha fazla yükle'),
+                      ),
+                  ],
+                ],
               );
             },
           ),
@@ -413,7 +488,7 @@ class _LibraryModeContent extends StatelessWidget {
 class _LibraryHero extends StatelessWidget {
   final AsyncValue<List<ProgressModel>> progressAsync;
   final AsyncValue<List<FavoriteModel>> favoritesAsync;
-  final AsyncValue<List<HighlightModel>> highlightsAsync;
+  final AsyncValue<HighlightsListState> highlightsAsync;
   final AsyncValue<List<BookModel>> downloadedAsync;
   final ({
     int progress,
@@ -444,8 +519,10 @@ class _LibraryHero extends StatelessWidget {
         filteredCounts?.downloaded ?? downloadedAsync.valueOrNull?.length ?? 0;
     final favoritesCount =
         filteredCounts?.favorites ?? favoritesAsync.valueOrNull?.length ?? 0;
-    final highlightsCount =
-        filteredCounts?.highlights ?? highlightsAsync.valueOrNull?.length ?? 0;
+    final highlightsCount = filteredCounts?.highlights ??
+        highlightsAsync.valueOrNull?.total ??
+        highlightsAsync.valueOrNull?.items.length ??
+        0;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -745,8 +822,8 @@ class _ProgressCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     progress.isCompleted
-                        ? 'Tamamlandi'
-                        : '%${progress.completionPercentage.toStringAsFixed(0)} tamamlandi',
+                        ? 'Tamamlandı'
+                        : '%${progress.completionPercentage.toStringAsFixed(0)} tamamlandı',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w700,
@@ -958,9 +1035,17 @@ class _DownloadedBookCard extends ConsumerWidget {
       );
     } catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Kaldırma tamamlanamadı: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            userFacingErrorMessage(
+              error,
+              fallback:
+                  'Kaldırma tamamlanamadı. Bağlantını kontrol edip tekrar dene.',
+            ),
+          ),
+        ),
+      );
     }
   }
 }

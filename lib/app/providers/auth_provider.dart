@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -7,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/api/api_client.dart';
 import '../../core/models/user_model.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/cached_user_store.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
@@ -15,14 +17,26 @@ class AuthState {
   final UserModel? user;
   final String? error;
 
-  const AuthState({required this.status, this.user, this.error});
+  /// True when `/me` could not be reached but a locally cached profile is used.
+  final bool isOfflineSession;
+
+  const AuthState({
+    required this.status,
+    this.user,
+    this.error,
+    this.isOfflineSession = false,
+  });
 
   const AuthState.unknown() : this(status: AuthStatus.unknown);
 
-  const AuthState.authenticated(UserModel user)
-    : this(status: AuthStatus.authenticated, user: user);
+  AuthState.authenticated(UserModel user, {bool offlineSession = false})
+    : status = AuthStatus.authenticated,
+      user = user,
+      error = null,
+      isOfflineSession = offlineSession;
 
-  const AuthState.unauthenticated() : this(status: AuthStatus.unauthenticated);
+  const AuthState.unauthenticated()
+    : this(status: AuthStatus.unauthenticated);
 
   bool get isAuthenticated => status == AuthStatus.authenticated;
 }
@@ -41,19 +55,39 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return;
     }
 
-    final user = await _service.getMe();
-    if (user != null) {
-      state = AuthState.authenticated(user);
-    } else {
-      await ApiClient.clearToken();
-      state = const AuthState.unauthenticated();
+    final (result, user) = await _service.fetchSessionUser();
+    switch (result) {
+      case SessionFetchResult.success:
+        if (user != null) {
+          await CachedUserStore.save(user);
+          state = AuthState.authenticated(user, offlineSession: false);
+        } else {
+          await ApiClient.clearToken();
+          await CachedUserStore.clear();
+          state = const AuthState.unauthenticated();
+        }
+        break;
+      case SessionFetchResult.unauthorized:
+        await ApiClient.clearToken();
+        await CachedUserStore.clear();
+        state = const AuthState.unauthenticated();
+        break;
+      case SessionFetchResult.offline:
+        final cached = await CachedUserStore.load();
+        if (cached != null) {
+          state = AuthState.authenticated(cached, offlineSession: true);
+        } else {
+          state = const AuthState.unauthenticated();
+        }
+        break;
     }
   }
 
   Future<bool> login(String email, String password) async {
     try {
       final result = await _service.login(email, password);
-      state = AuthState.authenticated(result.user);
+      await CachedUserStore.save(result.user);
+      state = AuthState.authenticated(result.user, offlineSession: false);
       _syncOnboardingPrefs();
       return true;
     } catch (e) {
@@ -80,7 +114,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         acceptTerms: acceptTerms,
         acceptPrivacyPolicy: acceptPrivacyPolicy,
       );
-      state = AuthState.authenticated(result.user);
+      await CachedUserStore.save(result.user);
+      state = AuthState.authenticated(result.user, offlineSession: false);
       _syncOnboardingPrefs();
       return true;
     } catch (e) {
@@ -94,12 +129,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     await _service.logout();
+    await CachedUserStore.clear();
     state = const AuthState.unauthenticated();
   }
 
   Future<bool> deleteAccount(String password) async {
     try {
       await _service.deleteAccount(password);
+      await CachedUserStore.clear();
       state = const AuthState.unauthenticated();
       return true;
     } catch (_) {
@@ -128,46 +165,59 @@ class AuthNotifier extends StateNotifier<AuthState> {
         avatarBytes: avatarBytes,
         avatarFileName: avatarFileName,
       );
-      state = AuthState.authenticated(user);
+      await CachedUserStore.save(user);
+      state = AuthState.authenticated(user, offlineSession: false);
       return true;
     } catch (e) {
       state = AuthState(
         status: AuthStatus.authenticated,
         user: state.user,
         error: _parseError(e),
+        isOfflineSession: state.isOfflineSession,
       );
       return false;
     }
   }
 
   Future<bool> refreshMe() async {
-    try {
-      final user = await _service.getMe();
-      if (user == null) {
+    final token = await ApiClient.getToken();
+    if (token == null) {
+      state = const AuthState.unauthenticated();
+      return false;
+    }
+
+    final (result, user) = await _service.fetchSessionUser();
+    switch (result) {
+      case SessionFetchResult.success:
+        if (user != null) {
+          await CachedUserStore.save(user);
+          state = AuthState.authenticated(user, offlineSession: false);
+          return true;
+        }
         await ApiClient.clearToken();
+        await CachedUserStore.clear();
         state = const AuthState.unauthenticated();
         return false;
-      }
-
-      final currentUser = state.user;
-      if (currentUser != null && _isSameUser(currentUser, user)) {
-        return true;
-      }
-
-      state = AuthState.authenticated(user);
-      return true;
-    } catch (e) {
-      state = AuthState(
-        status: state.status,
-        user: state.user,
-        error: _parseError(e),
-      );
-      return false;
+      case SessionFetchResult.unauthorized:
+        await ApiClient.clearToken();
+        await CachedUserStore.clear();
+        state = const AuthState.unauthenticated();
+        return false;
+      case SessionFetchResult.offline:
+        final cached = await CachedUserStore.load();
+        final fallback = state.user ?? cached;
+        if (fallback != null) {
+          state = AuthState.authenticated(fallback, offlineSession: true);
+          return true;
+        }
+        state = const AuthState.unauthenticated();
+        return false;
     }
   }
 
   void updateUser(UserModel user) {
-    state = AuthState.authenticated(user);
+    state = AuthState.authenticated(user, offlineSession: false);
+    unawaited(CachedUserStore.save(user));
     _syncOnboardingPrefs();
   }
 
@@ -185,22 +235,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         await refreshMe();
       }
     } catch (_) {}
-  }
-
-  bool _isSameUser(UserModel a, UserModel b) {
-    return a.id == b.id &&
-        a.name == b.name &&
-        a.username == b.username &&
-        a.email == b.email &&
-        a.avatarUrl == b.avatarUrl &&
-        a.provider == b.provider &&
-        a.isPremium == b.isPremium &&
-        a.premiumExpiresAt == b.premiumExpiresAt &&
-        a.dailyGoal == b.dailyGoal &&
-        a.preferredTheme == b.preferredTheme &&
-        a.preferredFontSize == b.preferredFontSize &&
-        a.termsAcceptedAt == b.termsAcceptedAt &&
-        a.privacyPolicyAcceptedAt == b.privacyPolicyAcceptedAt;
   }
 
   String _parseError(dynamic error) {

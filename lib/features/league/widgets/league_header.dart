@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kitaplig/app/theme/app_colors.dart';
 import 'package:kitaplig/core/models/league_model.dart';
 
 class LeagueHeader extends StatelessWidget {
@@ -14,19 +15,24 @@ class LeagueHeader extends StatelessWidget {
     this.isKidsMode = false,
   });
 
+  static const _dangerColor = Color(0xFFD95C5C);
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final membership = status.membership;
     final season = status.season;
-    final tierColor = Color(
-      int.parse(membership.tierColor.replaceFirst('#', 'FF'), radix: 16),
-    );
     final progressToPromotion =
         membership.lpToPromotion == null || membership.lpToPromotion! <= 0
         ? 1.0
         : (1 - (membership.lpToPromotion! / 600).clamp(0, 1)).toDouble();
+
+    final shellColor =
+        isDark ? AppColors.darkSurfaceHigh : AppColors.lightSurfaceMuted;
+    final panelColor = isDark ? AppColors.darkSurface : Colors.white;
+    final promotionColor = isDark ? AppColors.primaryLight : AppColors.primary;
+    final neutralColor = isDark ? AppColors.lpGreen300 : AppColors.lpDGreen400;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
@@ -35,17 +41,21 @@ class LeagueHeader extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            tierColor.withOpacity(isDark ? 0.30 : 0.24),
-            isDark ? const Color(0xFF151515) : const Color(0xFFF8F4EA),
+            shellColor,
+            isDark ? AppColors.darkBackground : Colors.white,
           ],
         ),
         borderRadius: BorderRadius.circular(32),
         border: Border.all(
-          color: tierColor.withOpacity(isDark ? 0.35 : 0.24),
+          color: (isDark ? AppColors.primary : AppColors.accent).withValues(
+            alpha: isDark ? 0.22 : 0.16,
+          ),
         ),
         boxShadow: [
           BoxShadow(
-            color: tierColor.withOpacity(0.16),
+            color: (isDark ? AppColors.primary : AppColors.accent).withValues(
+              alpha: isDark ? 0.16 : 0.08,
+            ),
             blurRadius: 34,
             offset: const Offset(0, 18),
           ),
@@ -71,8 +81,8 @@ class LeagueHeader extends StatelessWidget {
                   ),
                   style: IconButton.styleFrom(
                     backgroundColor: isDark
-                        ? Colors.white.withOpacity(0.10)
-                        : Colors.white.withOpacity(0.68),
+                        ? AppColors.darkSurfaceMuted.withValues(alpha: 0.96)
+                        : Colors.white.withValues(alpha: 0.94),
                   ),
                 )
               else
@@ -85,13 +95,13 @@ class LeagueHeader extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.white.withOpacity(0.10)
-                      : Colors.white.withOpacity(0.62),
+                      ? AppColors.darkSurfaceMuted.withValues(alpha: 0.96)
+                      : Colors.white.withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(999),
                   border: Border.all(
                     color: isDark
-                        ? Colors.white.withOpacity(0.12)
-                        : Colors.white.withOpacity(0.72),
+                        ? AppColors.primary.withValues(alpha: 0.16)
+                        : AppColors.lightOutline.withValues(alpha: 0.95),
                   ),
                 ),
                 child: Row(
@@ -107,9 +117,19 @@ class LeagueHeader extends StatelessWidget {
                     ),
                     if (membership.streakShields > 0) ...[
                       const SizedBox(width: 8),
-                      Container(width: 1, height: 12, color: theme.colorScheme.onSurface.withOpacity(0.2)),
+                      Container(
+                        width: 1,
+                        height: 12,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.2,
+                        ),
+                      ),
                       const SizedBox(width: 8),
-                      const Icon(Icons.shield_rounded, color: Colors.blueAccent, size: 14),
+                      Icon(
+                        Icons.shield_rounded,
+                        color: isDark ? AppColors.lpGreen300 : AppColors.accent,
+                        size: 14,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         'x${membership.streakShields}',
@@ -134,13 +154,13 @@ class LeagueHeader extends StatelessWidget {
               height: 86,
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.white.withOpacity(0.08)
-                    : Colors.white.withOpacity(0.52),
+                    ? AppColors.darkSurfaceMuted.withValues(alpha: 0.96)
+                    : Colors.white.withValues(alpha: 0.8),
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: isDark
-                      ? Colors.white.withOpacity(0.12)
-                      : Colors.white.withOpacity(0.68),
+                      ? AppColors.primary.withValues(alpha: 0.18)
+                      : AppColors.lightOutline.withValues(alpha: 0.95),
                 ),
               ),
               alignment: Alignment.center,
@@ -172,13 +192,13 @@ class LeagueHeader extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: isDark
-                  ? const Color(0xFF101010).withOpacity(0.74)
-                  : Colors.white.withOpacity(0.72),
+                  ? panelColor.withValues(alpha: 0.94)
+                  : Colors.white.withValues(alpha: 0.92),
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
                 color: isDark
-                    ? Colors.white.withOpacity(0.08)
-                    : theme.colorScheme.outline.withOpacity(0.5),
+                    ? AppColors.primary.withValues(alpha: 0.12)
+                    : AppColors.lightOutline.withValues(alpha: 0.95),
               ),
             ),
             child: Column(
@@ -191,7 +211,7 @@ class LeagueHeader extends StatelessWidget {
                         label: 'Bu hafta',
                         value:
                             '${membership.weeklyLp} ${isKidsMode ? 'Puan' : 'LP'}',
-                        accent: const Color(0xFFFBBF24),
+                        accent: AppColors.primary,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -200,7 +220,7 @@ class LeagueHeader extends StatelessWidget {
                         icon: Icons.military_tech_rounded,
                         label: 'Sıralama',
                         value: '#${membership.rank}',
-                        accent: const Color(0xFF60A5FA),
+                        accent: AppColors.accent,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -217,7 +237,7 @@ class LeagueHeader extends StatelessWidget {
                                 membership.lpToPromotion! > 0
                             ? '${membership.lpToPromotion} LP'
                             : 'Hazır',
-                        accent: const Color(0xFF22C55E),
+                        accent: AppColors.lpGreen700,
                       ),
                     ),
                   ],
@@ -250,10 +270,10 @@ class LeagueHeader extends StatelessWidget {
                           : 'Hedefe yaklaş',
                       style: TextStyle(
                         color: membership.isInPromotionZone
-                            ? const Color(0xFF4ADE80)
+                            ? promotionColor
                             : membership.isInDemotionZone
-                            ? const Color(0xFFF87171)
-                            : const Color(0xFFFBBF24),
+                            ? _dangerColor
+                            : neutralColor,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
@@ -267,11 +287,11 @@ class LeagueHeader extends StatelessWidget {
                     value: progressToPromotion,
                     minHeight: 8,
                     backgroundColor: isDark
-                        ? Colors.white.withOpacity(0.08)
-                        : theme.colorScheme.outline.withOpacity(0.28),
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : theme.colorScheme.outline.withValues(alpha: 0.28),
                     color: membership.isInDemotionZone
-                        ? const Color(0xFFF87171)
-                        : tierColor,
+                        ? _dangerColor
+                        : promotionColor,
                   ),
                 ),
               ],
@@ -304,13 +324,13 @@ class _HeaderMetric extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.white.withOpacity(0.05)
-            : Colors.white.withOpacity(0.56),
+            ? AppColors.darkSurfaceMuted.withValues(alpha: 0.74)
+            : AppColors.lightSurface.withValues(alpha: 0.96),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : theme.colorScheme.outline.withOpacity(0.45),
+              ? AppColors.primary.withValues(alpha: 0.08)
+              : theme.colorScheme.outline.withValues(alpha: 0.45),
         ),
       ),
       child: Column(

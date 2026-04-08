@@ -3,6 +3,8 @@ import 'package:kitaplig/app/providers/auth_provider.dart';
 import 'package:kitaplig/core/api/api_client.dart';
 import 'package:kitaplig/core/models/app_notification_model.dart';
 import 'package:kitaplig/core/services/notification_center_service.dart';
+import 'package:dio/dio.dart';
+import 'package:kitaplig/core/utils/user_friendly_error.dart';
 
 final notificationCenterServiceProvider = Provider<NotificationCenterService>((
   ref,
@@ -16,7 +18,13 @@ final unreadNotificationsCountProvider = FutureProvider<int>((ref) async {
     return 0;
   }
 
-  return ref.read(notificationCenterServiceProvider).getUnreadCount();
+  try {
+    return await ref.read(notificationCenterServiceProvider).getUnreadCount();
+  } on DioException {
+    return 0;
+  } catch (_) {
+    return 0;
+  }
 });
 
 final notificationPreviewProvider = FutureProvider<NotificationPageModel>((
@@ -27,9 +35,15 @@ final notificationPreviewProvider = FutureProvider<NotificationPageModel>((
     return const NotificationPageModel.empty();
   }
 
-  return ref
-      .read(notificationCenterServiceProvider)
-      .fetchNotifications(limit: 5);
+  try {
+    return await ref
+        .read(notificationCenterServiceProvider)
+        .fetchNotifications(limit: 5);
+  } on DioException {
+    return const NotificationPageModel.empty();
+  } catch (_) {
+    return const NotificationPageModel.empty();
+  }
 });
 
 void refreshNotificationProviders(Ref ref) {
@@ -126,7 +140,10 @@ class NotificationsFeedNotifier extends StateNotifier<NotificationsFeedState> {
     } catch (error) {
       state = state.copyWith(
         isLoadingInitial: false,
-        errorMessage: error.toString(),
+        errorMessage: userFacingErrorMessage(
+          error,
+          fallback: 'Bildirimler su anda yuklenemiyor. Lutfen biraz sonra tekrar deneyin.',
+        ),
       );
     }
   }
@@ -159,7 +176,10 @@ class NotificationsFeedNotifier extends StateNotifier<NotificationsFeedState> {
     } catch (error) {
       state = state.copyWith(
         isLoadingMore: false,
-        errorMessage: error.toString(),
+        errorMessage: userFacingErrorMessage(
+          error,
+          fallback: 'Daha fazla bildirim yuklenemedi.',
+        ),
       );
     }
   }
@@ -167,6 +187,8 @@ class NotificationsFeedNotifier extends StateNotifier<NotificationsFeedState> {
   Future<void> markAsRead(AppNotificationModel notification) async {
     try {
       await _service.markRead(notification.id);
+    } catch (_) {
+      // Keep the UI responsive even if the backend mark-read call fails.
     } finally {
       _setItemsAsRead([notification.id]);
       refreshNotificationProviders(_ref);

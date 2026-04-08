@@ -5,6 +5,39 @@ import 'package:dio/dio.dart';
 import '../api/api_client.dart';
 import '../models/user_model.dart';
 
+/// Result of validating the stored session against `/me`.
+enum SessionFetchResult {
+  success,
+  unauthorized,
+  offline,
+}
+
+bool _isUnreachableDioError(DioException e) {
+  switch (e.type) {
+    case DioExceptionType.connectionTimeout:
+    case DioExceptionType.sendTimeout:
+    case DioExceptionType.receiveTimeout:
+    case DioExceptionType.connectionError:
+      return true;
+    case DioExceptionType.badCertificate:
+      return true;
+    case DioExceptionType.badResponse:
+      final code = e.response?.statusCode;
+      return code == null || code >= 500;
+    case DioExceptionType.cancel:
+      return false;
+    case DioExceptionType.unknown:
+      final err = e.error;
+      final errStr = err?.toString().toLowerCase() ?? '';
+      if (errStr.contains('socketexception')) return true;
+      final msg = (e.message ?? '').toLowerCase();
+      return msg.contains('socket') ||
+          msg.contains('network') ||
+          msg.contains('failed host lookup') ||
+          msg.contains('connection refused');
+  }
+}
+
 class AuthService {
   final ApiClient _client = ApiClient.instance;
 
@@ -50,13 +83,33 @@ class AuthService {
     await ApiClient.clearToken();
   }
 
-  Future<UserModel?> getMe() async {
+  /// Distinguishes invalid token (401) from network/API unreachable.
+  Future<(SessionFetchResult, UserModel?)> fetchSessionUser() async {
     try {
       final res = await _client.get('/me');
-      return UserModel.fromJson(res.data['data'] as Map<String, dynamic>);
+      final user = UserModel.fromJson(res.data['data'] as Map<String, dynamic>);
+      return (SessionFetchResult.success, user);
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401) {
+        return (SessionFetchResult.unauthorized, null);
+      }
+      if (_isUnreachableDioError(e)) {
+        return (SessionFetchResult.offline, null);
+      }
+      if (code != null && code >= 400 && code < 500) {
+        return (SessionFetchResult.unauthorized, null);
+      }
+      return (SessionFetchResult.offline, null);
     } catch (_) {
-      return null;
+      return (SessionFetchResult.offline, null);
     }
+  }
+
+  Future<UserModel?> getMe() async {
+    final (result, user) = await fetchSessionUser();
+    if (result == SessionFetchResult.success) return user;
+    return null;
   }
 
   Future<UserModel> updateMe({

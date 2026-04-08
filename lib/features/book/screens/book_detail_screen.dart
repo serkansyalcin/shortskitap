@@ -13,8 +13,10 @@ import '../../../app/providers/series_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/book_model.dart';
+import '../../../core/utils/user_friendly_error.dart';
 import '../../../core/models/progress_model.dart';
 import '../../../features/subscription/widgets/premium_badge.dart';
+import '../widgets/book_review_tile.dart';
 import '../widgets/character_card_widget.dart';
 import '../widgets/podcast_player_widget.dart';
 import '../widgets/series_info_widget.dart';
@@ -210,132 +212,124 @@ class BookDetailScreen extends ConsumerWidget {
                             error: (_, __) => const SizedBox.shrink(),
                           ),
 
-                      // Reviews section
+                      // Reviews (ilk 6; tam liste ayrı ekran)
                       ref
-                          .watch(bookReviewsProvider(book.id))
+                          .watch(bookReviewsPreviewProvider(book.id))
                           .when(
-                            data: (reviews) => reviews.isEmpty
-                                ? const SizedBox.shrink()
-                                : Column(
+                            data: (preview) {
+                              if (preview.total == 0) {
+                                return const SizedBox.shrink();
+                              }
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        'Değerlendirmeler',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
-                                          color: colorScheme.onSurface,
-                                          letterSpacing: -0.2,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      ...reviews.map(
-                                        (review) => Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 12,
-                                          ),
-                                          child: Container(
-                                            width: double.infinity,
-                                            padding: const EdgeInsets.all(16),
-                                            decoration: BoxDecoration(
-                                              color: colorScheme
-                                                  .surfaceContainerHighest
-                                                  .withOpacity(0.3),
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                              border: Border.all(
-                                                color: Colors.white.withOpacity(
-                                                  0.04,
-                                                ),
-                                              ),
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Row(
-                                                  children: [
-                                                    CircleAvatar(
-                                                      radius: 12,
-                                                      backgroundColor:
-                                                          accentColor
-                                                              .withOpacity(0.2),
-                                                      backgroundImage:
-                                                          review.userAvatarUrl !=
-                                                              null
-                                                          ? CachedNetworkImageProvider(
-                                                              review
-                                                                  .userAvatarUrl!,
-                                                            )
-                                                          : null,
-                                                      child:
-                                                          review.userAvatarUrl ==
-                                                              null
-                                                          ? Icon(
-                                                              Icons.person,
-                                                              size: 14,
-                                                              color:
-                                                                  accentColor,
-                                                            )
-                                                          : null,
-                                                    ),
-                                                    const SizedBox(width: 8),
-                                                    Text(
-                                                      review.userName ??
-                                                          'İsimsiz',
-                                                      style: TextStyle(
-                                                        fontSize: 13,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                        color: colorScheme
-                                                            .onSurface,
-                                                      ),
-                                                    ),
-                                                    const Spacer(),
-                                                    Row(
-                                                      children: List.generate(
-                                                        5,
-                                                        (sIndex) => Icon(
-                                                          sIndex < review.rating
-                                                              ? Icons
-                                                                    .star_rounded
-                                                              : Icons
-                                                                    .star_border_rounded,
-                                                          size: 14,
-                                                          color: const Color(
-                                                            0xFFFFC107,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                if (review.comment != null &&
-                                                    review
-                                                        .comment!
-                                                        .isNotEmpty) ...[
-                                                  const SizedBox(height: 8),
-                                                  Text(
-                                                    review.comment!,
-                                                    style: TextStyle(
-                                                      fontSize: 13,
-                                                      height: 1.5,
-                                                      color: colorScheme
-                                                          .onSurfaceVariant,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ],
-                                            ),
+                                      Expanded(
+                                        child: Text(
+                                          'Değerlendirmeler',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                            color: colorScheme.onSurface,
+                                            letterSpacing: -0.2,
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(height: 20),
+                                      if (preview.total >
+                                          preview.items.length)
+                                        TextButton(
+                                          onPressed: () => context.push(
+                                            '/books/${book.slug}/reviews',
+                                          ),
+                                          child: Text(
+                                            'Tümü (${preview.total})',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
                                     ],
                                   ),
-                            loading: () => const SizedBox.shrink(),
-                            error: (_, __) => const SizedBox.shrink(),
+                                  const SizedBox(height: 10),
+                                  ...preview.items.map(
+                                    (review) => Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 12,
+                                      ),
+                                      child: BookReviewTile(
+                                        review: review,
+                                        accentColor: accentColor,
+                                      ),
+                                    ),
+                                  ),
+                                  if (preview.total >
+                                      preview.items.length) ...[
+                                    const SizedBox(height: 4),
+                                    Center(
+                                      child: TextButton(
+                                        onPressed: () => context.push(
+                                          '/books/${book.slug}/reviews',
+                                        ),
+                                        child: const Text(
+                                          'Tüm değerlendirmeleri gör',
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 20),
+                                ],
+                              );
+                            },
+                            loading: () => Padding(
+                              padding: const EdgeInsets.only(bottom: 20),
+                              child: SizedBox(
+                                height: 48,
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: accentColor,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            error: (err, _) => Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Değerlendirmeler yüklenemedi',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    userFacingErrorMessage(err),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      height: 1.4,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => ref.invalidate(
+                                      bookReviewsPreviewProvider(book.id),
+                                    ),
+                                    child: const Text('Tekrar dene'),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                     ],
                   ),
@@ -353,7 +347,7 @@ class BookDetailScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  Icons.error_outline_rounded,
+                  Icons.cloud_off_rounded,
                   size: 52,
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -368,9 +362,14 @@ class BookDetailScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '$e',
+                  userFacingErrorMessage(
+                    e,
+                    fallback:
+                        'Kitap bilgileri alınamadı. Bağlantını kontrol edip tekrar dene.',
+                  ),
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
+                    height: 1.45,
                     color: colorScheme.onSurfaceVariant,
                   ),
                   textAlign: TextAlign.center,
@@ -1290,9 +1289,17 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Kaldırma tamamlanamadı: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            userFacingErrorMessage(
+              error,
+              fallback:
+                  'Kaldırma tamamlanamadı. Bağlantını kontrol edip tekrar dene.',
+            ),
+          ),
+        ),
+      );
     }
   }
 

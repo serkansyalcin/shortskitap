@@ -34,7 +34,6 @@ String resolveDefaultTheme() {
   switch (configured) {
     case 'light':
     case 'dark':
-    case 'sepia':
     case 'system':
       return configured;
     default:

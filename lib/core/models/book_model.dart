@@ -23,6 +23,8 @@ class BookModel {
   final int viewCount;
   final double rating;
   final int reviewsCount;
+  final bool hasPreGeneratedAudio;
+  final String? activeAudioProvider;
 
   const BookModel({
     required this.id,
@@ -46,6 +48,8 @@ class BookModel {
     required this.viewCount,
     this.rating = 0.0,
     this.reviewsCount = 0,
+    this.hasPreGeneratedAudio = false,
+    this.activeAudioProvider,
   });
 
   factory BookModel.fromJson(Map<String, dynamic> json) => BookModel(
@@ -74,6 +78,8 @@ class BookModel {
     viewCount: _asInt(json['view_count']),
     rating: _asDouble(json['reviews_avg_rating']),
     reviewsCount: _asInt(json['reviews_count']),
+    hasPreGeneratedAudio: _asBool(json['has_pre_generated_audio']),
+    activeAudioProvider: json['active_audio_provider'] as String?,
   );
 
   Map<String, dynamic> toJson() => {
@@ -98,6 +104,8 @@ class BookModel {
     'view_count': viewCount,
     'reviews_avg_rating': rating,
     'reviews_count': reviewsCount,
+    'has_pre_generated_audio': hasPreGeneratedAudio,
+    'active_audio_provider': activeAudioProvider,
   };
 
   static int _asInt(dynamic value, {int fallback = 0}) {
