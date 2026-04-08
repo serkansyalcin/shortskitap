@@ -232,6 +232,7 @@ class _HomeTabState extends ConsumerState<_HomeTab>
     final featuredAsync = ref.watch(featuredBooksProvider);
     final categoriesAsync = ref.watch(homeQuickCategoriesProvider);
     final colorScheme = Theme.of(context).colorScheme;
+    final isPremium = ref.watch(isPremiumProvider);
 
     return SafeArea(
       child: Scrollbar(
@@ -283,32 +284,90 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                       ],
                     ),
                   ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isAuthenticated) const NotificationBellButton(),
-                      if (isAuthenticated) const SizedBox(width: 4),
-                      Stack(
-                        alignment: Alignment.center,
+                  if (isPremium)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isAuthenticated) const NotificationBellButton(),
+                        if (isAuthenticated) const SizedBox(width: 4),
+                        Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            SizedBox(
+                              width: 42,
+                              height: 42,
+                              child: CircularProgressIndicator(
+                                value: 0.3,
+                                strokeWidth: 4,
+                                backgroundColor:
+                                    colorScheme.surfaceContainerHighest,
+                                color: AppColors.accent,
+                              ),
+                            ),
+                            const Text('🔥', style: TextStyle(fontSize: 16)),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                  if (!isPremium)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          SizedBox(
-                            width: 52,
-                            height: 52,
-                            child: CircularProgressIndicator(
-                              value: 0.3,
-                              strokeWidth: 4,
-                              backgroundColor:
-                                  colorScheme.surfaceContainerHighest,
-                              color: AppColors.accent,
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade800,
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.06),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(24),
+                              onTap: () {
+                                context.push('/premium');
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 6,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.auto_awesome,
+                                      color: Colors.amber[700],
+                                      size: 22,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      "Premium’a Geç",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
-                          const Text('🔥', style: TextStyle(fontSize: 20)),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
                 ],
               ),
+
               const SizedBox(height: 12),
 
               Container(
