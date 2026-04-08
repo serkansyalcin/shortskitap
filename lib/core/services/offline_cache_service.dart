@@ -22,7 +22,7 @@ class OfflineCacheService {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await _createTables(db);
       },
@@ -50,6 +50,20 @@ class OfflineCacheService {
             'CREATE INDEX idx_cached_books_cached_at ON cached_books(cached_at DESC)',
           );
         }
+        if (oldVersion < 3) {
+          await db.execute(
+            'ALTER TABLE cached_paragraphs ADD COLUMN audio_url TEXT',
+          );
+          await db.execute(
+            'ALTER TABLE cached_paragraphs ADD COLUMN audio_provider TEXT',
+          );
+          await db.execute(
+            'ALTER TABLE cached_paragraphs ADD COLUMN audio_status TEXT',
+          );
+          await db.execute(
+            'ALTER TABLE cached_paragraphs ADD COLUMN audio_duration_seconds INTEGER',
+          );
+        }
       },
     );
   }
@@ -65,6 +79,10 @@ class OfflineCacheService {
         estimated_seconds INTEGER,
         type TEXT NOT NULL DEFAULT 'text',
         chapter_id INTEGER,
+        audio_url TEXT,
+        audio_provider TEXT,
+        audio_status TEXT,
+        audio_duration_seconds INTEGER,
         cached_at INTEGER NOT NULL
       )
     ''');
@@ -173,6 +191,10 @@ class OfflineCacheService {
         'estimated_seconds': p.estimatedSeconds,
         'type': p.type.name,
         'chapter_id': p.chapterId,
+        'audio_url': p.audioUrl,
+        'audio_provider': p.audioProvider,
+        'audio_status': p.audioStatus,
+        'audio_duration_seconds': p.audioDurationSeconds,
         'cached_at': now,
       }, conflictAlgorithm: ConflictAlgorithm.replace);
     }
@@ -199,6 +221,10 @@ class OfflineCacheService {
         'estimated_seconds': row['estimated_seconds'],
         'type': row['type'],
         'chapter_id': row['chapter_id'],
+        'audio_url': row['audio_url'],
+        'audio_provider': row['audio_provider'],
+        'audio_status': row['audio_status'],
+        'audio_duration_seconds': row['audio_duration_seconds'],
       });
     }).toList();
   }

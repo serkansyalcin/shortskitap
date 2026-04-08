@@ -60,7 +60,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   double? _readerLineHeightOverride;
   bool _restoredInitialPage = false;
   bool _voiceoverLoading = false;
-  int? _currentParagraphId;
+  bool _currentParagraphHasAudio = false;
   late final AutoVoiceoverService _voiceoverService;
   final Map<int, String> _localHighlights = {};
 
@@ -117,13 +117,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   void _onPageChanged(int index) {
     final items = _lastBuiltItems;
     final paragraphOrder = _paragraphOrderForIndex(items, index);
-    final item = index < items.length ? items[index] : null;
-    final paragraphId = item is _ParagraphItem ? item.paragraph.id : null;
+    final paragraph = _paragraphForIndex(items, index);
 
     setState(() {
       _currentIndex = index;
       _currentParagraphOrder = paragraphOrder;
-      _currentParagraphId = paragraphId;
+      _currentParagraphHasAudio = paragraph?.hasAudio ?? false;
     });
     _showControlsTemporarily();
 
@@ -138,27 +137,27 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     });
 
     final voiceEnabled = ref.read(voiceoverEnabledProvider);
-    if (voiceEnabled && paragraphId != null) {
-      _triggerVoiceover(paragraphId, index);
+    if (voiceEnabled && paragraph != null && paragraph.hasAudio) {
+      _triggerVoiceover(paragraph, index);
 
-      // Trigger preload for the next page
       if (index + 1 < items.length) {
         final nextItem = items[index + 1];
-        if (nextItem is _ParagraphItem) {
-          _voiceoverService.preloadNextParagraph(
-            widget.bookId,
-            nextItem.paragraph.id,
-          );
+        if (nextItem is _ParagraphItem && nextItem.paragraph.hasAudio) {
+          _voiceoverService.preloadNextParagraph(nextItem.paragraph);
         }
       }
+    } else if (voiceEnabled) {
+      _voiceoverService.stop();
+      setState(() => _voiceoverLoading = false);
     }
   }
 
-  Future<void> _triggerVoiceover(int paragraphId, int index) async {
+  Future<void> _triggerVoiceover(ParagraphModel paragraph, int index) async {
+    if (!paragraph.hasAudio) return;
     if (!mounted) return;
     setState(() => _voiceoverLoading = true);
     try {
-      await _voiceoverService.playParagraph(widget.bookId, paragraphId);
+      await _voiceoverService.playParagraph(paragraph);
     } finally {
       if (mounted && _currentIndex == index) {
         setState(() => _voiceoverLoading = false);
@@ -171,12 +170,21 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (voiceEnabled) {
       ref.read(voiceoverEnabledProvider.notifier).state = false;
       _voiceoverService.disable();
+      setState(() => _voiceoverLoading = false);
     } else {
+      final currentParagraph = _paragraphForIndex(_lastBuiltItems, _currentIndex);
+      if (currentParagraph == null || !currentParagraph.hasAudio) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bu paragraf için hazır seslendirme bulunmuyor.'),
+          ),
+        );
+        return;
+      }
+
       ref.read(voiceoverEnabledProvider.notifier).state = true;
       _voiceoverService.enable();
-      if (_currentParagraphId != null) {
-        _triggerVoiceover(_currentParagraphId!, _currentIndex);
-      }
+      _triggerVoiceover(currentParagraph, _currentIndex);
     }
   }
 
@@ -341,11 +349,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   void _restoreInitialPageIfNeeded(int initialIndex) {
     if (_restoredInitialPage) return;
     _restoredInitialPage = true;
+    final paragraph = _paragraphForIndex(_lastBuiltItems, initialIndex);
     _currentIndex = initialIndex;
     _currentParagraphOrder = _paragraphOrderForIndex(
       _lastBuiltItems,
       initialIndex,
     );
+    _currentParagraphHasAudio = paragraph?.hasAudio ?? false;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_pageController.hasClients) return;
@@ -382,6 +392,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     return 1;
+  }
+
+  ParagraphModel? _paragraphForIndex(List<dynamic> items, int index) {
+    if (items.isEmpty) return null;
+    final safeIndex = index.clamp(0, items.length - 1);
+    final item = items[safeIndex];
+    if (item is _ParagraphItem) return item.paragraph;
+    return null;
   }
 
   @override
@@ -634,6 +652,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       onPrev: _currentIndex > 0 ? _goPrev : null,
                       onNext: () => _goNext(items.length),
                       voiceoverEnabled: ref.watch(voiceoverEnabledProvider),
+                      voiceoverAvailable: _currentParagraphHasAudio,
                       voiceoverLoading: _voiceoverLoading,
                       onVoiceoverToggle: _toggleVoiceover,
                     ),
@@ -1217,6 +1236,7 @@ class _ReaderBottomBar extends StatelessWidget {
   final VoidCallback? onPrev;
   final VoidCallback? onNext;
   final bool voiceoverEnabled;
+  final bool voiceoverAvailable;
   final bool voiceoverLoading;
   final VoidCallback? onVoiceoverToggle;
 
@@ -1228,6 +1248,7 @@ class _ReaderBottomBar extends StatelessWidget {
     this.onPrev,
     this.onNext,
     this.voiceoverEnabled = false,
+    this.voiceoverAvailable = false,
     this.voiceoverLoading = false,
     this.onVoiceoverToggle,
   });
@@ -1310,12 +1331,16 @@ class _ReaderBottomBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: voiceoverEnabled
                         ? AppColors.accent.withValues(alpha: 0.22)
-                        : Colors.white.withValues(alpha: isDark ? 0.08 : 0.18),
+                        : voiceoverAvailable
+                        ? Colors.white.withValues(alpha: isDark ? 0.08 : 0.18)
+                        : Colors.white.withValues(alpha: isDark ? 0.04 : 0.1),
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(
                       color: voiceoverEnabled
                           ? AppColors.accent.withValues(alpha: 0.55)
-                          : Colors.transparent,
+                          : voiceoverAvailable
+                          ? Colors.transparent
+                          : textColor.withValues(alpha: 0.15),
                     ),
                   ),
                   child: voiceoverLoading
@@ -1334,7 +1359,9 @@ class _ReaderBottomBar extends StatelessWidget {
                           size: 16,
                           color: voiceoverEnabled
                               ? AppColors.accent
-                              : textColor,
+                              : voiceoverAvailable
+                              ? textColor
+                              : textColor.withValues(alpha: 0.45),
                         ),
                 ),
               ),

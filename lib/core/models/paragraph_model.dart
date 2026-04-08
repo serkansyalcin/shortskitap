@@ -12,6 +12,10 @@ class ParagraphModel {
   final Map<String, dynamic>? chapter;
   /// Highlight color hex string (e.g. '#FFEB3B'), null if not highlighted.
   final String? highlightColor;
+  final String? audioUrl;
+  final String? audioProvider;
+  final String? audioStatus;
+  final int? audioDurationSeconds;
 
   const ParagraphModel({
     required this.id,
@@ -24,9 +28,21 @@ class ParagraphModel {
     required this.type,
     this.chapter,
     this.highlightColor,
+    this.audioUrl,
+    this.audioProvider,
+    this.audioStatus,
+    this.audioDurationSeconds,
   });
 
-  ParagraphModel copyWith({String? highlightColor}) => ParagraphModel(
+  bool get hasAudio => audioUrl != null && audioUrl!.isNotEmpty;
+
+  ParagraphModel copyWith({
+    String? highlightColor,
+    String? audioUrl,
+    String? audioProvider,
+    String? audioStatus,
+    int? audioDurationSeconds,
+  }) => ParagraphModel(
         id: id,
         bookId: bookId,
         chapterId: chapterId,
@@ -37,6 +53,10 @@ class ParagraphModel {
         type: type,
         chapter: chapter,
         highlightColor: highlightColor ?? this.highlightColor,
+        audioUrl: audioUrl ?? this.audioUrl,
+        audioProvider: audioProvider ?? this.audioProvider,
+        audioStatus: audioStatus ?? this.audioStatus,
+        audioDurationSeconds: audioDurationSeconds ?? this.audioDurationSeconds,
       );
 
   factory ParagraphModel.fromJson(Map<String, dynamic> json) => ParagraphModel(
@@ -50,6 +70,10 @@ class ParagraphModel {
         type: _typeFromString(json['type'] as String?),
         chapter: json['chapter'] as Map<String, dynamic>?,
         highlightColor: json['highlight_color'] as String?,
+        audioUrl: json['audio_url'] as String?,
+        audioProvider: json['audio_provider'] as String?,
+        audioStatus: json['audio_status'] as String?,
+        audioDurationSeconds: json['audio_duration_seconds'] as int?,
       );
 
   static ParagraphType _typeFromString(String? type) {
