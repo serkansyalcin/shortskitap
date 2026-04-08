@@ -138,17 +138,24 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
     final voiceEnabled = ref.read(voiceoverEnabledProvider);
     if (voiceEnabled && paragraph != null && paragraph.hasAudio) {
-      _triggerVoiceover(paragraph, index);
-
-      if (index + 1 < items.length) {
-        final nextItem = items[index + 1];
-        if (nextItem is _ParagraphItem && nextItem.paragraph.hasAudio) {
-          _voiceoverService.preloadNextParagraph(nextItem.paragraph);
-        }
-      }
+      unawaited(_syncVoiceoverForPage(items, paragraph, index));
     } else if (voiceEnabled) {
       _voiceoverService.stop();
       setState(() => _voiceoverLoading = false);
+    }
+  }
+
+  Future<void> _syncVoiceoverForPage(
+    List<dynamic> items,
+    ParagraphModel paragraph,
+    int index,
+  ) async {
+    await _triggerVoiceover(paragraph, index);
+    if (!mounted || _currentIndex != index) return;
+
+    final nextParagraph = _nextParagraphAfterIndex(items, index);
+    if (nextParagraph != null && nextParagraph.hasAudio) {
+      await _voiceoverService.preloadNextParagraph(nextParagraph);
     }
   }
 
@@ -184,7 +191,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
       ref.read(voiceoverEnabledProvider.notifier).state = true;
       _voiceoverService.enable();
-      _triggerVoiceover(currentParagraph, _currentIndex);
+      unawaited(
+        _syncVoiceoverForPage(_lastBuiltItems, currentParagraph, _currentIndex),
+      );
     }
   }
 
@@ -399,6 +408,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final safeIndex = index.clamp(0, items.length - 1);
     final item = items[safeIndex];
     if (item is _ParagraphItem) return item.paragraph;
+    return null;
+  }
+
+  ParagraphModel? _nextParagraphAfterIndex(List<dynamic> items, int index) {
+    for (var i = index + 1; i < items.length; i++) {
+      final item = items[i];
+      if (item is _ParagraphItem) {
+        return item.paragraph;
+      }
+    }
     return null;
   }
 

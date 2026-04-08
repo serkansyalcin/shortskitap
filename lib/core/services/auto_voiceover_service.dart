@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:just_audio/just_audio.dart';
 
 import '../models/paragraph_model.dart';
@@ -16,6 +18,8 @@ class AutoVoiceoverService {
   int? _currentParagraphId;
   int? _nextPreloadedParagraphId;
   String? _nextPreloadedAudioUrl;
+  int _playRequestVersion = 0;
+  int _preloadRequestVersion = 0;
 
   bool get isEnabled => _enabled;
   bool get isLoading => _loading;
@@ -34,32 +38,43 @@ class AutoVoiceoverService {
     if (!_enabled) return false;
     if (!paragraph.hasAudio) return false;
 
+    final requestVersion = ++_playRequestVersion;
+    _preloadRequestVersion++;
     _currentParagraphId = paragraph.id;
     final audioUrl = paragraph.audioUrl!;
+    final activePlayer = _currentPlayer;
+    final standbyPlayer = _nextPlayer;
 
     if (_nextPreloadedParagraphId == paragraph.id &&
         _nextPreloadedAudioUrl == audioUrl) {
-      await _currentPlayer.stop();
+      await activePlayer.stop();
+      if (!_isLatestPlayRequest(requestVersion, paragraph.id)) return false;
       _usePlayer1 = !_usePlayer1;
-      await _currentPlayer.play();
-      _nextPreloadedParagraphId = null;
-      _nextPreloadedAudioUrl = null;
+      await standbyPlayer.seek(Duration.zero);
+      if (!_isLatestPlayRequest(requestVersion, paragraph.id)) return false;
+      unawaited(standbyPlayer.play());
+      _clearPreloadedState();
       return true;
     }
 
     _loading = true;
     try {
-      await _currentPlayer.stop();
-      await _nextPlayer.stop();
-      await _currentPlayer.setUrl(audioUrl);
-      if (_currentParagraphId != paragraph.id) return false;
+      await activePlayer.stop();
+      await standbyPlayer.stop();
+      _clearPreloadedState();
+      await activePlayer.setUrl(audioUrl);
+      if (!_isLatestPlayRequest(requestVersion, paragraph.id)) return false;
 
-      await _currentPlayer.play();
+      await activePlayer.seek(Duration.zero);
+      if (!_isLatestPlayRequest(requestVersion, paragraph.id)) return false;
+      unawaited(activePlayer.play());
       return true;
     } catch (_) {
       return false;
     } finally {
-      _loading = false;
+      if (_playRequestVersion == requestVersion) {
+        _loading = false;
+      }
     }
   }
 
@@ -72,21 +87,38 @@ class AutoVoiceoverService {
     }
     if (_currentParagraphId == paragraph.id) return;
 
-    _nextPreloadedParagraphId = paragraph.id;
-    _nextPreloadedAudioUrl = paragraph.audioUrl;
+    final requestVersion = ++_preloadRequestVersion;
+    final preloadPlayer = _nextPlayer;
+    _clearPreloadedState();
     try {
-      await _nextPlayer.stop();
-      await _nextPlayer.setUrl(paragraph.audioUrl!);
+      await preloadPlayer.stop();
+      if (_preloadRequestVersion != requestVersion) return;
+      await preloadPlayer.setUrl(paragraph.audioUrl!);
+      if (_preloadRequestVersion != requestVersion) return;
+      if (_currentParagraphId == paragraph.id) return;
+      _nextPreloadedParagraphId = paragraph.id;
+      _nextPreloadedAudioUrl = paragraph.audioUrl;
     } catch (_) {}
   }
 
   Future<void> stop() async {
+    _playRequestVersion++;
+    _preloadRequestVersion++;
     await _player1.stop();
     await _player2.stop();
     _currentParagraphId = null;
+    _clearPreloadedState();
+    _loading = false;
+  }
+
+  bool _isLatestPlayRequest(int requestVersion, int paragraphId) {
+    return _playRequestVersion == requestVersion &&
+        _currentParagraphId == paragraphId;
+  }
+
+  void _clearPreloadedState() {
     _nextPreloadedParagraphId = null;
     _nextPreloadedAudioUrl = null;
-    _loading = false;
   }
 
   void dispose() {
