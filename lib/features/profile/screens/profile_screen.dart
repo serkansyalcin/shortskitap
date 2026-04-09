@@ -8,13 +8,17 @@ import '../../../app/providers/achievements_provider.dart';
 import '../../../app/providers/auth_provider.dart';
 import '../../../app/providers/kids_provider.dart';
 import '../../../app/providers/profile_provider.dart';
+import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/public_profile_model.dart';
+import '../../../core/models/user_model.dart';
+import '../../../core/services/subscription_service.dart';
 import '../widgets/achievement_badge_grid.dart';
 import '../widgets/delete_account_dialog.dart';
 import '../widgets/reading_heatmap_widget.dart';
 import '../../home/widgets/kids_mode_exit_dialog.dart';
 import '../../home/widgets/kids_mode_pin_set_dialog.dart';
+import '../../subscription/widgets/premium_badge.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key, this.username, this.standalone = false});
@@ -167,8 +171,229 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  String _planLabel(SubscriptionStatus? status) {
+    if (status == null) return 'Pro üyelik';
+    if ((status.planLabel ?? '').trim().isNotEmpty) return status.planLabel!;
+
+    return switch (status.planType) {
+      'monthly' => 'Aylık paket',
+      'yearly' => 'Yıllık paket',
+      'lifetime' => 'Ömür boyu paket',
+      _ => 'Pro üyelik',
+    };
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return '';
+
+    final local = date.toLocal();
+    final months = <int, String>{
+      1: 'Ocak',
+      2: 'Şubat',
+      3: 'Mart',
+      4: 'Nisan',
+      5: 'Mayıs',
+      6: 'Haziran',
+      7: 'Temmuz',
+      8: 'Ağustos',
+      9: 'Eylül',
+      10: 'Ekim',
+      11: 'Kasım',
+      12: 'Aralık',
+    };
+
+    return '${local.day} ${months[local.month]} ${local.year}';
+  }
+
+  String _premiumStartedText(UserModel? user, SubscriptionStatus? status) {
+    final startedAt = _formatDate(status?.startedAt);
+    if (startedAt.isNotEmpty) return startedAt;
+
+    if (user?.isPremium == true) {
+      return 'Satın alma tarihi kayıtlı değil';
+    }
+
+    return 'Pro üyelik aktif değil';
+  }
+
+  String _premiumExpiresText(UserModel? user, SubscriptionStatus? status) {
+    if (status?.isLifetime == true) {
+      return 'Süresiz erişim';
+    }
+
+    final subscriptionExpiry = _formatDate(status?.expiresAt);
+    if (subscriptionExpiry.isNotEmpty) return subscriptionExpiry;
+
+    final userExpiry = _formatDate(user?.premiumExpiresAt);
+    if (userExpiry.isNotEmpty) return userExpiry;
+
+    if (user?.isPremium == true) {
+      return 'Bitiş tarihi tanımlanmamış';
+    }
+
+    return 'Pro üyelik aktif değil';
+  }
+
+  Future<void> _showPremiumDetailsModal(
+    BuildContext context,
+    UserModel? user,
+    SubscriptionStatus? status,
+  ) async {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final planLabel = _planLabel(status);
+    final startedAt = _premiumStartedText(user, status);
+    final expiresAt = _premiumExpiresText(user, status);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: theme.cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 64,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: colorScheme.outline.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Text(
+                    'Pro üyelik',
+                    style: TextStyle(
+                      color: Color(0xFFB45309),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Üyelik detayların',
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Satın aldığın paket ve erişim tarihlerinin özeti burada görünüyor.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.4,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    gradient: LinearGradient(
+                      colors: theme.brightness == Brightness.dark
+                          ? const [Color(0xFF171A17), Color(0xFF111311)]
+                          : const [Color(0xFFFFFBEB), Color(0xFFF7F0D9)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    border: Border.all(
+                      color: const Color(0xFFF59E0B).withOpacity(0.18),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      _MembershipDetailRow(
+                        icon: Icons.workspace_premium_rounded,
+                        label: 'Paket adı',
+                        value: planLabel,
+                      ),
+                      const SizedBox(height: 14),
+                      _MembershipDetailRow(
+                        icon: Icons.calendar_month_rounded,
+                        label: 'Başlangıç tarihi',
+                        value: startedAt,
+                      ),
+                      const SizedBox(height: 14),
+                      _MembershipDetailRow(
+                        icon: Icons.event_available_rounded,
+                        label: status?.isLifetime == true
+                            ? 'Erişim'
+                            : 'Bitiş tarihi',
+                        value: expiresAt,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.verified_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Reklamsız okuma, Pro kitaplara erişim ve üyelik ayrıcalıkların şu anda aktif.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 1.45,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final currentUser = _isSelf ? authState.user : null;
+    final subscriptionStatus = _isSelf
+        ? ref.watch(subscriptionProvider).valueOrNull
+        : null;
     final username = _username;
     final standalone = widget.standalone;
     if (username == null || username.isEmpty) {
@@ -200,6 +425,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ],
         ),
         data: (profile) {
+          final isPremium = _isSelf
+              ? (subscriptionStatus?.isPremium == true) ||
+                (currentUser?.isPremium == true) ||
+                profile.profile.isPremium
+              : profile.profile.isPremium;
           final achievements = _isSelf &&
                   (earnedAsync?.valueOrNull?.isNotEmpty ?? false)
               ? earnedAsync!.valueOrNull!
@@ -212,6 +442,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               _HeroCard(
                 profile: profile,
                 isSelf: _isSelf,
+                isPremium: isPremium,
+                premiumPlanLabel: isPremium ? _planLabel(subscriptionStatus) : null,
                 followBusy: _followBusy,
                 onFollow: () => _toggleFollow(profile),
                 onFollowers: () => _openPeople(
@@ -230,6 +462,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 onHighlights:
                     _isSelf ? () => context.push('/home/highlights') : null,
                 onLogout: _isSelf ? _logout : null,
+                onPremiumTap: _isSelf && !isPremium
+                    ? () => context.push('/premium')
+                    : null,
+                onPremiumDetailsTap: _isSelf && isPremium
+                    ? () => _showPremiumDetailsModal(
+                        context,
+                        currentUser,
+                        subscriptionStatus,
+                      )
+                    : null,
               ),
               const SizedBox(height: 16),
               _StatsGrid(stats: profile.stats),
@@ -285,29 +527,38 @@ class _HeroCard extends StatelessWidget {
   const _HeroCard({
     required this.profile,
     required this.isSelf,
+    required this.isPremium,
     required this.followBusy,
     required this.onFollow,
     required this.onFollowers,
     required this.onFollowing,
+    this.premiumPlanLabel,
     this.onSettings,
     this.onHighlights,
     this.onLogout,
+    this.onPremiumTap,
+    this.onPremiumDetailsTap,
   });
 
   final PublicProfileModel profile;
   final bool isSelf;
+  final bool isPremium;
   final bool followBusy;
   final VoidCallback onFollow;
   final VoidCallback onFollowers;
   final VoidCallback onFollowing;
+  final String? premiumPlanLabel;
   final VoidCallback? onSettings;
   final VoidCallback? onHighlights;
   final VoidCallback? onLogout;
+  final VoidCallback? onPremiumTap;
+  final VoidCallback? onPremiumDetailsTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final hasPremium = isPremium || profile.profile.isPremium;
     final summary = profile.stats.totalParagraphsRead > 0
         ? 'Toplam ${profile.stats.totalParagraphsRead} paragraf okudu.'
         : 'Okuma yolculuğu yeni başlıyor.';
@@ -357,12 +608,27 @@ class _HeroCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      profile.profile.name,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: isDark ? Colors.white : theme.colorScheme.onSurface,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            profile.profile.name,
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: isDark
+                                  ? Colors.white
+                                  : theme.colorScheme.onSurface,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (hasPremium) ...[
+                          const SizedBox(width: 8),
+                          _ProfileProBadge(
+                            onTap: isSelf ? onPremiumDetailsTap : null,
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -388,6 +654,17 @@ class _HeroCard extends StatelessWidget {
               ),
             ],
           ),
+          if (isSelf && hasPremium) ...[
+            const SizedBox(height: 16),
+            _MembershipBanner(
+              planLabel: premiumPlanLabel ?? 'Pro üyelik',
+              onTap: onPremiumDetailsTap,
+            ),
+          ],
+          if (isSelf && !hasPremium && onPremiumTap != null) ...[
+            const SizedBox(height: 16),
+            _UpgradeToProCard(onTap: onPremiumTap!),
+          ],
           const SizedBox(height: 16),
           Row(
             children: [
@@ -456,6 +733,277 @@ class _HeroCard extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _ProfileProBadge extends StatelessWidget {
+  const _ProfileProBadge({this.onTap});
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final badge = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFBBF24), Color(0xFFF59E0B)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withOpacity(0.22),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.workspace_premium_rounded,
+            size: 15,
+            color: Colors.white,
+          ),
+          SizedBox(width: 4),
+          Text(
+            'PRO',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.6,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (onTap == null) return badge;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: badge,
+      ),
+    );
+  }
+}
+
+class _MembershipBanner extends StatelessWidget {
+  const _MembershipBanner({
+    required this.planLabel,
+    this.onTap,
+  });
+
+  final String planLabel;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            color: theme.cardColor.withOpacity(0.55),
+            border: Border.all(
+              color: const Color(0xFFF59E0B).withOpacity(0.28),
+            ),
+          ),
+          child: Row(
+            children: [
+              const PremiumBadge(
+                size: PremiumBadgeSize.medium,
+                showLabel: false,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pro üyesin',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$planLabel • Detayları görmek için dokun',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        height: 1.35,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UpgradeToProCard extends StatelessWidget {
+  const _UpgradeToProCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            gradient: LinearGradient(
+              colors: theme.brightness == Brightness.dark
+                  ? const [Color(0xFF1A2117), Color(0xFF112B1A)]
+                  : const [Color(0xFFF7FBEF), Color(0xFFE7F6DA)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            border: Border.all(
+              color: AppColors.primary.withOpacity(0.24),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.workspace_premium_rounded,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Pro'ya Geç",
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Reklamsız okuma, tüm kitaplar ve ekstra ayrıcalıkları aç.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        height: 1.35,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Text(
+                  'İncele',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MembershipDetailRow extends StatelessWidget {
+  const _MembershipDetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF59E0B).withOpacity(0.14),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(icon, color: const Color(0xFFB45309), size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

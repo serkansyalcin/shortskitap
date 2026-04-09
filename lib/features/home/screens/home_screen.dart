@@ -90,10 +90,7 @@ Widget homeAsyncInlineRetry(
                 ],
               ),
             ),
-            TextButton(
-              onPressed: onRetry,
-              child: const Text('Tekrar'),
-            ),
+            TextButton(onPressed: onRetry, child: const Text('Tekrar')),
           ],
         ),
       ),
@@ -127,18 +124,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       });
     });
 
-    ref.listen<AsyncValue<List<ConnectivityResult>>>(
-      connectivityProvider,
-      (previous, next) {
-        next.whenData((list) {
-          if (!connectivityListOnline(list)) return;
-          final auth = ref.read(authProvider);
-          if (auth.isOfflineSession) {
-            ref.read(authProvider.notifier).refreshMe();
-          }
-        });
-      },
-    );
+    ref.listen<AsyncValue<List<ConnectivityResult>>>(connectivityProvider, (
+      previous,
+      next,
+    ) {
+      next.whenData((list) {
+        if (!connectivityListOnline(list)) return;
+        final auth = ref.read(authProvider);
+        if (auth.isOfflineSession) {
+          ref.read(authProvider.notifier).refreshMe();
+        }
+      });
+    });
 
     return Scaffold(
       body: IndexedStack(
@@ -405,7 +402,7 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                       ],
                     ),
 
-                  if (!isPremium)
+                  if (isAuthenticated && !isPremium)
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
