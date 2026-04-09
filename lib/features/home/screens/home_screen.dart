@@ -402,7 +402,7 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                         const SizedBox(width: 6),
                         const NotificationBellButton(),
                       ],
-                      if (isPremium) ...[
+                      if (isAuthenticated) ...[
                         const SizedBox(width: 6),
                         Stack(
                           alignment: Alignment.center,
@@ -418,7 +418,11 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                                 color: AppColors.accent,
                               ),
                             ),
-                            const Text('🔥', style: TextStyle(fontSize: 16)),
+                            const Icon(
+                              Icons.local_fire_department_rounded,
+                              size: 18,
+                              color: AppColors.accent,
+                            ),
                           ],
                         ),
                       ],

@@ -97,8 +97,6 @@ class BookDetailScreen extends ConsumerWidget {
                         textSecondary: textSecondary,
                       ),
                       const SizedBox(height: 16),
-                      _BookActionStrip(book: book, accentColor: accentColor),
-                      const SizedBox(height: 24),
                       progressAsync.when(
                         data: (progress) => Column(
                           children: [
@@ -116,6 +114,8 @@ class BookDetailScreen extends ConsumerWidget {
                         loading: () => const SizedBox.shrink(),
                         error: (_, error) => const SizedBox.shrink(),
                       ),
+                      _BookActionStrip(book: book, accentColor: accentColor),
+                      const SizedBox(height: 24),
                       podcastsAsync.when(
                         data: (podcasts) => podcasts.isEmpty
                             ? const SizedBox.shrink()
