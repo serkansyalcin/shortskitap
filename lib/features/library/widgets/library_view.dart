@@ -101,6 +101,7 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
               downloadedAsync: downloadedAsync,
               filteredCounts: isKidsMode
                   ? (
+                      started: allProgress.length,
                       progress: activeProgress.length,
                       completed: completedProgress.length,
                       downloaded: downloadedBooks.length,
@@ -491,6 +492,7 @@ class _LibraryHero extends StatelessWidget {
   final AsyncValue<HighlightsListState> highlightsAsync;
   final AsyncValue<List<BookModel>> downloadedAsync;
   final ({
+    int started,
     int progress,
     int completed,
     int downloaded,
@@ -509,8 +511,14 @@ class _LibraryHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final startedCount =
+        filteredCounts?.started ?? progressAsync.valueOrNull?.length ?? 0;
     final progressCount =
-        filteredCounts?.progress ?? progressAsync.valueOrNull?.length ?? 0;
+        filteredCounts?.progress ??
+        progressAsync.valueOrNull
+            ?.where((item) => !item.isCompleted)
+            .length ??
+        0;
     final completedCount =
         filteredCounts?.completed ??
         progressAsync.valueOrNull?.where((item) => item.isCompleted).length ??
@@ -588,34 +596,36 @@ class _LibraryHero extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _StatPill(label: 'Aktif okuma', value: '$progressCount'),
+                child: _StatPill(label: 'Başlanan', value: '$startedCount'),
               ),
               const SizedBox(width: 10),
+              Expanded(
+                child: _StatPill(label: 'Aktif okuma', value: '$progressCount'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
               Expanded(
                 child: _StatPill(label: 'Biten', value: '$completedCount'),
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
+              const SizedBox(width: 10),
               Expanded(
                 child: _StatPill(label: 'İndirilen', value: '$downloadedCount'),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _StatPill(label: 'Favori', value: '$favoritesCount'),
-              ),
             ],
           ),
           const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
-                child: _StatPill(label: 'Alıntı', value: '$highlightsCount'),
+                child: _StatPill(label: 'Favori', value: '$favoritesCount'),
               ),
               const SizedBox(width: 10),
-              const Expanded(child: SizedBox.shrink()),
+              Expanded(
+                child: _StatPill(label: 'Alıntı', value: '$highlightsCount'),
+              ),
             ],
           ),
         ],
