@@ -312,6 +312,7 @@ class _HomeTabState extends ConsumerState<_HomeTab>
     final featuredAsync = ref.watch(featuredBooksProvider);
     final categoriesAsync = ref.watch(homeQuickCategoriesProvider);
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isPremium = ref.watch(isPremiumProvider);
     final kidsModeEnabled = ref.watch(kidsModeProvider);
     final hasContinueReading = isAuthenticated &&
@@ -407,21 +408,40 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                         Stack(
                           alignment: Alignment.center,
                           children: [
-                            SizedBox(
+                            Container(
                               width: 42,
                               height: 42,
-                              child: CircularProgressIndicator(
-                                value: 0.3,
-                                strokeWidth: 4,
-                                backgroundColor:
-                                    colorScheme.surfaceContainerHighest,
-                                color: AppColors.accent,
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? const Color(0xFF151A16)
+                                    : colorScheme.surfaceContainerHighest,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isDark
+                                      ? Colors.white.withOpacity(0.08)
+                                      : colorScheme.outline.withOpacity(0.35),
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(2),
+                                child: CircularProgressIndicator(
+                                  value: 0.3,
+                                  strokeWidth: 4,
+                                  backgroundColor: isDark
+                                      ? Colors.white.withOpacity(0.14)
+                                      : colorScheme.outline.withOpacity(0.25),
+                                  color: isDark
+                                      ? AppColors.primaryLight
+                                      : AppColors.accent,
+                                ),
                               ),
                             ),
-                            const Icon(
+                            Icon(
                               Icons.local_fire_department_rounded,
                               size: 18,
-                              color: AppColors.accent,
+                              color: isDark
+                                  ? AppColors.primaryLight
+                                  : AppColors.accent,
                             ),
                           ],
                         ),
