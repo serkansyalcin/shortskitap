@@ -808,6 +808,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       context: context,
       backgroundColor: const Color(0xFF151515),
       isScrollControlled: true,
+      enableDrag: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -819,13 +820,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           final activeFontFamily = _readerFontFamilyOverride ?? 'classic';
           final activeLineHeight = _readerLineHeightOverride ?? 1.8;
 
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.9,
+            minChildSize: 0.55,
+            maxChildSize: 0.94,
+            builder: (sheetContext, scrollController) {
+              return SafeArea(
+                top: false,
+                child: ListView(
+                  controller: scrollController,
+                  physics: const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics(),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
                   children: [
                     Center(
                       child: Container(
@@ -1035,8 +1043,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     ),
                   ],
                 ),
-              ),
-            ),
+              );
+            },
           );
         },
       ),

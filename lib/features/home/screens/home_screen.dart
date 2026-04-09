@@ -390,12 +390,20 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                       ],
                     ),
                   ),
-                  if (isPremium)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (isAuthenticated) const NotificationBellButton(),
-                        if (isAuthenticated) const SizedBox(width: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _HomeHeaderIconButton(
+                        icon: Icons.search_rounded,
+                        tooltip: 'Ara',
+                        onTap: () => context.push('/home/search'),
+                      ),
+                      if (isAuthenticated) ...[
+                        const SizedBox(width: 6),
+                        const NotificationBellButton(),
+                      ],
+                      if (isPremium) ...[
+                        const SizedBox(width: 6),
                         Stack(
                           alignment: Alignment.center,
                           children: [
@@ -414,9 +422,10 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                           ],
                         ),
                       ],
-                    ),
+                    ],
+                  ),
 
-                  if (isAuthenticated && !isPremium)
+                  if (isAuthenticated && !isPremium && false)
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -474,9 +483,16 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                 ],
               ),
 
-              const SizedBox(height: AppUI.sectionGap),
+              if (isAuthenticated && !isPremium) ...[
+                const SizedBox(height: AppUI.blockGap),
+                _CompactPremiumCta(
+                  onTap: () => context.push('/premium'),
+                ),
+              ],
 
-              Container(
+              if (false) const SizedBox(height: AppUI.sectionGap),
+
+              if (false) Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
@@ -1150,6 +1166,108 @@ class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
         error: err,
         onRetry: () => ref.invalidate(dailyQuoteProvider),
         hint: 'Günün sözü yüklenemedi',
+      ),
+    );
+  }
+}
+
+class _HomeHeaderIconButton extends StatelessWidget {
+  const _HomeHeaderIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest.withOpacity(0.72),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: colorScheme.outline.withOpacity(0.5),
+            ),
+          ),
+          child: Icon(
+            icon,
+            size: 22,
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactPremiumCta extends StatelessWidget {
+  const _CompactPremiumCta({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF2E2E2E) : const Color(0xFF3B3B3B),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.18 : 0.08),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.auto_awesome_rounded,
+                color: Colors.amber.shade400,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  "Premium'a Geç",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
