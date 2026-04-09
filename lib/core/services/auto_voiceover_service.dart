@@ -8,6 +8,10 @@ class AutoVoiceoverService {
   final AudioPlayer _player1 = AudioPlayer();
   final AudioPlayer _player2 = AudioPlayer();
   bool _usePlayer1 = true;
+  final StreamController<int> _paragraphCompletedController =
+      StreamController<int>.broadcast();
+  late final StreamSubscription<PlayerState> _player1StateSubscription;
+  late final StreamSubscription<PlayerState> _player2StateSubscription;
 
   AudioPlayer get _currentPlayer => _usePlayer1 ? _player1 : _player2;
   AudioPlayer get _nextPlayer => _usePlayer1 ? _player2 : _player1;
@@ -21,9 +25,20 @@ class AutoVoiceoverService {
   int _playRequestVersion = 0;
   int _preloadRequestVersion = 0;
 
+  AutoVoiceoverService() {
+    _player1StateSubscription = _player1.playerStateStream.listen(
+      _handlePlayerStateChanged,
+    );
+    _player2StateSubscription = _player2.playerStateStream.listen(
+      _handlePlayerStateChanged,
+    );
+  }
+
   bool get isEnabled => _enabled;
   bool get isLoading => _loading;
   bool get isPlaying => _player1.playing || _player2.playing;
+  Stream<int> get paragraphCompletedStream =>
+      _paragraphCompletedController.stream;
 
   void toggle() => _enabled = !_enabled;
 
@@ -122,8 +137,22 @@ class AutoVoiceoverService {
   }
 
   void dispose() {
-    _player1.dispose();
-    _player2.dispose();
+    unawaited(_player1StateSubscription.cancel());
+    unawaited(_player2StateSubscription.cancel());
+    unawaited(_paragraphCompletedController.close());
+    unawaited(_player1.dispose());
+    unawaited(_player2.dispose());
+  }
+
+  void _handlePlayerStateChanged(PlayerState state) {
+    if (state.processingState != ProcessingState.completed) {
+      return;
+    }
+
+    final paragraphId = _currentParagraphId;
+    if (paragraphId != null && !_paragraphCompletedController.isClosed) {
+      _paragraphCompletedController.add(paragraphId);
+    }
   }
 
   Future<void> _setPlayerSource(
