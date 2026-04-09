@@ -17,7 +17,7 @@ class AutoVoiceoverService {
 
   int? _currentParagraphId;
   int? _nextPreloadedParagraphId;
-  String? _nextPreloadedAudioUrl;
+  String? _nextPreloadedAudioSource;
   int _playRequestVersion = 0;
   int _preloadRequestVersion = 0;
 
@@ -41,12 +41,12 @@ class AutoVoiceoverService {
     final requestVersion = ++_playRequestVersion;
     _preloadRequestVersion++;
     _currentParagraphId = paragraph.id;
-    final audioUrl = paragraph.audioUrl!;
+    final audioSource = paragraph.preferredAudioSource!;
     final activePlayer = _currentPlayer;
     final standbyPlayer = _nextPlayer;
 
     if (_nextPreloadedParagraphId == paragraph.id &&
-        _nextPreloadedAudioUrl == audioUrl) {
+        _nextPreloadedAudioSource == audioSource) {
       await activePlayer.stop();
       if (!_isLatestPlayRequest(requestVersion, paragraph.id)) return false;
       _usePlayer1 = !_usePlayer1;
@@ -62,7 +62,7 @@ class AutoVoiceoverService {
       await activePlayer.stop();
       await standbyPlayer.stop();
       _clearPreloadedState();
-      await activePlayer.setUrl(audioUrl);
+      await _setPlayerSource(activePlayer, paragraph);
       if (!_isLatestPlayRequest(requestVersion, paragraph.id)) return false;
 
       await activePlayer.seek(Duration.zero);
@@ -82,7 +82,7 @@ class AutoVoiceoverService {
     if (!_enabled) return;
     if (!paragraph.hasAudio) return;
     if (_nextPreloadedParagraphId == paragraph.id &&
-        _nextPreloadedAudioUrl == paragraph.audioUrl) {
+        _nextPreloadedAudioSource == paragraph.preferredAudioSource) {
       return;
     }
     if (_currentParagraphId == paragraph.id) return;
@@ -93,11 +93,11 @@ class AutoVoiceoverService {
     try {
       await preloadPlayer.stop();
       if (_preloadRequestVersion != requestVersion) return;
-      await preloadPlayer.setUrl(paragraph.audioUrl!);
+      await _setPlayerSource(preloadPlayer, paragraph);
       if (_preloadRequestVersion != requestVersion) return;
       if (_currentParagraphId == paragraph.id) return;
       _nextPreloadedParagraphId = paragraph.id;
-      _nextPreloadedAudioUrl = paragraph.audioUrl;
+      _nextPreloadedAudioSource = paragraph.preferredAudioSource;
     } catch (_) {}
   }
 
@@ -118,11 +118,22 @@ class AutoVoiceoverService {
 
   void _clearPreloadedState() {
     _nextPreloadedParagraphId = null;
-    _nextPreloadedAudioUrl = null;
+    _nextPreloadedAudioSource = null;
   }
 
   void dispose() {
     _player1.dispose();
     _player2.dispose();
+  }
+
+  Future<void> _setPlayerSource(
+    AudioPlayer player,
+    ParagraphModel paragraph,
+  ) async {
+    if (paragraph.prefersLocalAudio) {
+      await player.setFilePath(paragraph.localAudioPath!);
+      return;
+    }
+    await player.setUrl(paragraph.audioUrl!);
   }
 }

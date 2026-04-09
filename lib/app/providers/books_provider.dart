@@ -119,22 +119,20 @@ final podcastsProvider = FutureProvider.family<List<PodcastModel>, int>((
 });
 
 /// Kitap detayında ilk birkaç değerlendirme (tam liste için [BookReviewsScreen]).
-final bookReviewsPreviewProvider =
-    FutureProvider.family<ReviewPageResult, int>((ref, bookId) async {
-  return ref.read(reviewServiceProvider).fetchReviewsPage(
-        bookId: bookId,
-        page: 1,
-        perPage: 6,
-      );
-});
+final bookReviewsPreviewProvider = FutureProvider.family<ReviewPageResult, int>(
+  (ref, bookId) async {
+    return ref
+        .read(reviewServiceProvider)
+        .fetchReviewsPage(bookId: bookId, page: 1, perPage: 6);
+  },
+);
 
 final downloadedBooksProvider = FutureProvider<List<BookModel>>((ref) async {
   final auth = ref.watch(authProvider);
   final isPremium = ref.watch(isPremiumProvider);
   final books = await ref.read(offlineCacheServiceProvider).getCachedBooks();
 
-  final allowOfflineDownloads =
-      auth.isOfflineSession && books.isNotEmpty;
+  final allowOfflineDownloads = auth.isOfflineSession && books.isNotEmpty;
 
   if (!isPremium && !allowOfflineDownloads) {
     return const <BookModel>[];
@@ -171,7 +169,7 @@ class BookDownloadController extends StateNotifier<Set<int>> {
       }
       await _ref
           .read(offlineCacheServiceProvider)
-          .cacheParagraphs(bookId, paragraphs);
+          .cacheParagraphs(bookId, paragraphs, downloadAudioFiles: true);
       _ref.invalidate(bookCacheStatusProvider(bookId));
       _ref.invalidate(downloadedBooksProvider);
       _ref.invalidate(paragraphsProvider(bookId));
@@ -216,8 +214,14 @@ final paragraphsProvider = FutureProvider.family<List<ParagraphModel>, int>((
     final paragraphs = await service.getAllParagraphs(bookId);
     final isPremium = ref.read(isPremiumProvider);
     if (isPremium) {
-      await cache.cacheParagraphs(bookId, paragraphs);
+      final shouldDownloadAudioFiles = await cache.hasCachedBookRecord(bookId);
+      final cachedParagraphs = await cache.cacheParagraphs(
+        bookId,
+        paragraphs,
+        downloadAudioFiles: shouldDownloadAudioFiles,
+      );
       ref.invalidate(bookCacheStatusProvider(bookId));
+      return cachedParagraphs;
     }
     return paragraphs;
   } catch (_) {

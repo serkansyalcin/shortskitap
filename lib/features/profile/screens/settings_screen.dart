@@ -308,14 +308,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ),
                           ),
                           const SizedBox(height: 6),
-                          Text(
-                            'Galeri içinden seçtiğin görsel BunnyCDN üzerinde saklanır.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              height: 1.4,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
                           const SizedBox(height: 10),
                           OutlinedButton.icon(
                             onPressed: _showAvatarSourceSheet,

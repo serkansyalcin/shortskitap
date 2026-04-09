@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../platform/offline_audio_storage.dart';
 import '../models/book_model.dart';
 import '../models/paragraph_model.dart';
 
@@ -22,7 +23,7 @@ class OfflineCacheService {
 
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await _createTables(db);
       },
@@ -64,6 +65,11 @@ class OfflineCacheService {
             'ALTER TABLE cached_paragraphs ADD COLUMN audio_duration_seconds INTEGER',
           );
         }
+        if (oldVersion < 4) {
+          await db.execute(
+            'ALTER TABLE cached_paragraphs ADD COLUMN audio_local_path TEXT',
+          );
+        }
       },
     );
   }
@@ -80,6 +86,7 @@ class OfflineCacheService {
         type TEXT NOT NULL DEFAULT 'text',
         chapter_id INTEGER,
         audio_url TEXT,
+        audio_local_path TEXT,
         audio_provider TEXT,
         audio_status TEXT,
         audio_duration_seconds INTEGER,
@@ -173,15 +180,34 @@ class OfflineCacheService {
         .toList();
   }
 
-  Future<void> cacheParagraphs(
+  Future<List<ParagraphModel>> cacheParagraphs(
     int bookId,
-    List<ParagraphModel> paragraphs,
-  ) async {
+    List<ParagraphModel> paragraphs, {
+    bool downloadAudioFiles = false,
+  }) async {
     final db = await database;
     final batch = db.batch();
     final now = DateTime.now().millisecondsSinceEpoch;
+    final localAudioPaths = await _getLocalAudioPathMap(db, bookId);
+    final cachedParagraphs = <ParagraphModel>[];
 
     for (final p in paragraphs) {
+      var localAudioPath = localAudioPaths[p.id];
+      if (localAudioPath != null &&
+          localAudioPath.isNotEmpty &&
+          !await localAudioFileExists(localAudioPath)) {
+        localAudioPath = null;
+      }
+
+      if (downloadAudioFiles && p.audioUrl != null && p.audioUrl!.isNotEmpty) {
+        localAudioPath = await cacheAudioFile(
+          bookId: bookId,
+          paragraphId: p.id,
+          audioUrl: p.audioUrl!,
+          currentLocalPath: localAudioPath,
+        );
+      }
+
       batch.insert('cached_paragraphs', {
         'id': p.id,
         'book_id': bookId,
@@ -192,14 +218,18 @@ class OfflineCacheService {
         'type': p.type.name,
         'chapter_id': p.chapterId,
         'audio_url': p.audioUrl,
+        'audio_local_path': localAudioPath,
         'audio_provider': p.audioProvider,
         'audio_status': p.audioStatus,
         'audio_duration_seconds': p.audioDurationSeconds,
         'cached_at': now,
       }, conflictAlgorithm: ConflictAlgorithm.replace);
+
+      cachedParagraphs.add(p.copyWith(localAudioPath: localAudioPath));
     }
 
     await batch.commit(noResult: true);
+    return cachedParagraphs;
   }
 
   Future<List<ParagraphModel>> getCachedParagraphs(int bookId) async {
@@ -222,6 +252,7 @@ class OfflineCacheService {
         'type': row['type'],
         'chapter_id': row['chapter_id'],
         'audio_url': row['audio_url'],
+        'audio_local_path': row['audio_local_path'],
         'audio_provider': row['audio_provider'],
         'audio_status': row['audio_status'],
         'audio_duration_seconds': row['audio_duration_seconds'],
@@ -240,6 +271,16 @@ class OfflineCacheService {
     return (count ?? 0) > 0;
   }
 
+  Future<bool> hasCachedBookRecord(int bookId) async {
+    final db = await database;
+    final count = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM cached_books WHERE id = ?', [
+        bookId,
+      ]),
+    );
+    return (count ?? 0) > 0;
+  }
+
   Future<void> removeCachedBook(int bookId) async {
     final db = await database;
     final batch = db.batch();
@@ -250,6 +291,7 @@ class OfflineCacheService {
     );
     batch.delete('cached_books', where: 'id = ?', whereArgs: [bookId]);
     await batch.commit(noResult: true);
+    await deleteBookAudioCache(bookId);
   }
 
   Future<void> savePendingProgress(
@@ -279,5 +321,27 @@ class OfflineCacheService {
   Map<String, dynamic>? _decodeJsonMap(String? source) {
     if (source == null || source.isEmpty) return null;
     return jsonDecode(source) as Map<String, dynamic>;
+  }
+
+  Future<Map<int, String>> _getLocalAudioPathMap(
+    Database db,
+    int bookId,
+  ) async {
+    final rows = await db.query(
+      'cached_paragraphs',
+      columns: ['id', 'audio_local_path'],
+      where: 'book_id = ?',
+      whereArgs: [bookId],
+    );
+
+    final paths = <int, String>{};
+    for (final row in rows) {
+      final paragraphId = row['id'];
+      final localPath = row['audio_local_path'];
+      if (paragraphId is int && localPath is String && localPath.isNotEmpty) {
+        paths[paragraphId] = localPath;
+      }
+    }
+    return paths;
   }
 }
