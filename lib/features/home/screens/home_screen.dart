@@ -17,6 +17,7 @@ import '../../../app/providers/kids_provider.dart';
 import '../../../app/providers/daily_quote_provider.dart';
 import '../../../app/providers/league_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_ui.dart';
 import '../../../core/models/daily_quote_model.dart';
 import '../../../core/models/achievement_model.dart';
 import '../../../core/models/progress_model.dart';
@@ -312,6 +313,14 @@ class _HomeTabState extends ConsumerState<_HomeTab>
     final categoriesAsync = ref.watch(homeQuickCategoriesProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final isPremium = ref.watch(isPremiumProvider);
+    final kidsModeEnabled = ref.watch(kidsModeProvider);
+    final hasContinueReading = isAuthenticated &&
+        _findContinueReadingProgress(
+              progressAsync.valueOrNull ?? const [],
+              isKidsMode: kidsModeEnabled,
+            ) !=
+            null;
+    final showLeagueSection = isAuthenticated && !kidsModeEnabled;
 
     return SafeArea(
       child: Scrollbar(
@@ -319,15 +328,20 @@ class _HomeTabState extends ConsumerState<_HomeTab>
         child: SingleChildScrollView(
           controller: _scrollController,
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
+          padding: const EdgeInsets.fromLTRB(
+            AppUI.screenHorizontalPadding,
+            AppUI.screenTopPadding,
+            AppUI.screenHorizontalPadding,
+            AppUI.screenBottomContentPadding,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Moved Kids Mode Toggle from here to ProfileTab
-              if (ref.watch(kidsModeProvider)) ...[
-                const SizedBox(height: 10),
+              if (kidsModeEnabled) ...[
+                const SizedBox(height: AppUI.blockGap),
                 _KidsModeInfoCard(),
-                const SizedBox(height: 10),
+                const SizedBox(height: AppUI.blockGap),
               ],
               if (isAuthenticated &&
                   (authState.isOfflineSession ||
@@ -340,9 +354,9 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                         true;
                   },
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppUI.blockGap),
               ],
-              const SizedBox(height: 12),
+              const SizedBox(height: AppUI.blockGap),
               // Greeting
               Row(
                 children: [
@@ -351,24 +365,24 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          ref.watch(kidsModeProvider)
+                          kidsModeEnabled
                               ? 'Hoş Geldin, ${user?.name.split(' ').first ?? 'Küçük Okuyucu'} 🎉'
                               : 'Merhaba, ${user?.name.split(' ').first ?? 'Okuyucu'} 👋',
                           style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
-                            color: ref.watch(kidsModeProvider)
+                            color: kidsModeEnabled
                                 ? Colors.pink.shade600
                                 : colorScheme.onSurface,
                           ),
                         ),
                         Text(
-                          ref.watch(kidsModeProvider)
+                          kidsModeEnabled
                               ? 'Eğlenceli hikayeler seni bekliyor!'
                               : 'Bugün okumaya devam et!',
                           style: TextStyle(
                             fontSize: 14,
-                            color: ref.watch(kidsModeProvider)
+                            color: kidsModeEnabled
                                 ? Colors.pink.shade400
                                 : colorScheme.onSurfaceVariant,
                           ),
@@ -460,7 +474,7 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                 ],
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: AppUI.sectionGap),
 
               Container(
                 padding: const EdgeInsets.all(16),
@@ -493,15 +507,17 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppUI.sectionGap),
 
               const _DailyQuoteCard(),
 
-              const SizedBox(height: 16),
+              if (showLeagueSection || hasContinueReading)
+                const SizedBox(height: AppUI.sectionGap),
 
-              if (isAuthenticated && !ref.watch(kidsModeProvider)) ...[
+              if (showLeagueSection) ...[
                 const LeagueMiniCard(),
-                const SizedBox(height: 20),
+                if (hasContinueReading)
+                  const SizedBox(height: AppUI.sectionGap),
               ],
 
               // Continue reading card
@@ -510,7 +526,7 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                   data: (progress) {
                     final recent = _findContinueReadingProgress(
                       progress,
-                      isKidsMode: ref.watch(kidsModeProvider),
+                      isKidsMode: kidsModeEnabled,
                     );
                     if (recent == null || recent.book == null) {
                       return const SizedBox.shrink();
@@ -624,26 +640,12 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                   error: (_, __) => const SizedBox.shrink(),
                 ),
 
-              if (isAuthenticated)
-                progressAsync.when(
-                  data: (progress) =>
-                      _findContinueReadingProgress(
-                            progress,
-                            isKidsMode: ref.watch(kidsModeProvider),
-                          ) !=
-                          null
-                      ? const SizedBox(height: 24)
-                      : const SizedBox.shrink(),
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
-                ),
-
-              const SizedBox(height: 24),
+              const SizedBox(height: AppUI.sectionGap),
 
               categoriesAsync.when(
                 data: (categories) {
                   if (categories.isEmpty) return const SizedBox.shrink();
-                  if (ref.watch(kidsModeProvider))
+                  if (kidsModeEnabled)
                     return const SizedBox.shrink();
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -722,7 +724,7 @@ class _HomeTabState extends ConsumerState<_HomeTab>
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: AppUI.sectionGap),
 
               // Featured Books
               featuredAsync.when(
@@ -983,7 +985,6 @@ class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
 
         return Container(
           width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 24),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: colorScheme.outline.withOpacity(0.35)),
@@ -1137,7 +1138,6 @@ class _DailyQuoteCardState extends ConsumerState<_DailyQuoteCard> {
       loading: () => Container(
         height: 140,
         width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 24),
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
           borderRadius: BorderRadius.circular(24),

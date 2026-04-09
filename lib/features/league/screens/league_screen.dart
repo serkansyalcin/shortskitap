@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitaplig/app/theme/app_colors.dart';
+import 'package:kitaplig/app/theme/app_ui.dart';
 
 import 'package:kitaplig/app/providers/auth_provider.dart';
 import 'package:kitaplig/app/providers/kids_provider.dart';
@@ -140,7 +141,12 @@ class _LeagueContent extends StatelessWidget {
             slivers: [
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppUI.screenHorizontalPadding,
+                    AppUI.screenTopPadding,
+                    AppUI.screenHorizontalPadding,
+                    0,
+                  ),
                   child: LeagueHeader(
                     status: status,
                     showBackButton: !embedded,
@@ -150,7 +156,12 @@ class _LeagueContent extends StatelessWidget {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppUI.screenHorizontalPadding,
+                    AppUI.sectionGap,
+                    AppUI.screenHorizontalPadding,
+                    AppUI.sectionGap,
+                  ),
                   child: AnimatedSegmentedControl<_LeagueTab>(
                     selected: tab,
                     onChanged: onTabChanged,
@@ -176,7 +187,12 @@ class _LeagueContent extends StatelessWidget {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppUI.screenHorizontalPadding,
+                    0,
+                    AppUI.screenHorizontalPadding,
+                    AppUI.sectionGap,
+                  ),
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: theme.cardColor,
@@ -423,7 +439,7 @@ class _DuelTabContent extends ConsumerWidget {
                     )
                     .toList(),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppUI.sectionGap),
             ],
             if (activeDuels.isNotEmpty) ...[
               _DuelSection(
@@ -442,7 +458,7 @@ class _DuelTabContent extends ConsumerWidget {
                     )
                     .toList(),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppUI.sectionGap),
             ],
             if (outgoingDuels.isNotEmpty)
               _DuelSection(

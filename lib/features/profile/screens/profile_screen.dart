@@ -10,6 +10,7 @@ import '../../../app/providers/kids_provider.dart';
 import '../../../app/providers/profile_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_ui.dart';
 import '../../../core/models/public_profile_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/services/subscription_service.dart';
@@ -415,7 +416,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
         error: (_, __) => ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(AppUI.screenHorizontalPadding),
           children: const [
             _SectionCard(
               title: 'Profil yüklenemedi',
@@ -437,7 +438,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
           return ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+            padding: const EdgeInsets.fromLTRB(
+              AppUI.screenHorizontalPadding,
+              AppUI.screenTopPadding,
+              AppUI.screenHorizontalPadding,
+              28,
+            ),
             children: [
               _HeroCard(
                 profile: profile,
@@ -473,11 +479,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       )
                     : null,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppUI.sectionGap),
               _StatsGrid(stats: profile.stats),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppUI.sectionGap),
               _LeagueCard(activeLeague: profile.activeLeague),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppUI.sectionGap),
               if (achievements.isNotEmpty)
                 AchievementBadgeGrid(
                   achievements: achievements,
@@ -491,19 +497,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   subtitle: 'Henüz gösterilecek bir rozet yok.',
                 ),
               if (_isSelf) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: AppUI.sectionGap),
                 const ReadingHeatmapWidget(),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppUI.sectionGap),
                 _KidsModeProfileSection(
                   accent: _kidsAccent,
                   onToggleKidsMode: _onKidsModeSwitch,
                   onOpenParentPin: _onOpenParentPinDialog,
                 ),
               ],
-              const SizedBox(height: 16),
+              const SizedBox(height: AppUI.sectionGap),
               _HistorySection(history: profile.leagueHistory),
               if (_isSelf) ...[
-                const SizedBox(height: 20),
+                const SizedBox(height: AppUI.sectionGap),
                 _DeleteAccountSection(onTap: _showDeleteAccountDialog),
               ],
             ],
@@ -808,7 +814,6 @@ class _MembershipBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -872,6 +877,12 @@ class _UpgradeToProCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final titleColor = theme.brightness == Brightness.dark
+        ? Colors.white
+        : theme.colorScheme.onSurface;
+    final subtitleColor = theme.brightness == Brightness.dark
+        ? Colors.white.withOpacity(0.78)
+        : theme.colorScheme.onSurfaceVariant;
 
     return Material(
       color: Colors.transparent,
@@ -917,6 +928,7 @@ class _UpgradeToProCard extends StatelessWidget {
                       "Pro'ya Geç",
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w800,
+                        color: titleColor,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -924,7 +936,7 @@ class _UpgradeToProCard extends StatelessWidget {
                       'Reklamsız okuma, tüm kitaplar ve ekstra ayrıcalıkları aç.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         height: 1.35,
-                        color: theme.colorScheme.onSurfaceVariant,
+                        color: subtitleColor,
                       ),
                     ),
                   ],

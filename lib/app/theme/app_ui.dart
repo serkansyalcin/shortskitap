@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 /// Tutarlı UI bileşenleri - tüm sayfalarda aynı tasarım dili
 class AppUI {
   const AppUI._();
+  static const double screenHorizontalPadding = 20;
+  static const double screenTopPadding = 20;
+  static const double screenBottomContentPadding = 96;
+  static const double sectionGap = 24;
+  static const double blockGap = 16;
 
   /// Sayfa başlığı stili
   static TextStyle pageTitle(BuildContext context) {
