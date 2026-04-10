@@ -66,6 +66,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   late final AutoVoiceoverService _voiceoverService;
   StreamSubscription<int>? _voiceoverCompletionSubscription;
   final Map<int, String> _localHighlights = {};
+  /// Önceki sayfa (değerlendirme modalı: son sayfaya kaydırarak gelince tetiklemek için).
+  int? _readerPreviousPageIndex;
 
   @override
   void initState() {
@@ -123,6 +125,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   void _onPageChanged(int index) {
     final items = _lastBuiltItems;
+    final previousPageIndex = _readerPreviousPageIndex;
+    _readerPreviousPageIndex = index;
+
     final paragraphOrder = _paragraphOrderForIndex(items, index);
     final paragraph = _paragraphForIndex(items, index);
 
@@ -158,6 +163,30 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _voiceoverService.stop();
       setState(() => _voiceoverLoading = false);
     }
+
+    _maybeShowReviewWhenEnteringLastPage(
+      index,
+      previousPageIndex,
+      items,
+    );
+  }
+
+  /// Son paragrafa aşağı kaydırarak gelindiğinde de (ok ile aynı) değerlendirme açılır.
+  void _maybeShowReviewWhenEnteringLastPage(
+    int index,
+    int? previousPageIndex,
+    List<dynamic> items,
+  ) {
+    if (items.isEmpty) return;
+    final lastIndex = items.length - 1;
+    if (lastIndex < 0 || index != lastIndex) return;
+    if (previousPageIndex == null || previousPageIndex >= lastIndex) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ReviewModal.show(context, widget.bookId);
+    });
   }
 
   Future<void> _syncVoiceoverForPage(
