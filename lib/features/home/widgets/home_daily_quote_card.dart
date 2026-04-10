@@ -26,16 +26,47 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
   final ScreenshotController _screenshotController = ScreenshotController();
   bool _isSharing = false;
 
+  Future<bool> _ensureGallerySavePermission() async {
+    if (kIsWeb || !Platform.isIOS) {
+      return true;
+    }
+
+    final status = await Permission.photosAddOnly.request();
+    if (status.isGranted || status.isLimited) {
+      return true;
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Galeriye kaydetmek için erişim izni vermelisiniz.',
+          ),
+          action: status.isPermanentlyDenied
+              ? SnackBarAction(
+                  label: 'Ayarlar',
+                  onPressed: () => openAppSettings(),
+                )
+              : null,
+        ),
+      );
+    }
+
+    return false;
+  }
+
+  bool _useLegacyGalleryPermissionFlow() => false;
+
   Future<void> _shareQuote(DailyQuoteModel quote) async {
     if (_isSharing) return;
 
     setState(() => _isSharing = true);
 
     try {
-      if (!kIsWeb) {
+      if (_useLegacyGalleryPermissionFlow()) {
         if (Platform.isAndroid) {
-          final status = await Permission.storage.request();
-          if (!status.isGranted) {
+          final status = await Permission.photosAddOnly.request();
+          if (!status.isGranted && !status.isLimited) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -46,8 +77,8 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
             return;
           }
         }
-      } else if (Platform.isIOS) {
-        final status = await Permission.photos.request();
+      } else if (_useLegacyGalleryPermissionFlow()) {
+        final status = await Permission.photosAddOnly.request();
 
         if (!status.isGranted && !status.isLimited) {
           if (mounted) {
@@ -92,6 +123,11 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
           );
         }
       } else {
+        final canSave = await _ensureGallerySavePermission();
+        if (!canSave) {
+          return;
+        }
+
         final result = await ImageGallerySaverPlus.saveImage(
           image,
           quality: 100,

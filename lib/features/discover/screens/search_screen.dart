@@ -47,35 +47,59 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final textSecondary = colorScheme.onSurfaceVariant;
 
     return Scaffold(
-      appBar: AppBar(
-        title: TextField(
-          controller: _ctrl,
-          autofocus: true,
-          style: TextStyle(color: colorScheme.onSurface),
-          decoration: InputDecoration(
-            hintText: 'Kitap, yazar veya kullanıcı ara...',
-            border: InputBorder.none,
-            hintStyle: TextStyle(color: textSecondary),
-          ),
-          onChanged: _onQueryChanged,
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 16, 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    visualDensity: VisualDensity.compact,
+                    splashRadius: 22,
+                    onPressed: () => context.pop(),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _ctrl,
+                      autofocus: true,
+                      textInputAction: TextInputAction.search,
+                      style: TextStyle(color: colorScheme.onSurface),
+                      decoration: InputDecoration(
+                        hintText: 'Kitap, yazar veya kullanıcı ara...',
+                        hintStyle: TextStyle(color: textSecondary),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 18,
+                        ),
+                      ),
+                      onChanged: _onQueryChanged,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: _query.isEmpty
+                  ? _SearchHint(textSecondary: textSecondary)
+                  : _query.length < 2
+                  ? _SearchHint(
+                      textSecondary: textSecondary,
+                      message: 'Arama için en az 2 karakter gir.',
+                    )
+                  : _SearchResults(
+                      query: _query,
+                      booksAsync: booksAsync,
+                      usersAsync: usersAsync,
+                    ),
+            ),
+          ],
         ),
       ),
-      body: _query.isEmpty
-          ? _SearchHint(textSecondary: textSecondary)
-          : _query.length < 2
-          ? _SearchHint(
-              textSecondary: textSecondary,
-              message: 'Arama için en az 2 karakter gir.',
-            )
-          : _SearchResults(
-              query: _query,
-              booksAsync: booksAsync,
-              usersAsync: usersAsync,
-            ),
     );
   }
 }
@@ -97,10 +121,7 @@ class _SearchHint extends StatelessWidget {
         children: [
           const Icon(Icons.search_rounded, size: 52),
           const SizedBox(height: 12),
-          Text(
-            message,
-            style: TextStyle(color: textSecondary, fontSize: 14),
-          ),
+          Text(message, style: TextStyle(color: textSecondary, fontSize: 14)),
         ],
       ),
     );
@@ -125,9 +146,7 @@ class _SearchResults extends StatelessWidget {
     final textSecondary = colorScheme.onSurfaceVariant;
 
     if (booksAsync.isLoading || usersAsync.isLoading) {
-      return Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
+      return Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
 
     if (booksAsync.hasError && usersAsync.hasError) {
@@ -320,9 +339,9 @@ class _UserTile extends StatelessWidget {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF6B93B).withValues(
-                                    alpha: 0.18,
-                                  ),
+                                  color: const Color(
+                                    0xFFF6B93B,
+                                  ).withValues(alpha: 0.18),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: const Text(
@@ -391,7 +410,8 @@ class _Avatar extends StatelessWidget {
             ? CachedNetworkImage(
                 imageUrl: user.avatarUrl!,
                 fit: BoxFit.cover,
-                errorWidget: (_, __, ___) => _AvatarFallback(initials: initials),
+                errorWidget: (_, __, ___) =>
+                    _AvatarFallback(initials: initials),
               )
             : _AvatarFallback(initials: initials),
       ),
@@ -486,10 +506,7 @@ class _BookTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Icon(
-                    Icons.arrow_forward_rounded,
-                    color: textSecondary,
-                  ),
+                  Icon(Icons.arrow_forward_rounded, color: textSecondary),
                 ],
               ),
             ),

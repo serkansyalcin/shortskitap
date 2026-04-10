@@ -147,10 +147,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return;
     }
     if (!mounted) return;
-    final ok = await KidsModeExitDialog.show(
-      context,
-      verifyPin: svc.verifyPin,
-    );
+    final ok = await KidsModeExitDialog.show(context, verifyPin: svc.verifyPin);
     if (ok == true && mounted) {
       ref.read(kidsModeProvider.notifier).state = false;
     }
@@ -242,9 +239,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   ) async {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final planLabel = _planLabel(status);
     final startedAt = _premiumStartedText(user, status);
     final expiresAt = _premiumExpiresText(user, status);
+    final detailCardColors = isDark
+        ? const [Color(0xFF202520), Color(0xFF171B18)]
+        : const [Color(0xFFFFFBEB), Color(0xFFF7F0D9)];
+    final detailCardBorderColor = isDark
+        ? const Color(0xFFF6C35B).withValues(alpha: 0.24)
+        : const Color(0xFFF59E0B).withValues(alpha: 0.18);
+    final detailLabelColor = isDark
+        ? Colors.white.withValues(alpha: 0.72)
+        : colorScheme.onSurfaceVariant;
+    final detailValueColor = isDark ? Colors.white : colorScheme.onSurface;
+    final detailIconBackgroundColor = isDark
+        ? const Color(0xFF4A3715)
+        : const Color(0xFFF59E0B).withValues(alpha: 0.14);
+    final detailIconColor = isDark
+        ? const Color(0xFFF7C65B)
+        : const Color(0xFFB45309);
+    final activePanelColor = isDark
+        ? const Color(0xFF1D2B1A)
+        : AppColors.primary.withValues(alpha: 0.08);
+    final activePanelTextColor = isDark
+        ? Colors.white.withValues(alpha: 0.94)
+        : colorScheme.onSurface;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -279,13 +299,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     vertical: 7,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF59E0B).withOpacity(0.12),
+                    color: isDark
+                        ? const Color(0xFF3A2A12)
+                        : const Color(0xFFF59E0B).withOpacity(0.12),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Pro üyelik',
                     style: TextStyle(
-                      color: Color(0xFFB45309),
+                      color: isDark
+                          ? const Color(0xFFF7C65B)
+                          : const Color(0xFFB45309),
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                     ),
@@ -316,15 +340,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(24),
                     gradient: LinearGradient(
-                      colors: theme.brightness == Brightness.dark
-                          ? const [Color(0xFF171A17), Color(0xFF111311)]
-                          : const [Color(0xFFFFFBEB), Color(0xFFF7F0D9)],
+                      colors: detailCardColors,
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    border: Border.all(
-                      color: const Color(0xFFF59E0B).withOpacity(0.18),
-                    ),
+                    border: Border.all(color: detailCardBorderColor),
                   ),
                   child: Column(
                     children: [
@@ -332,12 +352,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         icon: Icons.workspace_premium_rounded,
                         label: 'Paket adı',
                         value: planLabel,
+                        labelColor: detailLabelColor,
+                        valueColor: detailValueColor,
+                        iconBackgroundColor: detailIconBackgroundColor,
+                        iconColor: detailIconColor,
                       ),
                       const SizedBox(height: 14),
                       _MembershipDetailRow(
                         icon: Icons.calendar_month_rounded,
                         label: 'Başlangıç tarihi',
                         value: startedAt,
+                        labelColor: detailLabelColor,
+                        valueColor: detailValueColor,
+                        iconBackgroundColor: detailIconBackgroundColor,
+                        iconColor: detailIconColor,
                       ),
                       const SizedBox(height: 14),
                       _MembershipDetailRow(
@@ -346,6 +374,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ? 'Erişim'
                             : 'Bitiş tarihi',
                         value: expiresAt,
+                        labelColor: detailLabelColor,
+                        valueColor: detailValueColor,
+                        iconBackgroundColor: detailIconBackgroundColor,
+                        iconColor: detailIconColor,
                       ),
                     ],
                   ),
@@ -355,7 +387,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.08),
+                    color: activePanelColor,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -373,7 +405,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             height: 1.45,
-                            color: colorScheme.onSurface,
+                            color: activePanelTextColor,
                           ),
                         ),
                       ),
@@ -428,11 +460,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         data: (profile) {
           final isPremium = _isSelf
               ? (subscriptionStatus?.isPremium == true) ||
-                (currentUser?.isPremium == true) ||
-                profile.profile.isPremium
+                    (currentUser?.isPremium == true) ||
+                    profile.profile.isPremium
               : profile.profile.isPremium;
-          final achievements = _isSelf &&
-                  (earnedAsync?.valueOrNull?.isNotEmpty ?? false)
+          final achievements =
+              _isSelf && (earnedAsync?.valueOrNull?.isNotEmpty ?? false)
               ? earnedAsync!.valueOrNull!
               : profile.achievements.where((item) => item.isEarned).toList();
 
@@ -449,7 +481,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 profile: profile,
                 isSelf: _isSelf,
                 isPremium: isPremium,
-                premiumPlanLabel: isPremium ? _planLabel(subscriptionStatus) : null,
+                premiumPlanLabel: isPremium
+                    ? _planLabel(subscriptionStatus)
+                    : null,
                 followBusy: _followBusy,
                 onFollow: () => _toggleFollow(profile),
                 onFollowers: () => _openPeople(
@@ -464,9 +498,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       .read(profileServiceProvider)
                       .getFollowing(profile.profile.username, limit: 50),
                 ),
-                onSettings: _isSelf ? () => context.push('/home/settings') : null,
-                onHighlights:
-                    _isSelf ? () => context.push('/home/highlights') : null,
+                onSettings: _isSelf
+                    ? () => context.push('/home/settings')
+                    : null,
+                onHighlights: _isSelf
+                    ? () => context.push('/home/highlights')
+                    : null,
                 onLogout: _isSelf ? _logout : null,
                 onPremiumTap: _isSelf && !isPremium
                     ? () => context.push('/premium')
@@ -487,7 +524,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               if (achievements.isNotEmpty)
                 AchievementBadgeGrid(
                   achievements: achievements,
-                  earnedCount: achievements.where((item) => item.isEarned).length,
+                  earnedCount: achievements
+                      .where((item) => item.isEarned)
+                      .length,
                   compact: true,
                   limit: _isSelf ? 6 : null,
                 )
@@ -574,16 +613,8 @@ class _HeroCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? const [
-                  Color(0xFF0F1713),
-                  Color(0xFF173524),
-                  Color(0xFF102218),
-                ]
-              : const [
-                  Color(0xFFF5F8F3),
-                  Color(0xFFE6F3E7),
-                  Color(0xFFD4ECD7),
-                ],
+              ? const [Color(0xFF0F1713), Color(0xFF173524), Color(0xFF102218)]
+              : const [Color(0xFFF5F8F3), Color(0xFFE6F3E7), Color(0xFFD4ECD7)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -608,7 +639,10 @@ class _HeroCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _Avatar(name: profile.profile.name, url: profile.profile.avatarUrl),
+              _Avatar(
+                name: profile.profile.name,
+                url: profile.profile.avatarUrl,
+              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -715,11 +749,7 @@ class _HeroCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _ActionButton(
-                    'Çıkış Yap',
-                    onLogout,
-                    dark: isDark,
-                  ),
+                  child: _ActionButton('Çıkış Yap', onLogout, dark: isDark),
                 ),
               ],
             )
@@ -750,6 +780,7 @@ class _ProfileProBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final badge = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -759,9 +790,14 @@ class _ProfileProBadge extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.18)
+              : Colors.white.withValues(alpha: 0.28),
+        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFF59E0B).withOpacity(0.22),
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.22),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -773,13 +809,13 @@ class _ProfileProBadge extends StatelessWidget {
           Icon(
             Icons.workspace_premium_rounded,
             size: 15,
-            color: Colors.white,
+            color: Color(0xFF4B2A00),
           ),
           SizedBox(width: 4),
           Text(
             'PRO',
             style: TextStyle(
-              color: Colors.white,
+              color: Color(0xFF4B2A00),
               fontSize: 11,
               fontWeight: FontWeight.w800,
               letterSpacing: 0.6,
@@ -803,10 +839,7 @@ class _ProfileProBadge extends StatelessWidget {
 }
 
 class _MembershipBanner extends StatelessWidget {
-  const _MembershipBanner({
-    required this.planLabel,
-    this.onTap,
-  });
+  const _MembershipBanner({required this.planLabel, this.onTap});
 
   final String planLabel;
   final VoidCallback? onTap;
@@ -814,6 +847,11 @@ class _MembershipBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : theme.colorScheme.onSurface;
+    final subtitleColor = isDark
+        ? Colors.white.withValues(alpha: 0.82)
+        : theme.colorScheme.onSurfaceVariant;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -824,9 +862,17 @@ class _MembershipBanner extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
-            color: theme.cardColor.withOpacity(0.55),
+            gradient: LinearGradient(
+              colors: isDark
+                  ? const [Color(0xFF1D2B22), Color(0xFF172219)]
+                  : const [Color(0xFFF7FBEF), Color(0xFFEAF4E1)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             border: Border.all(
-              color: const Color(0xFFF59E0B).withOpacity(0.28),
+              color: isDark
+                  ? const Color(0xFFF6C35B).withValues(alpha: 0.34)
+                  : const Color(0xFFF59E0B).withValues(alpha: 0.28),
             ),
           ),
           child: Row(
@@ -844,6 +890,7 @@ class _MembershipBanner extends StatelessWidget {
                       'Pro üyesin',
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w800,
+                        color: titleColor,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -851,16 +898,13 @@ class _MembershipBanner extends StatelessWidget {
                       '$planLabel • Detayları görmek için dokun',
                       style: theme.textTheme.bodySmall?.copyWith(
                         height: 1.35,
-                        color: theme.colorScheme.onSurfaceVariant,
+                        color: subtitleColor,
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              Icon(Icons.chevron_right_rounded, color: subtitleColor),
             ],
           ),
         ),
@@ -901,9 +945,7 @@ class _UpgradeToProCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            border: Border.all(
-              color: AppColors.primary.withOpacity(0.24),
-            ),
+            border: Border.all(color: AppColors.primary.withOpacity(0.24)),
           ),
           child: Row(
             children: [
@@ -973,11 +1015,19 @@ class _MembershipDetailRow extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
+    this.labelColor,
+    this.valueColor,
+    this.iconBackgroundColor,
+    this.iconColor,
   });
 
   final IconData icon;
   final String label;
   final String value;
+  final Color? labelColor;
+  final Color? valueColor;
+  final Color? iconBackgroundColor;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -989,10 +1039,16 @@ class _MembershipDetailRow extends StatelessWidget {
           width: 42,
           height: 42,
           decoration: BoxDecoration(
-            color: const Color(0xFFF59E0B).withOpacity(0.14),
+            color:
+                iconBackgroundColor ??
+                const Color(0xFFF59E0B).withOpacity(0.14),
             borderRadius: BorderRadius.circular(14),
           ),
-          child: Icon(icon, color: const Color(0xFFB45309), size: 20),
+          child: Icon(
+            icon,
+            color: iconColor ?? const Color(0xFFB45309),
+            size: 20,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -1002,7 +1058,7 @@ class _MembershipDetailRow extends StatelessWidget {
               Text(
                 label,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color: labelColor ?? theme.colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 2),
@@ -1010,6 +1066,7 @@ class _MembershipDetailRow extends StatelessWidget {
                 value,
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w800,
+                  color: valueColor ?? theme.colorScheme.onSurface,
                 ),
               ),
             ],
@@ -1035,10 +1092,26 @@ class _StatsGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       childAspectRatio: 1.8,
       children: [
-        _StatCard('Okunan', '${stats.totalParagraphsRead}', 'assets/icons/books-read.svg'),
-        _StatCard('Başlanan', '${stats.startedBooks}', Icons.auto_stories_rounded),
-        _StatCard('Biten', '${stats.completedBooks}', 'assets/icons/line-dock.svg'),
-        _StatCard('Seri', '${stats.currentStreak} gün', Icons.local_fire_department_rounded),
+        _StatCard(
+          'Okunan',
+          '${stats.totalParagraphsRead}',
+          'assets/icons/books-read.svg',
+        ),
+        _StatCard(
+          'Başlanan',
+          '${stats.startedBooks}',
+          Icons.auto_stories_rounded,
+        ),
+        _StatCard(
+          'Biten',
+          '${stats.completedBooks}',
+          'assets/icons/line-dock.svg',
+        ),
+        _StatCard(
+          'Seri',
+          '${stats.currentStreak} gün',
+          Icons.local_fire_department_rounded,
+        ),
       ],
     );
   }
@@ -1064,9 +1137,9 @@ class _LeagueCard extends StatelessWidget {
         children: [
           Text(
             activeLeague!.tierLabel,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -1075,8 +1148,14 @@ class _LeagueCard extends StatelessWidget {
             children: [
               _MiniPill('Sıra', '#${activeLeague!.rank}'),
               _MiniPill('Haftalık LP', '${activeLeague!.weeklyLp}'),
-              _MiniPill('Grup', '${activeLeague!.groupNumber}/${activeLeague!.groupSize}'),
-              _MiniPill('Düello', '${activeLeague!.duelWins}G • ${activeLeague!.duelLosses}M'),
+              _MiniPill(
+                'Grup',
+                '${activeLeague!.groupNumber}/${activeLeague!.groupSize}',
+              ),
+              _MiniPill(
+                'Düello',
+                '${activeLeague!.duelWins}G • ${activeLeague!.duelLosses}M',
+              ),
             ],
           ),
         ],
@@ -1142,7 +1221,11 @@ class _KidsModeProfileSection extends ConsumerWidget {
                           color: accent.withOpacity(isDark ? 0.22 : 0.12),
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: Icon(Icons.child_care_rounded, color: accent, size: 24),
+                        child: Icon(
+                          Icons.child_care_rounded,
+                          color: accent,
+                          size: 24,
+                        ),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -1187,7 +1270,9 @@ class _KidsModeProfileSection extends ConsumerWidget {
                   thickness: 1,
                   indent: 16,
                   endIndent: 16,
-                  color: theme.colorScheme.outline.withOpacity(isDark ? 0.2 : 0.35),
+                  color: theme.colorScheme.outline.withOpacity(
+                    isDark ? 0.2 : 0.35,
+                  ),
                 ),
                 pinAsync.when(
                   data: (svc) => InkWell(
@@ -1196,7 +1281,10 @@ class _KidsModeProfileSection extends ConsumerWidget {
                       bottom: Radius.circular(24),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 16,
+                      ),
                       child: Row(
                         children: [
                           Icon(
@@ -1231,7 +1319,8 @@ class _KidsModeProfileSection extends ConsumerWidget {
                           ),
                           Icon(
                             Icons.chevron_right_rounded,
-                            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withOpacity(0.6),
                           ),
                         ],
                       ),
@@ -1271,7 +1360,9 @@ class _DeleteAccountSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final borderColor = const Color(0xFFDC2626).withOpacity(isDark ? 0.45 : 0.35);
+    final borderColor = const Color(
+      0xFFDC2626,
+    ).withOpacity(isDark ? 0.45 : 0.35);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1420,7 +1511,11 @@ class _PeopleSheet extends StatelessWidget {
                         final item = page.items[index];
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
-                          leading: _Avatar(name: item.name, url: item.avatarUrl, size: 48),
+                          leading: _Avatar(
+                            name: item.name,
+                            url: item.avatarUrl,
+                            size: 48,
+                          ),
                           title: Text(item.name),
                           subtitle: Text('@${item.username}'),
                           onTap: () {
@@ -1448,16 +1543,16 @@ class _Card extends StatelessWidget {
   final Widget child;
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.7),
-          ),
-        ),
-        child: child,
-      );
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: Theme.of(context).cardColor,
+      borderRadius: BorderRadius.circular(24),
+      border: Border.all(
+        color: Theme.of(context).colorScheme.outline.withOpacity(0.7),
+      ),
+    ),
+    child: child,
+  );
 }
 
 class _SectionCard extends StatelessWidget {
@@ -1466,15 +1561,18 @@ class _SectionCard extends StatelessWidget {
   final String subtitle;
   @override
   Widget build(BuildContext context) => _Card(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Text(subtitle),
-          ],
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
         ),
-      );
+        const SizedBox(height: 4),
+        Text(subtitle),
+      ],
+    ),
+  );
 }
 
 class _Avatar extends StatelessWidget {
@@ -1520,85 +1618,87 @@ class _CountChip extends StatelessWidget {
   final bool dark;
   @override
   Widget build(BuildContext context) => InkWell(
-        onTap: onTap,
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(16),
+    child: Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: dark
+            ? Colors.white.withOpacity(0.06)
+            : Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest.withOpacity(0.45),
         borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: dark
-                ? Colors.white.withOpacity(0.06)
-                : Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withOpacity(0.45),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: dark
-                  ? Colors.white.withOpacity(0.08)
-                  : Theme.of(context).colorScheme.outline.withOpacity(0.1),
+        border: Border.all(
+          color: dark
+              ? Colors.white.withOpacity(0.08)
+              : Theme.of(context).colorScheme.outline.withOpacity(0.1),
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            '$value',
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 18,
+              color: dark ? Colors.white : null,
             ),
           ),
-          child: Column(
-            children: [
-              Text(
-                '$value',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 18,
-                  color: dark ? Colors.white : null,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: dark ? Colors.white.withOpacity(0.78) : null,
-                ),
-              ),
-            ],
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: dark ? Colors.white.withOpacity(0.78) : null,
+            ),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
 
 class _ActionButton extends StatelessWidget {
-  const _ActionButton(this.label, this.onTap, {this.filled = false, this.dark = false});
+  const _ActionButton(
+    this.label,
+    this.onTap, {
+    this.filled = false,
+    this.dark = false,
+  });
   final String label;
   final VoidCallback? onTap;
   final bool filled;
   final bool dark;
   @override
   Widget build(BuildContext context) => SizedBox(
-        height: 48,
-        child: FilledButton.tonal(
-          style: FilledButton.styleFrom(
-            backgroundColor: filled
-                ? AppColors.primary
-                : dark
-                ? Colors.white.withOpacity(0.08)
-                : null,
-            foregroundColor: filled
-                ? Colors.white
-                : dark
-                ? Colors.white
-                : null,
-            side: dark && !filled
-                ? BorderSide(color: Colors.white.withOpacity(0.1))
-                : null,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-          onPressed: onTap,
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
+    height: 48,
+    child: FilledButton.tonal(
+      style: FilledButton.styleFrom(
+        backgroundColor: filled
+            ? AppColors.primary
+            : dark
+            ? Colors.white.withOpacity(0.08)
+            : null,
+        foregroundColor: filled
+            ? Colors.white
+            : dark
+            ? Colors.white
+            : null,
+        side: dark && !filled
+            ? BorderSide(color: Colors.white.withOpacity(0.1))
+            : null,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      onPressed: onTap,
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+      ),
+    ),
+  );
 }
 
 class _StatCard extends StatelessWidget {
@@ -1618,50 +1718,50 @@ class _StatCard extends StatelessWidget {
     final svgAsset = icon is String ? icon as String : mappedAsset;
 
     return _Card(
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: svgAsset != null
-                    ? SvgPicture.asset(
-                        svgAsset,
-                        colorFilter: const ColorFilter.mode(
-                          AppColors.primary,
-                          BlendMode.srcIn,
-                        ),
-                      )
-                    : Icon(icon as IconData, color: AppColors.primary, size: 26),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      value,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
+              child: svgAsset != null
+                  ? SvgPicture.asset(
+                      svgAsset,
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.primary,
+                        BlendMode.srcIn,
                       ),
+                    )
+                  : Icon(icon as IconData, color: AppColors.primary, size: 26),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
                     ),
-                    const SizedBox(height: 2),
-                    Text(label),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(label),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      );
+      ),
+    );
   }
 }
 
@@ -1671,11 +1771,13 @@ class _MiniPill extends StatelessWidget {
   final String value;
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.45),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Text('$label: $value'),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    decoration: BoxDecoration(
+      color: Theme.of(
+        context,
+      ).colorScheme.surfaceContainerHighest.withOpacity(0.45),
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: Text('$label: $value'),
+  );
 }

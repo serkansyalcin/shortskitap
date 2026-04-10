@@ -1,7 +1,7 @@
 name: kitaplig
 description: "KitapLig — Kitapları kısa paragraflarla dikey formatta oku. Lig sistemi ile arkadaşlarınla yarış!"
 publish_to: 'none'
-version: 1.0.1+3
+version: 1.0.1+4
 
 environment:
   sdk: ^3.10.0
