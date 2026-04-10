@@ -23,7 +23,7 @@ class OfflineCacheService {
 
     return openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: (db, version) async {
         await _createTables(db);
       },
@@ -69,6 +69,12 @@ class OfflineCacheService {
           await db.execute(
             'ALTER TABLE cached_paragraphs ADD COLUMN audio_local_path TEXT',
           );
+        }
+        if (oldVersion < 5) {
+          // Eski sürümlerde okuma sırasında oluşan metadata senkronu cached_books'a
+          // yazılıyordu; kitaplar yanlışlıkla "indirilmiş" görünüyordu. İndirilenler
+          // listesi satırlarını sıfırla (paragraf önbelleği cached_paragraphs kalır).
+          await db.delete('cached_books');
         }
       },
     );
@@ -148,6 +154,30 @@ class OfflineCacheService {
       'category_json': book.category == null
           ? null
           : jsonEncode(book.category!.toJson()),
+      'cached_at': DateTime.now().millisecondsSinceEpoch,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  /// Okuyucu gibi ekranlarda [BookModel] yokken; yalnızca İndirilenler satırı için minimal kayıt.
+  Future<void> cacheBookPlaceholder(int bookId, {String? title}) async {
+    final db = await database;
+    final safeTitle = (title != null && title.trim().isNotEmpty)
+        ? title.trim()
+        : 'Kitap';
+    await db.insert('cached_books', {
+      'id': bookId,
+      'slug': 'id-$bookId',
+      'title': safeTitle,
+      'cover_image_url': null,
+      'description': null,
+      'language': 'tr',
+      'is_premium': 0,
+      'is_kids': 0,
+      'total_paragraphs': 0,
+      'estimated_read_minutes': null,
+      'view_count': 0,
+      'author_json': null,
+      'category_json': null,
       'cached_at': DateTime.now().millisecondsSinceEpoch,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }

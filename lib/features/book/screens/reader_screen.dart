@@ -414,7 +414,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     try {
       final count = await ref
           .read(bookDownloadControllerProvider.notifier)
-          .downloadBook(widget.bookId);
+          .downloadBook(
+            widget.bookId,
+            fallbackTitle: widget.bookTitle,
+          );
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(

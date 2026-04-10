@@ -1259,22 +1259,40 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                       onTap: () async {
                         final ok = await showDialog<bool>(
                           context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('Çıkış Yap'),
-                            content: const Text(
-                              'Oturumunuzu kapatmak istediğinize emin misiniz?',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
-                                child: const Text('İptal'),
+                          builder: (dialogContext) {
+                            final scheme = Theme.of(dialogContext).colorScheme;
+                            return AlertDialog(
+                              title: Text(
+                                'Çıkış Yap',
+                                style: TextStyle(
+                                  color: scheme.onSurface,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 20,
+                                ),
                               ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, true),
-                                child: const Text('Çıkış Yap'),
+                              content: Text(
+                                'Oturumunuzu kapatmak istediğinize emin misiniz?',
+                                style: TextStyle(
+                                  color: scheme.onSurface.withValues(
+                                    alpha: 0.92,
+                                  ),
+                                  height: 1.45,
+                                ),
                               ),
-                            ],
-                          ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(dialogContext, false),
+                                  child: const Text('İptal'),
+                                ),
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(dialogContext, true),
+                                  child: const Text('Çıkış Yap'),
+                                ),
+                              ],
+                            );
+                          },
                         );
                         if (ok == true && mounted) {
                           await ref.read(authProvider.notifier).logout();
