@@ -247,7 +247,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                 'Reklamsız deneyim, premium kitaplar ve tüm avantajlar artık aktif.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: AppColors.lightTextSecondary,
+                  color: AppColors.darkTextSecondary,
                   fontSize: 14,
                   height: 1.5,
                 ),
@@ -683,7 +683,7 @@ class _HeroCard extends StatelessWidget {
           const Text(
             'Reklamları kaldır, premium kitaplara eriş ve okuma alışkanlığını daha net takip et.',
             style: TextStyle(
-              color: AppColors.lightTextSecondary,
+              color: AppColors.darkTextSecondary,
               fontSize: 15,
               height: 1.55,
             ),
@@ -705,7 +705,7 @@ class _HeroCard extends StatelessWidget {
                       const Text(
                         'Seçili plan',
                         style: TextStyle(
-                          color: AppColors.lightTextSecondary,
+                          color: AppColors.darkTextSecondary,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
@@ -723,7 +723,7 @@ class _HeroCard extends StatelessWidget {
                       Text(
                         planNote,
                         style: const TextStyle(
-                          color: AppColors.lightTextSecondary,
+                          color: AppColors.darkTextSecondary,
                           fontSize: 13,
                           height: 1.45,
                         ),
@@ -738,7 +738,7 @@ class _HeroCard extends StatelessWidget {
                     const Text(
                       'Bugün',
                       style: TextStyle(
-                        color: AppColors.lightTextSecondary,
+                        color: AppColors.darkTextSecondary,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
@@ -786,7 +786,7 @@ class _SectionHeader extends StatelessWidget {
         Text(
           subtitle,
           style: const TextStyle(
-            color: AppColors.lightTextSecondary,
+            color: AppColors.darkTextSecondary,
             fontSize: 13,
             height: 1.45,
           ),
@@ -848,7 +848,7 @@ class _FeatureGrid extends StatelessWidget {
                           Text(
                             item.subtitle,
                             style: const TextStyle(
-                              color: AppColors.lightTextSecondary,
+                              color: AppColors.darkTextSecondary,
                               fontSize: 11.5,
                               height: 1.3,
                             ),
@@ -1006,7 +1006,7 @@ class _PlanCard extends StatelessWidget {
                     Text(
                       detail,
                       style: const TextStyle(
-                        color: AppColors.lightTextSecondary,
+                        color: AppColors.darkTextSecondary,
                         fontSize: 13,
                         height: 1.5,
                       ),
@@ -1068,7 +1068,7 @@ class _BottomActionCard extends StatelessWidget {
                     const Text(
                       'Seçimin hazır',
                       style: TextStyle(
-                        color: AppColors.lightTextSecondary,
+                        color: AppColors.darkTextSecondary,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
