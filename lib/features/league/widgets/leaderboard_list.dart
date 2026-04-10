@@ -24,13 +24,16 @@ class LeaderboardList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final boardAsync = ref.watch(leaderboardProvider);
+    final boardState = ref.watch(leaderboardProvider);
 
-    return boardAsync.when(
-      loading: () => const Center(
+    if (boardState.isLoading && boardState.entries.isEmpty) {
+      return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
-      ),
-      error: (error, stackTrace) => Center(
+      );
+    }
+
+    if (boardState.error != null && boardState.entries.isEmpty) {
+      return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -51,29 +54,50 @@ class LeaderboardList extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
-                onPressed: () => ref.refresh(leaderboardProvider),
+                onPressed: () =>
+                    ref.read(leaderboardProvider.notifier).refresh(),
                 icon: const Icon(Icons.refresh_rounded),
                 label: const Text('Tekrar dene'),
               ),
             ],
           ),
         ),
-      ),
-      data: (entries) {
-        if (entries.isEmpty) {
-          return const LeagueEmptyState(
-            icon: Icons.groups_rounded,
-            title: 'Henüz grup oluşmadı',
-            subtitle:
-                'Katılımcılar yerleştiğinde liderlik tablosu burada görünecek.',
-          );
-        }
+      );
+    }
 
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
-          children: _buildRows(entries),
-        );
-      },
+    final entries = boardState.entries;
+    if (entries.isEmpty) {
+      return const LeagueEmptyState(
+        icon: Icons.groups_rounded,
+        title: 'Henüz grup oluşmadı',
+        subtitle:
+            'Katılımcılar yerleştiğinde liderlik tablosu burada görünecek.',
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ..._buildRows(entries),
+        if (boardState.hasMore || boardState.isLoadingMore)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 4),
+            child: Center(
+              child: boardState.isLoadingMore
+                  ? const SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(strokeWidth: 2.4),
+                    )
+                  : OutlinedButton.icon(
+                      onPressed: () =>
+                          ref.read(leaderboardProvider.notifier).loadMore(),
+                      icon: const Icon(Icons.expand_more_rounded),
+                      label: const Text('Daha fazla göster'),
+                    ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -100,10 +124,7 @@ class LeaderboardList extends ConsumerWidget {
         rows.add(
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 10),
-            child: _ZoneDivider(
-              label: 'Düşme çizgisi',
-              color: _dangerColor,
-            ),
+            child: _ZoneDivider(label: 'Düşme çizgisi', color: _dangerColor),
           ),
         );
       }
@@ -141,7 +162,9 @@ class _LeagueSummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceHigh : theme.cardColor,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.75)),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.75),
+        ),
       ),
       child: Row(
         children: [

@@ -80,7 +80,8 @@ class LeagueMembershipModel {
       groupSize: json['group_size'] as int,
       promotionZone: json['promotion_zone'] as int,
       demotionZone: json['demotion_zone'] as int,
-      lpToPromotion: json['lp_to_promotion'] as int? ?? json['xp_to_promotion'] as int?,
+      lpToPromotion:
+          json['lp_to_promotion'] as int? ?? json['xp_to_promotion'] as int?,
       lastResult: json['last_result'] as Map<String, dynamic>?,
     );
   }
@@ -137,6 +138,38 @@ class LeaderboardEntry {
   }
 }
 
+class LeaderboardPageModel {
+  final List<LeaderboardEntry> entries;
+  final int total;
+  final int limit;
+  final int offset;
+  final bool hasMore;
+  final int? nextOffset;
+
+  const LeaderboardPageModel({
+    required this.entries,
+    required this.total,
+    required this.limit,
+    required this.offset,
+    required this.hasMore,
+    required this.nextOffset,
+  });
+
+  factory LeaderboardPageModel.fromJson(Map<String, dynamic> json) {
+    final rawEntries = json['entries'] as List<dynamic>? ?? const [];
+    return LeaderboardPageModel(
+      entries: rawEntries
+          .map((e) => LeaderboardEntry.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      total: json['total'] as int? ?? rawEntries.length,
+      limit: json['limit'] as int? ?? rawEntries.length,
+      offset: json['offset'] as int? ?? 0,
+      hasMore: json['has_more'] == true,
+      nextOffset: json['next_offset'] as int?,
+    );
+  }
+}
+
 class LeagueStatusModel {
   final LeagueSeasonModel season;
   final LeagueMembershipModel membership;
@@ -145,8 +178,12 @@ class LeagueStatusModel {
 
   factory LeagueStatusModel.fromJson(Map<String, dynamic> json) {
     return LeagueStatusModel(
-      season: LeagueSeasonModel.fromJson(json['season'] as Map<String, dynamic>),
-      membership: LeagueMembershipModel.fromJson(json['membership'] as Map<String, dynamic>),
+      season: LeagueSeasonModel.fromJson(
+        json['season'] as Map<String, dynamic>,
+      ),
+      membership: LeagueMembershipModel.fromJson(
+        json['membership'] as Map<String, dynamic>,
+      ),
     );
   }
 }

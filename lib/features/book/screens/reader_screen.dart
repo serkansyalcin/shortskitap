@@ -61,7 +61,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _restoredInitialPage = false;
   bool _voiceoverLoading = false;
   bool _currentParagraphHasAudio = false;
+  bool _continuousVoiceoverEnabled = false;
+  bool _voiceoverAutoAdvancing = false;
   late final AutoVoiceoverService _voiceoverService;
+  StreamSubscription<int>? _voiceoverCompletionSubscription;
   final Map<int, String> _localHighlights = {};
 
   @override
@@ -69,6 +72,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     super.initState();
     _pageController = PageController();
     _voiceoverService = ref.read(autoVoiceoverServiceProvider);
+    _voiceoverCompletionSubscription = _voiceoverService
+        .paragraphCompletedStream
+        .listen(_handleVoiceoverParagraphCompleted);
 
     if (PlatformSupport.supportsImmersiveUi) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -107,6 +113,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _debounce?.cancel();
     _sessionTimer?.cancel();
     _controlsTimer?.cancel();
+    _voiceoverCompletionSubscription?.cancel();
     _voiceoverService.stop();
     if (PlatformSupport.supportsImmersiveUi) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -140,6 +147,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (voiceEnabled && paragraph != null && paragraph.hasAudio) {
       unawaited(_syncVoiceoverForPage(items, paragraph, index));
     } else if (voiceEnabled) {
+      if (_continuousVoiceoverEnabled) {
+        _disableContinuousVoiceover(
+          showMessage:
+              paragraph != null && !paragraph.hasAudio && _showControls,
+          message: 'Bu paragraf için hazır seslendirme bulunmuyor.',
+          disableVoiceover: true,
+        );
+      }
       _voiceoverService.stop();
       setState(() => _voiceoverLoading = false);
     }
@@ -177,7 +192,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (voiceEnabled) {
       ref.read(voiceoverEnabledProvider.notifier).state = false;
       _voiceoverService.disable();
-      setState(() => _voiceoverLoading = false);
+      setState(() {
+        _voiceoverLoading = false;
+        _continuousVoiceoverEnabled = false;
+      });
     } else {
       final currentParagraph = _paragraphForIndex(_lastBuiltItems, _currentIndex);
       if (currentParagraph == null || !currentParagraph.hasAudio) {
@@ -194,6 +212,68 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       unawaited(
         _syncVoiceoverForPage(_lastBuiltItems, currentParagraph, _currentIndex),
       );
+    }
+  }
+
+  void _toggleContinuousVoiceover() {
+    if (_continuousVoiceoverEnabled) {
+      _disableContinuousVoiceover(disableVoiceover: true);
+      return;
+    }
+
+    final currentParagraph = _paragraphForIndex(_lastBuiltItems, _currentIndex);
+    if (currentParagraph == null || !currentParagraph.hasAudio) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Otomatik oynatma için bu paragrafta hazır seslendirme olmalı.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (!ref.read(voiceoverEnabledProvider)) {
+      ref.read(voiceoverEnabledProvider.notifier).state = true;
+      _voiceoverService.enable();
+    }
+
+    setState(() => _continuousVoiceoverEnabled = true);
+    unawaited(
+      _syncVoiceoverForPage(_lastBuiltItems, currentParagraph, _currentIndex),
+    );
+  }
+
+  void _disableContinuousVoiceover({
+    bool showMessage = false,
+    String? message,
+    bool disableVoiceover = false,
+  }) {
+    if (!_continuousVoiceoverEnabled && !showMessage) return;
+
+    if (mounted) {
+      setState(() {
+        _continuousVoiceoverEnabled = false;
+        if (disableVoiceover) {
+          _voiceoverLoading = false;
+        }
+      });
+    } else {
+      _continuousVoiceoverEnabled = false;
+      if (disableVoiceover) {
+        _voiceoverLoading = false;
+      }
+    }
+
+    if (disableVoiceover) {
+      ref.read(voiceoverEnabledProvider.notifier).state = false;
+      _voiceoverService.disable();
+    }
+
+    if (showMessage && mounted && message != null && message.isNotEmpty) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -355,6 +435,60 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   List<dynamic> _lastBuiltItems = const [];
 
+  void _handleVoiceoverParagraphCompleted(int paragraphId) {
+    if (!mounted ||
+        !_continuousVoiceoverEnabled ||
+        !ref.read(voiceoverEnabledProvider) ||
+        _voiceoverAutoAdvancing) {
+      return;
+    }
+
+    final currentParagraph = _paragraphForIndex(_lastBuiltItems, _currentIndex);
+    if (currentParagraph == null || currentParagraph.id != paragraphId) {
+      return;
+    }
+
+    unawaited(_advanceContinuousVoiceover());
+  }
+
+  Future<void> _advanceContinuousVoiceover() async {
+    final nextIndex = _nextParagraphIndexAfterIndex(
+      _lastBuiltItems,
+      _currentIndex,
+    );
+
+    if (nextIndex == null) {
+      _disableContinuousVoiceover(disableVoiceover: true);
+      if (mounted) {
+        ReviewModal.show(context, widget.bookId);
+      }
+      return;
+    }
+
+    final nextParagraph = _paragraphForIndex(_lastBuiltItems, nextIndex);
+    if (nextParagraph == null || !nextParagraph.hasAudio) {
+      _disableContinuousVoiceover(
+        showMessage: true,
+        message: 'Sıradaki paragraf için hazır seslendirme bulunmuyor.',
+        disableVoiceover: true,
+      );
+      return;
+    }
+
+    if (!_pageController.hasClients) return;
+
+    _voiceoverAutoAdvancing = true;
+    try {
+      await _pageController.animateToPage(
+        nextIndex,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeInOutCubic,
+      );
+    } finally {
+      _voiceoverAutoAdvancing = false;
+    }
+  }
+
   void _restoreInitialPageIfNeeded(int initialIndex) {
     if (_restoredInitialPage) return;
     _restoredInitialPage = true;
@@ -416,6 +550,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       final item = items[i];
       if (item is _ParagraphItem) {
         return item.paragraph;
+      }
+    }
+    return null;
+  }
+
+  int? _nextParagraphIndexAfterIndex(List<dynamic> items, int index) {
+    for (var i = index + 1; i < items.length; i++) {
+      if (items[i] is _ParagraphItem) {
+        return i;
       }
     }
     return null;
@@ -673,7 +816,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       voiceoverEnabled: ref.watch(voiceoverEnabledProvider),
                       voiceoverAvailable: _currentParagraphHasAudio,
                       voiceoverLoading: _voiceoverLoading,
+                      continuousVoiceoverEnabled: _continuousVoiceoverEnabled,
                       onVoiceoverToggle: _toggleVoiceover,
+                      onContinuousVoiceoverToggle: _toggleContinuousVoiceover,
                     ),
                   ),
                 ),
@@ -808,6 +953,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       context: context,
       backgroundColor: const Color(0xFF151515),
       isScrollControlled: true,
+      enableDrag: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -819,13 +965,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           final activeFontFamily = _readerFontFamilyOverride ?? 'classic';
           final activeLineHeight = _readerLineHeightOverride ?? 1.8;
 
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.9,
+            minChildSize: 0.55,
+            maxChildSize: 0.94,
+            builder: (sheetContext, scrollController) {
+              return SafeArea(
+                top: false,
+                child: ListView(
+                  controller: scrollController,
+                  physics: const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics(),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
                   children: [
                     Center(
                       child: Container(
@@ -1035,8 +1188,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     ),
                   ],
                 ),
-              ),
-            ),
+              );
+            },
           );
         },
       ),
@@ -1257,7 +1410,9 @@ class _ReaderBottomBar extends StatelessWidget {
   final bool voiceoverEnabled;
   final bool voiceoverAvailable;
   final bool voiceoverLoading;
+  final bool continuousVoiceoverEnabled;
   final VoidCallback? onVoiceoverToggle;
+  final VoidCallback? onContinuousVoiceoverToggle;
 
   const _ReaderBottomBar({
     required this.readerTheme,
@@ -1269,7 +1424,9 @@ class _ReaderBottomBar extends StatelessWidget {
     this.voiceoverEnabled = false,
     this.voiceoverAvailable = false,
     this.voiceoverLoading = false,
+    this.continuousVoiceoverEnabled = false,
     this.onVoiceoverToggle,
+    this.onContinuousVoiceoverToggle,
   });
 
   @override
@@ -1338,6 +1495,43 @@ class _ReaderBottomBar extends StatelessWidget {
                 ),
               ),
               const Spacer(),
+              GestureDetector(
+                onTap: onContinuousVoiceoverToggle,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: continuousVoiceoverEnabled
+                        ? AppColors.primary.withValues(alpha: 0.22)
+                        : voiceoverAvailable
+                        ? Colors.white.withValues(alpha: isDark ? 0.08 : 0.18)
+                        : Colors.white.withValues(alpha: isDark ? 0.04 : 0.1),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: continuousVoiceoverEnabled
+                          ? AppColors.primary.withValues(alpha: 0.55)
+                          : voiceoverAvailable
+                          ? Colors.transparent
+                          : textColor.withValues(alpha: 0.15),
+                    ),
+                  ),
+                  child: Icon(
+                    continuousVoiceoverEnabled
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                    size: 16,
+                    color: continuousVoiceoverEnabled
+                        ? AppColors.primary
+                        : voiceoverAvailable
+                        ? textColor
+                        : textColor.withValues(alpha: 0.45),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               // Auto-voiceover toggle
               GestureDetector(
                 onTap: onVoiceoverToggle,

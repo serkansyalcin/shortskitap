@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitaplig/app/theme/app_colors.dart';
+import 'package:kitaplig/app/theme/app_ui.dart';
 
 import 'package:kitaplig/app/providers/auth_provider.dart';
 import 'package:kitaplig/app/providers/kids_provider.dart';
@@ -30,6 +31,22 @@ class LeagueScreen extends ConsumerStatefulWidget {
 
 class _LeagueScreenState extends ConsumerState<LeagueScreen> {
   _LeagueTab _tab = _LeagueTab.leaderboard;
+
+  Future<void> _handleRefresh() async {
+    ref.invalidate(myLeagueProvider);
+
+    switch (_tab) {
+      case _LeagueTab.leaderboard:
+        await ref.read(leaderboardProvider.notifier).refresh();
+        break;
+      case _LeagueTab.duels:
+        await ref.read(duelStateProvider.notifier).loadDuels();
+        break;
+      case _LeagueTab.history:
+        ref.invalidate(leagueHistoryProvider);
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +79,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
           embedded: widget.embedded,
           tab: _tab,
           onTabChanged: (value) => setState(() => _tab = value),
+          onRefresh: _handleRefresh,
           status: status,
           isKidsMode: ref.watch(kidsModeProvider),
         ),
@@ -85,6 +103,7 @@ class _LeagueContent extends StatelessWidget {
   final bool embedded;
   final _LeagueTab tab;
   final ValueChanged<_LeagueTab> onTabChanged;
+  final RefreshCallback onRefresh;
   final LeagueStatusModel status;
   final bool isKidsMode;
 
@@ -92,6 +111,7 @@ class _LeagueContent extends StatelessWidget {
     required this.embedded,
     required this.tab,
     required this.onTabChanged,
+    required this.onRefresh,
     required this.status,
     this.isKidsMode = false,
   });
@@ -112,95 +132,128 @@ class _LeagueContent extends StatelessWidget {
       ),
       child: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: LeagueHeader(
-                status: status,
-                showBackButton: !embedded,
-                isKidsMode: isKidsMode,
-              ),
+        child: RefreshIndicator(
+          onRefresh: onRefresh,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-              child: AnimatedSegmentedControl<_LeagueTab>(
-                selected: tab,
-                onChanged: onTabChanged,
-                items: [
-                  SegmentedItem(
-                    value: _LeagueTab.leaderboard,
-                    label: isKidsMode ? 'Sıralama' : 'Liderlik',
-                    icon: Icons.emoji_events_rounded,
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppUI.screenHorizontalPadding,
+                    AppUI.screenTopPadding,
+                    AppUI.screenHorizontalPadding,
+                    0,
                   ),
-                  const SegmentedItem(
-                    value: _LeagueTab.duels,
-                    label: 'Düellolar',
-                    icon: Icons.bolt_rounded,
-                  ),
-                  const SegmentedItem(
-                    value: _LeagueTab.history,
-                    label: 'Geçmiş',
-                    icon: Icons.history_rounded,
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: theme.cardColor,
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(
-                      color: theme.colorScheme.outline.withValues(alpha: 0.75),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (isDark ? Colors.black : AppColors.accent)
-                            .withValues(alpha: isDark ? 0.2 : 0.06),
-                        blurRadius: 26,
-                        offset: const Offset(0, 16),
-                      ),
-                    ],
-                  ),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 260),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeOutCubic,
-                    transitionBuilder: (child, animation) {
-                      final slide = Tween<Offset>(
-                        begin: const Offset(0.03, 0),
-                        end: Offset.zero,
-                      ).animate(animation);
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(position: slide, child: child),
-                      );
-                    },
-                    child: tab == _LeagueTab.leaderboard
-                        ? KeyedSubtree(
-                            key: const ValueKey('leaderboard'),
-                            child: LeaderboardList(
-                              membership: status.membership,
-                              isKidsMode: isKidsMode,
-                            ),
-                          )
-                        : tab == _LeagueTab.duels
-                        ? const KeyedSubtree(
-                            key: ValueKey('duels'),
-                            child: _DuelTabContent(),
-                          )
-                        : const KeyedSubtree(
-                            key: ValueKey('history'),
-                            child: LeagueHistory(),
-                          ),
+                  child: LeagueHeader(
+                    status: status,
+                    showBackButton: !embedded,
+                    isKidsMode: isKidsMode,
                   ),
                 ),
               ),
-            ),
-          ],
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppUI.screenHorizontalPadding,
+                    AppUI.sectionGap,
+                    AppUI.screenHorizontalPadding,
+                    AppUI.sectionGap,
+                  ),
+                  child: AnimatedSegmentedControl<_LeagueTab>(
+                    selected: tab,
+                    onChanged: onTabChanged,
+                    items: [
+                      SegmentedItem(
+                        value: _LeagueTab.leaderboard,
+                        label: isKidsMode ? 'Sıralama' : 'Liderlik',
+                        icon: Icons.emoji_events_rounded,
+                      ),
+                      const SegmentedItem(
+                        value: _LeagueTab.duels,
+                        label: 'Düellolar',
+                        icon: Icons.bolt_rounded,
+                      ),
+                      const SegmentedItem(
+                        value: _LeagueTab.history,
+                        label: 'Geçmiş',
+                        icon: Icons.history_rounded,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppUI.screenHorizontalPadding,
+                    0,
+                    AppUI.screenHorizontalPadding,
+                    AppUI.sectionGap,
+                  ),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(
+                        color: theme.colorScheme.outline.withValues(
+                          alpha: 0.75,
+                        ),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (isDark ? Colors.black : AppColors.accent)
+                              .withValues(alpha: isDark ? 0.2 : 0.06),
+                          blurRadius: 26,
+                          offset: const Offset(0, 16),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 260),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeOutCubic,
+                        transitionBuilder: (child, animation) {
+                          final slide = Tween<Offset>(
+                            begin: const Offset(0.03, 0),
+                            end: Offset.zero,
+                          ).animate(animation);
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: slide,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: tab == _LeagueTab.leaderboard
+                            ? KeyedSubtree(
+                                key: const ValueKey('leaderboard'),
+                                child: LeaderboardList(
+                                  membership: status.membership,
+                                  isKidsMode: isKidsMode,
+                                ),
+                              )
+                            : tab == _LeagueTab.duels
+                            ? const KeyedSubtree(
+                                key: ValueKey('duels'),
+                                child: _DuelTabContent(),
+                              )
+                            : const KeyedSubtree(
+                                key: ValueKey('history'),
+                                child: LeagueHistory(),
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -329,8 +382,7 @@ class _DuelTabContent extends ConsumerWidget {
               Text(
                 userFacingErrorMessage(
                   err,
-                  fallback:
-                      'Bağlantını kontrol edip tekrar dene.',
+                  fallback: 'Bağlantını kontrol edip tekrar dene.',
                 ),
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -367,69 +419,65 @@ class _DuelTabContent extends ConsumerWidget {
           );
         }
 
-        return RefreshIndicator(
-          onRefresh: () => ref.read(duelStateProvider.notifier).loadDuels(),
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              if (incomingDuels.isNotEmpty) ...[
-                _DuelSection(
-                  title: 'Gelen Teklifler',
-                  subtitle:
-                      'Sana gönderilen düello isteklerini burada kabul edebilir veya reddedebilirsin.',
-                  children: incomingDuels
-                      .map(
-                        (duel) => Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: _DuelListTile(
-                            duel: duel,
-                            currentUserId: currentUserId,
-                          ),
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (incomingDuels.isNotEmpty) ...[
+              _DuelSection(
+                title: 'Gelen Teklifler',
+                subtitle:
+                    'Sana gönderilen düello isteklerini burada kabul edebilir veya reddedebilirsin.',
+                children: incomingDuels
+                    .map(
+                      (duel) => Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: _DuelListTile(
+                          duel: duel,
+                          currentUserId: currentUserId,
                         ),
-                      )
-                      .toList(),
-                ),
-                const SizedBox(height: 16),
-              ],
-              if (activeDuels.isNotEmpty) ...[
-                _DuelSection(
-                  title: 'Aktif Düellolar',
-                  subtitle:
-                      'Devam eden karşılaşmaların anlık durumunu buradan takip edebilirsin.',
-                  children: activeDuels
-                      .map(
-                        (duel) => Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: _DuelListTile(
-                            duel: duel,
-                            currentUserId: currentUserId,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
-                const SizedBox(height: 16),
-              ],
-              if (outgoingDuels.isNotEmpty) ...[
-                _DuelSection(
-                  title: 'Gönderdiğin Teklifler',
-                  subtitle:
-                      'Rakibinin yanıtını bekleyen tekliflerin burada listelenir.',
-                  children: outgoingDuels
-                      .map(
-                        (duel) => Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: _DuelListTile(
-                            duel: duel,
-                            currentUserId: currentUserId,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ],
+                      ),
+                    )
+                    .toList(),
+              ),
+              const SizedBox(height: AppUI.sectionGap),
             ],
-          ),
+            if (activeDuels.isNotEmpty) ...[
+              _DuelSection(
+                title: 'Aktif Düellolar',
+                subtitle:
+                    'Devam eden karşılaşmaların anlık durumunu buradan takip edebilirsin.',
+                children: activeDuels
+                    .map(
+                      (duel) => Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: _DuelListTile(
+                          duel: duel,
+                          currentUserId: currentUserId,
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+              const SizedBox(height: AppUI.sectionGap),
+            ],
+            if (outgoingDuels.isNotEmpty)
+              _DuelSection(
+                title: 'Gönderdiğin Teklifler',
+                subtitle:
+                    'Rakibinin yanıtını bekleyen tekliflerin burada listelenir.',
+                children: outgoingDuels
+                    .map(
+                      (duel) => Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: _DuelListTile(
+                          duel: duel,
+                          currentUserId: currentUserId,
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+          ],
         );
       },
     );
@@ -456,7 +504,9 @@ class _DuelSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.18),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -540,7 +590,9 @@ class _DuelListTile extends ConsumerWidget {
               ? Colors.white.withValues(alpha: 0.03)
               : AppColors.accent.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
+          border: Border.all(
+            color: theme.colorScheme.outline.withValues(alpha: 0.2),
+          ),
         ),
         child: Column(
           children: [

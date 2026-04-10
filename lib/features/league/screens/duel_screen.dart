@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kitaplig/app/providers/auth_provider.dart';
 import 'package:kitaplig/app/providers/duel_provider.dart';
 import 'package:kitaplig/app/theme/app_colors.dart';
+import 'package:kitaplig/app/theme/app_ui.dart';
 import 'package:kitaplig/core/models/duel_model.dart';
 import 'package:kitaplig/core/utils/user_friendly_error.dart';
 
@@ -40,16 +41,25 @@ class _DuelScreenState extends ConsumerState<DuelScreen> {
   @override
   Widget build(BuildContext context) {
     final duelAsync = ref.watch(duelDetailsProvider(widget.duelId));
+    final theme = Theme.of(context);
 
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Düello Detayı'),
+        title: Text(
+          'Düello Detayı',
+          style: AppUI.pageTitle(context),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
       ),
-      extendBodyBehindAppBar: true,
       body: duelAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => Center(
+          child: CircularProgressIndicator(
+            color: theme.colorScheme.primary,
+          ),
+        ),
         error: (err, __) => Center(
           child: Padding(
             padding: const EdgeInsets.all(28),
@@ -59,7 +69,7 @@ class _DuelScreenState extends ConsumerState<DuelScreen> {
                 Icon(
                   Icons.cloud_off_rounded,
                   size: 48,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -67,7 +77,7 @@ class _DuelScreenState extends ConsumerState<DuelScreen> {
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color: theme.colorScheme.onSurface,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -82,7 +92,7 @@ class _DuelScreenState extends ConsumerState<DuelScreen> {
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.45,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -111,30 +121,112 @@ class _DuelContent extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: isDark
-              ? [const Color(0xFF1A1A1A), const Color(0xFF0A0A0A)]
-              : [const Color(0xFFF0F4FF), Colors.white],
+              ? const [AppColors.darkSurfaceHigh, AppColors.darkBackground]
+              : const [Color(0xFFFFFFFF), AppColors.lpGreen50],
         ),
       ),
       child: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            _VersusHeader(duel: duel),
-            const SizedBox(height: 40),
-            _ProgressComparison(duel: duel),
-            const SizedBox(height: 40),
-            _DuelStats(duel: duel),
-            const Spacer(),
-            if (duel.isPending) _PendingActions(duel: duel),
-            const SizedBox(height: 30),
-          ],
+        top: false,
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(
+            AppUI.screenHorizontalPadding,
+            AppUI.screenTopPadding,
+            AppUI.screenHorizontalPadding,
+            32,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _DuelHeroCard(duel: duel),
+              const SizedBox(height: AppUI.sectionGap),
+              _DuelStats(duel: duel),
+              if (duel.isPending) ...[
+                const SizedBox(height: AppUI.sectionGap),
+                _PendingActions(duel: duel),
+              ],
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _DuelHeroCard extends StatelessWidget {
+  final DuelModel duel;
+
+  const _DuelHeroCard({required this.duel});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.72),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: (isDark ? Colors.black : AppColors.accent).withValues(
+              alpha: isDark ? 0.22 : 0.08,
+            ),
+            blurRadius: 26,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.bolt_rounded,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Canlı Karşılaşma',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isDark
+                            ? AppColors.primaryLight
+                            : AppColors.accent,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+          _VersusHeader(duel: duel),
+          const SizedBox(height: 24),
+          _ProgressComparison(duel: duel),
+        ],
       ),
     );
   }
@@ -148,79 +240,161 @@ class _VersusHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _UserAvatar(
-          user: duel.challenger,
-          score: duel.challengerScore,
-          label: 'Meydan Okuyan',
-        ),
-        const Text(
-          'VS',
-          style: TextStyle(
-            fontSize: 40,
-            fontWeight: FontWeight.w900,
-            fontStyle: FontStyle.italic,
-            color: Colors.redAccent,
+        Expanded(
+          child: _UserAvatar(
+            user: duel.challenger,
+            label: 'Meydan Okuyan',
+            alignEnd: true,
           ),
         ),
-        _UserAvatar(
-          user: duel.opponent,
-          score: duel.opponentScore,
-          label: 'Rakip',
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 18),
+          child: _VersusBadge(),
+        ),
+        Expanded(
+          child: _UserAvatar(
+            user: duel.opponent,
+            label: 'Rakip',
+          ),
         ),
       ],
     );
   }
 }
 
+class _VersusBadge extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      width: 78,
+      height: 78,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [
+                  AppColors.accent.withValues(alpha: 0.46),
+                  AppColors.primary.withValues(alpha: 0.26),
+                ]
+              : [
+                  AppColors.accentSoft,
+                  AppColors.primary.withValues(alpha: 0.22),
+                ],
+        ),
+        border: Border.all(
+          color: (isDark ? AppColors.primaryLight : AppColors.primary)
+              .withValues(alpha: 0.3),
+        ),
+      ),
+      child: Center(
+        child: Text(
+          'VS',
+          style: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w900,
+            fontStyle: FontStyle.italic,
+            color: isDark ? AppColors.primaryLight : AppColors.accent,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _UserAvatar extends StatelessWidget {
   final DuelUserModel? user;
-  final int score;
   final String label;
+  final bool alignEnd;
 
-  const _UserAvatar({this.user, required this.score, required this.label});
+  const _UserAvatar({
+    this.user,
+    required this.label,
+    this.alignEnd = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textAlign = alignEnd ? TextAlign.end : TextAlign.start;
+    final crossAxisAlignment = alignEnd
+        ? CrossAxisAlignment.end
+        : CrossAxisAlignment.start;
+
     return Column(
+      crossAxisAlignment: crossAxisAlignment,
       children: [
         InkWell(
           onTap: user?.username.isNotEmpty == true
               ? () => context.push('/profil/${user!.username}')
               : null,
           borderRadius: BorderRadius.circular(999),
-          child: CircleAvatar(
-            radius: 40,
-            backgroundColor: AppColors.primary.withOpacity(0.2),
-            backgroundImage: user?.avatarUrl != null
-                ? NetworkImage(user!.avatarUrl!)
-                : null,
-            child: user?.avatarUrl == null
-                ? const Icon(Icons.person, size: 40)
-                : null,
-          ),
-        ),
-        const SizedBox(height: 12),
-        InkWell(
-          onTap: user?.username.isNotEmpty == true
-              ? () => context.push('/profil/${user!.username}')
-              : null,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            child: Text(
-              user?.name ?? 'Bilinmiyor',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          child: Container(
+            width: 88,
+            height: 88,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : AppColors.accentSoft,
+              border: Border.all(
+                color: theme.colorScheme.outline.withValues(alpha: 0.28),
+              ),
+            ),
+            child: CircleAvatar(
+              radius: 40,
+              backgroundColor: Colors.transparent,
+              backgroundImage: user?.avatarUrl != null
+                  ? NetworkImage(user!.avatarUrl!)
+                  : null,
+              child: user?.avatarUrl == null
+                  ? Icon(
+                      Icons.person_rounded,
+                      size: 38,
+                      color: isDark
+                          ? AppColors.primaryLight
+                          : AppColors.accent,
+                    )
+                  : null,
             ),
           ),
         ),
+        const SizedBox(height: 14),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 132),
+          child: InkWell(
+            onTap: user?.username.isNotEmpty == true
+                ? () => context.push('/profil/${user!.username}')
+                : null,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: Text(
+                user?.name ?? 'Bilinmiyor',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: theme.colorScheme.onSurface,
+                ),
+                textAlign: textAlign,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
           ),
+          textAlign: textAlign,
         ),
       ],
     );
@@ -234,36 +408,125 @@ class _ProgressComparison extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${duel.challengerScore} Paragraf',
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
-              Text(
-                '${duel.opponentScore} Paragraf',
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: SizedBox(
-              height: 24,
-              child: LinearProgressIndicator(
-                value: duel.progressRatio,
-                backgroundColor: Colors.blueAccent,
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  Colors.orangeAccent,
-                ),
+    final theme = Theme.of(context);
+    final totalScore = duel.challengerScore + duel.opponentScore;
+    final challengerFlex = totalScore == 0 ? 1 : duel.challengerScore;
+    final opponentFlex = totalScore == 0 ? 1 : duel.opponentScore;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _ScorePill(
+                label: 'Meydan Okuyan',
+                value: '${duel.challengerScore} Paragraf',
+                alignEnd: true,
               ),
             ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _ScorePill(
+                label: 'Rakip',
+                value: '${duel.opponentScore} Paragraf',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: Container(
+            height: 18,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: challengerFlex,
+                  child: Container(color: AppColors.primary),
+                ),
+                Expanded(
+                  flex: opponentFlex,
+                  child: Container(color: AppColors.accent),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          _leadSummary(),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  String _leadSummary() {
+    if (duel.challengerScore == duel.opponentScore) {
+      return duel.challengerScore == 0
+          ? 'Karşılaşma henüz başlamadı.'
+          : 'Şu an skor eşit gidiyor.';
+    }
+
+    final leader = duel.challengerScore > duel.opponentScore
+        ? duel.challenger?.name ?? 'Meydan okuyan'
+        : duel.opponent?.name ?? 'Rakip';
+    return '$leader şu an önde gidiyor.';
+  }
+}
+
+class _ScorePill extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool alignEnd;
+
+  const _ScorePill({
+    required this.label,
+    required this.value,
+    this.alignEnd = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final crossAxisAlignment = alignEnd
+        ? CrossAxisAlignment.end
+        : CrossAxisAlignment.start;
+    final textAlign = alignEnd ? TextAlign.end : TextAlign.start;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: crossAxisAlignment,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+            textAlign: textAlign,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w800,
+            ),
+            textAlign: textAlign,
           ),
         ],
       ),
@@ -278,24 +541,62 @@ class _DuelStats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final statusColor = _statusColor(context, duel.status);
+
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.72),
+        ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Düello Durumu',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              _StatusChip(
+                label: _statusLabel(duel.status),
+                color: statusColor,
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
           _StatRow(
             label: 'Kalan Süre',
             value: _formatDuration(duel.timeRemaining),
+            valueColor: theme.colorScheme.onSurface,
           ),
-          const Divider(),
-          _StatRow(label: 'Ödül', value: '${duel.pointsAtStake} LP'),
-          const Divider(),
-          _StatRow(label: 'Durum', value: _statusLabel(duel.status)),
+          Divider(
+            height: 28,
+            color: theme.colorScheme.outline.withValues(alpha: 0.18),
+          ),
+          _StatRow(
+            label: 'Ödül',
+            value: '${duel.pointsAtStake} LP',
+            valueColor: AppColors.primary,
+          ),
+          Divider(
+            height: 28,
+            color: theme.colorScheme.outline.withValues(alpha: 0.18),
+          ),
+          _StatRow(
+            label: 'Durum',
+            value: _statusLabel(duel.status),
+            valueColor: statusColor,
+          ),
         ],
       ),
     );
@@ -303,40 +604,77 @@ class _DuelStats extends StatelessWidget {
 
   String _formatDuration(Duration? duration) {
     if (duration == null) return '--:--';
+    if (duration == Duration.zero) return 'Süre doldu';
+
     final hours = duration.inHours;
     final minutes = duration.inMinutes % 60;
+
+    if (hours <= 0) {
+      return '$minutes dk';
+    }
+
     return '$hours s $minutes dk';
   }
+}
 
-  String _statusLabel(String status) {
-    return switch (status) {
-      'pending' => 'Onay Bekliyor',
-      'active' => 'Devam Ediyor',
-      'completed' => 'Tamamlandı',
-      _ => status,
-    };
+class _StatusChip extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _StatusChip({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
   }
 }
 
 class _StatRow extends StatelessWidget {
   final String label;
   final String value;
+  final Color valueColor;
 
-  const _StatRow({required this.label, required this.value});
+  const _StatRow({
+    required this.label,
+    required this.value,
+    required this.valueColor,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           Text(
             value,
-            style: const TextStyle(
-              fontWeight: FontWeight.w900,
-              color: Colors.redAccent,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: valueColor,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -357,6 +695,7 @@ class _PendingActions extends ConsumerWidget {
     );
     final isIncomingRequest =
         currentUserId != null && duel.isIncomingFor(currentUserId);
+    final theme = Theme.of(context);
 
     Future<void> handleAccept() async {
       final result = await ref.read(duelStateProvider.notifier).accept(duel.id);
@@ -382,23 +721,39 @@ class _PendingActions extends ConsumerWidget {
         ..showSnackBar(SnackBar(content: Text(result.message)));
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.72),
+        ),
+      ),
       child: isIncomingRequest
           ? Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
                     onPressed: handleDecline,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.onSurface,
+                      side: BorderSide(
+                        color: theme.colorScheme.outline.withValues(alpha: 0.52),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
                     child: const Text('Reddet'),
                   ),
                 ),
-                const SizedBox(width: 20),
+                const SizedBox(width: 14),
                 Expanded(
                   child: FilledButton(
                     onPressed: handleAccept,
                     style: FilledButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                     child: const Text('Kabul Et'),
                   ),
@@ -409,9 +764,40 @@ class _PendingActions extends ConsumerWidget {
               width: double.infinity,
               child: OutlinedButton(
                 onPressed: handleDecline,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: theme.colorScheme.onSurface,
+                  side: BorderSide(
+                    color: theme.colorScheme.outline.withValues(alpha: 0.52),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
                 child: const Text('Teklifi İptal Et'),
               ),
             ),
     );
   }
+}
+
+String _statusLabel(String status) {
+  return switch (status) {
+    'pending' => 'Onay Bekliyor',
+    'active' => 'Devam Ediyor',
+    'completed' => 'Tamamlandı',
+    'expired' => 'Süre Doldu',
+    'declined' => 'Reddedildi',
+    _ => status,
+  };
+}
+
+Color _statusColor(BuildContext context, String status) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+
+  return switch (status) {
+    'pending' => isDark ? AppColors.primaryLight : AppColors.primary,
+    'active' => AppColors.accent,
+    'completed' => AppColors.primary,
+    'expired' => Theme.of(context).colorScheme.onSurfaceVariant,
+    'declined' => Theme.of(context).colorScheme.error,
+    _ => Theme.of(context).colorScheme.onSurfaceVariant,
+  };
 }

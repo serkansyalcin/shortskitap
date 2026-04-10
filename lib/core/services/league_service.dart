@@ -12,13 +12,16 @@ class LeagueService {
     );
   }
 
-  Future<List<LeaderboardEntry>> getLeaderboard() async {
-    final response = await _api.get('/league/leaderboard');
+  Future<LeaderboardPageModel> getLeaderboard({
+    int limit = 10,
+    int offset = 0,
+  }) async {
+    final response = await _api.get(
+      '/league/leaderboard',
+      params: {'limit': limit, 'offset': offset},
+    );
     final data = response.data['data'] as Map<String, dynamic>;
-    final entries = data['entries'] as List<dynamic>;
-    return entries
-        .map((e) => LeaderboardEntry.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return LeaderboardPageModel.fromJson(data);
   }
 
   Future<List<Map<String, dynamic>>> getHistory() async {

@@ -24,15 +24,19 @@ class LeagueHistory extends ConsumerWidget {
           return const _HistoryEmptyState(
             icon: Icons.auto_awesome_motion_rounded,
             title: 'Henüz tamamlanan sezon yok',
-            subtitle: 'İlk sezonun bittiğinde geçmiş burada birikmeye başlayacak.',
+            subtitle:
+                'İlk sezonun bittiğinde geçmiş burada birikmeye başlayacak.',
           );
         }
 
-        return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
-          itemCount: history.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 10),
-          itemBuilder: (context, i) => _HistoryCard(entry: history[i]),
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (int i = 0; i < history.length; i++) ...[
+              if (i > 0) const SizedBox(height: 10),
+              _HistoryCard(entry: history[i]),
+            ],
+          ],
         );
       },
     );
@@ -69,7 +73,9 @@ class _HistoryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurface : theme.cardColor,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.75)),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.75),
+        ),
       ),
       child: Row(
         children: [

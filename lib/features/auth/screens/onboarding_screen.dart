@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../app/providers/books_provider.dart';
 import '../../../app/providers/settings_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/providers/auth_provider.dart';
@@ -36,7 +37,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     'Bilim Kurgu',
     'Felsefe',
     'Tarih',
-    'Kisisel Gelisim',
+    'Kişisel Gelişim',
     'Polisiye',
   ];
 
@@ -75,10 +76,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
     if (isAuthenticated) {
       try {
-        await ApiClient.instance.put('/me', data: {
-          'daily_goal': _selectedGoal,
-          'preferences': _selectedCategories.toList(),
-        });
+        await ApiClient.instance.put(
+          '/me',
+          data: {
+            'daily_goal': _selectedGoal,
+            'preferences': _selectedCategories.toList(),
+          },
+        );
         await ref.read(authProvider.notifier).refreshMe();
       } catch (_) {}
     }
@@ -112,15 +116,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
           height: active ? 10 : 8,
           width: active ? 32 : 8,
           decoration: BoxDecoration(
-            color: active ? AppColors.primary : Colors.grey.withOpacity(0.3),
+            color: active
+                ? AppColors.primary
+                : Colors.grey.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(12),
             boxShadow: active
                 ? [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.4),
+                      color: AppColors.primary.withValues(alpha: 0.4),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
-                    )
+                    ),
                   ]
                 : [],
           ),
@@ -134,9 +140,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isAuthenticated = ref.watch(authProvider).isAuthenticated;
+    final categoriesAsync = ref.watch(categoriesProvider);
+    final onboardingCategories = categoriesAsync.maybeWhen(
+      data: (categories) {
+        final names = categories
+            .map((category) => category.name.trim())
+            .where((name) => name.isNotEmpty)
+            .toList(growable: false);
+        return names.isNotEmpty ? names : _categories;
+      },
+      orElse: () => _categories,
+    );
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark
+          ? const Color(0xFF0F172A)
+          : const Color(0xFFF8FAFC),
       body: Stack(
         children: [
           // Hareketli modern arka plan
@@ -158,10 +177,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               children: [
                 const SizedBox(height: 24),
                 const Center(
-                  child: BrandLogo(
-                    height: 52,
-                    trimRightPadding: true,
-                  ),
+                  child: BrandLogo(height: 52, trimRightPadding: true),
                 ),
                 Expanded(
                   child: PageView(
@@ -203,7 +219,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                       ),
                       _SetupPage(
                         goals: _goals,
-                        categories: _categories,
+                        categories: onboardingCategories,
                         selectedGoal: _selectedGoal,
                         selectedCategories: _selectedCategories,
                         onGoalSelect: (g) => setState(() => _selectedGoal = g),
@@ -235,10 +251,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                           child: ElevatedButton(
                             onPressed: _nextPage,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isDark ? Colors.white : Colors.black87,
-                              foregroundColor: isDark ? Colors.black : Colors.white,
+                              backgroundColor: isDark
+                                  ? Colors.white
+                                  : Colors.black87,
+                              foregroundColor: isDark
+                                  ? Colors.black
+                                  : Colors.white,
                               elevation: 10,
-                              shadowColor: (isDark ? Colors.white : Colors.black).withOpacity(0.3),
+                              shadowColor:
+                                  (isDark ? Colors.white : Colors.black)
+                                      .withValues(alpha: 0.3),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(24),
                               ),
@@ -262,30 +284,36 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                               child: ElevatedButton(
                                 onPressed: _canFinish
                                     ? () => _finish(
-                                          navigateToRegister: !isAuthenticated,
-                                          isAuthenticated: isAuthenticated,
-                                        )
+                                        navigateToRegister: !isAuthenticated,
+                                        isAuthenticated: isAuthenticated,
+                                      )
                                     : null,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
                                   elevation: _canFinish ? 12 : 0,
-                                  shadowColor: AppColors.primary.withOpacity(0.4),
-                                  disabledBackgroundColor:
-                                      isDark ? Colors.white10 : Colors.grey.shade300,
-                                  disabledForegroundColor:
-                                      isDark ? Colors.white30 : Colors.grey.shade500,
+                                  shadowColor: AppColors.primary.withValues(
+                                    alpha: 0.4,
+                                  ),
+                                  disabledBackgroundColor: isDark
+                                      ? Colors.white10
+                                      : Colors.grey.shade300,
+                                  disabledForegroundColor: isDark
+                                      ? Colors.white30
+                                      : Colors.grey.shade500,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(24),
                                   ),
                                 ),
                                 child: _isSubmitting
-                                    ? const CircularProgressIndicator(color: Colors.white)
+                                    ? const CircularProgressIndicator(
+                                        color: Colors.white,
+                                      )
                                     : Text(
                                         _canFinish
                                             ? (isAuthenticated
-                                                ? 'Maceraya Başla'
-                                                : 'Kayıt Ol ve Başla')
+                                                  ? 'Maceraya Başla'
+                                                  : 'Kayıt Ol ve Başla')
                                             : 'Kategori Seçin',
                                         style: const TextStyle(
                                           fontSize: 16,
@@ -302,8 +330,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                                   isAuthenticated: isAuthenticated,
                                 ),
                                 style: TextButton.styleFrom(
-                                  foregroundColor:
-                                      isDark ? Colors.white70 : Colors.black54,
+                                  foregroundColor: isDark
+                                      ? Colors.white70
+                                      : Colors.black54,
                                 ),
                                 child: const Text(
                                   'Kayıt Olmadan Devam Et',
@@ -357,19 +386,21 @@ class _FeaturePage extends StatelessWidget {
             width: 160,
             height: 160,
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.white,
               shape: BoxShape.circle,
               boxShadow: isDark
                   ? []
                   : [
                       BoxShadow(
-                        color: accentColor.withOpacity(0.15),
+                        color: accentColor.withValues(alpha: 0.15),
                         blurRadius: 40,
                         offset: const Offset(0, 15),
-                      )
+                      ),
                     ],
               border: Border.all(
-                color: accentColor.withOpacity(isDark ? 0.3 : 0.1),
+                color: accentColor.withValues(alpha: isDark ? 0.3 : 0.1),
                 width: 2,
               ),
             ),
@@ -383,7 +414,10 @@ class _FeaturePage extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
-                        colors: [accentColor.withOpacity(0.4), accentColor],
+                        colors: [
+                          accentColor.withValues(alpha: 0.4),
+                          accentColor,
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -423,7 +457,7 @@ class _FeaturePage extends StatelessWidget {
   }
 }
 
-class _SetupPage extends StatelessWidget {
+class _SetupPage extends StatefulWidget {
   final List<int> goals;
   final List<String> categories;
   final int selectedGoal;
@@ -443,6 +477,30 @@ class _SetupPage extends StatelessWidget {
   });
 
   @override
+  State<_SetupPage> createState() => _SetupPageState();
+}
+
+class _SetupPageState extends State<_SetupPage> {
+  static const int _collapsedCategoryCount = 8;
+
+  bool _showAllCategories = false;
+
+  List<String> get _visibleCategories {
+    final categories = widget.categories;
+    if (_showAllCategories || categories.length <= _collapsedCategoryCount) {
+      return categories;
+    }
+
+    final visible = categories.take(_collapsedCategoryCount).toList();
+    for (final selected in widget.selectedCategories) {
+      if (categories.contains(selected) && !visible.contains(selected)) {
+        visible.add(selected);
+      }
+    }
+    return visible;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -455,7 +513,7 @@ class _SetupPage extends StatelessWidget {
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.w900,
-              color: isDark ? Colors.white : const Color(0xFF1E293B),
+              color: widget.isDark ? Colors.white : const Color(0xFF1E293B),
               letterSpacing: -1,
             ),
             textAlign: TextAlign.center,
@@ -464,7 +522,7 @@ class _SetupPage extends StatelessWidget {
           Text(
             'Deneyiminizi en iyi hale getirelim.',
             style: TextStyle(
-              color: isDark ? Colors.white60 : const Color(0xFF64748B),
+              color: widget.isDark ? Colors.white60 : const Color(0xFF64748B),
               fontSize: 15,
               fontWeight: FontWeight.w500,
             ),
@@ -475,7 +533,7 @@ class _SetupPage extends StatelessWidget {
             'Günlük Okuma Hedefi',
             style: TextStyle(
               fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : const Color(0xFF334155),
+              color: widget.isDark ? Colors.white : const Color(0xFF334155),
               fontSize: 16,
               letterSpacing: -0.2,
             ),
@@ -483,11 +541,11 @@ class _SetupPage extends StatelessWidget {
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: goals.map((goal) {
-              final active = goal == selectedGoal;
+            children: widget.goals.map((goal) {
+              final active = goal == widget.selectedGoal;
               return Expanded(
                 child: GestureDetector(
-                  onTap: () => onGoalSelect(goal),
+                  onTap: () => widget.onGoalSelect(goal),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     margin: const EdgeInsets.symmetric(horizontal: 5),
@@ -495,29 +553,35 @@ class _SetupPage extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: active
                           ? AppColors.primary
-                          : (isDark ? Colors.white.withOpacity(0.05) : Colors.white),
+                          : (widget.isDark
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : Colors.white),
                       borderRadius: BorderRadius.circular(20),
-                      boxShadow: active && !isDark
+                      boxShadow: active && !widget.isDark
                           ? [
                               BoxShadow(
-                                color: AppColors.primary.withOpacity(0.3),
+                                color: AppColors.primary.withValues(alpha: 0.3),
                                 blurRadius: 15,
                                 offset: const Offset(0, 5),
-                              )
+                              ),
                             ]
-                          : (!isDark
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  )
-                                ]
-                              : []),
+                          : (!widget.isDark
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.04,
+                                      ),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ]
+                                : []),
                       border: Border.all(
                         color: active
                             ? Colors.transparent
-                            : (isDark ? Colors.white10 : Colors.transparent),
+                            : (widget.isDark
+                                  ? Colors.white10
+                                  : Colors.transparent),
                         width: 1,
                       ),
                     ),
@@ -530,7 +594,9 @@ class _SetupPage extends StatelessWidget {
                             fontWeight: FontWeight.w900,
                             color: active
                                 ? Colors.white
-                                : (isDark ? Colors.white : const Color(0xFF1E293B)),
+                                : (widget.isDark
+                                      ? Colors.white
+                                      : const Color(0xFF1E293B)),
                           ),
                         ),
                         Text(
@@ -539,8 +605,10 @@ class _SetupPage extends StatelessWidget {
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: active
-                                ? Colors.white.withOpacity(0.8)
-                                : (isDark ? Colors.white54 : const Color(0xFF94A3B8)),
+                                ? Colors.white.withValues(alpha: 0.8)
+                                : (widget.isDark
+                                      ? Colors.white54
+                                      : const Color(0xFF94A3B8)),
                           ),
                         ),
                       ],
@@ -555,16 +623,18 @@ class _SetupPage extends StatelessWidget {
             'İlgi Duyduğunuz Türler',
             style: TextStyle(
               fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : const Color(0xFF334155),
+              color: widget.isDark ? Colors.white : const Color(0xFF334155),
               fontSize: 16,
               letterSpacing: -0.2,
             ),
           ),
           const SizedBox(height: 6),
           Text(
-            'Lütfen en az 2 kategori seçin.',
+            widget.selectedCategories.isEmpty
+                ? 'Lütfen en az 2 kategori seçin.'
+                : '${widget.selectedCategories.length} tür seçildi. En az 2 seçim yeterli.',
             style: TextStyle(
-              color: isDark ? Colors.white54 : const Color(0xFF94A3B8),
+              color: widget.isDark ? Colors.white54 : const Color(0xFF94A3B8),
               fontSize: 13,
             ),
           ),
@@ -573,40 +643,47 @@ class _SetupPage extends StatelessWidget {
             alignment: WrapAlignment.center,
             spacing: 12,
             runSpacing: 12,
-            children: categories.map((cat) {
-              final active = selectedCategories.contains(cat);
+            children: _visibleCategories.map((cat) {
+              final active = widget.selectedCategories.contains(cat);
               final visual = CategoryVisuals.resolve(name: cat);
               return GestureDetector(
-                onTap: () => onCategoryToggle(cat),
+                onTap: () => widget.onCategoryToggle(cat),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: active
                         ? visual.accent
-                        : (isDark ? Colors.white.withOpacity(0.05) : Colors.white),
+                        : (widget.isDark
+                              ? Colors.white.withValues(alpha: 0.05)
+                              : Colors.white),
                     borderRadius: BorderRadius.circular(99),
-                    boxShadow: active && !isDark
+                    boxShadow: active && !widget.isDark
                         ? [
                             BoxShadow(
-                              color: visual.accent.withOpacity(0.3),
+                              color: visual.accent.withValues(alpha: 0.3),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
-                            )
+                            ),
                           ]
-                        : (!isDark
-                            ? [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.03),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                )
-                              ]
-                            : []),
+                        : (!widget.isDark
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.03),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : []),
                     border: Border.all(
                       color: active
                           ? Colors.transparent
-                          : (isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+                          : (widget.isDark
+                                ? Colors.white10
+                                : Colors.black.withValues(alpha: 0.05)),
                     ),
                   ),
                   child: Row(
@@ -617,16 +694,22 @@ class _SetupPage extends StatelessWidget {
                         size: 18,
                         color: active
                             ? Colors.white
-                            : (isDark ? Colors.white60 : const Color(0xFF64748B)),
+                            : (widget.isDark
+                                  ? Colors.white60
+                                  : const Color(0xFF64748B)),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         cat,
                         style: TextStyle(
-                          fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                          fontWeight: active
+                              ? FontWeight.w800
+                              : FontWeight.w600,
                           color: active
                               ? Colors.white
-                              : (isDark ? Colors.white70 : const Color(0xFF334155)),
+                              : (widget.isDark
+                                    ? Colors.white70
+                                    : const Color(0xFF334155)),
                           fontSize: 14,
                         ),
                       ),
@@ -636,6 +719,37 @@ class _SetupPage extends StatelessWidget {
               );
             }).toList(),
           ),
+          if (widget.categories.length > _collapsedCategoryCount) ...[
+            const SizedBox(height: 14),
+            Center(
+              child: TextButton.icon(
+                onPressed: () {
+                  setState(() => _showAllCategories = !_showAllCategories);
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                ),
+                icon: Icon(
+                  _showAllCategories
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                ),
+                label: Text(
+                  _showAllCategories
+                      ? 'Daha Az Göster'
+                      : 'Daha Fazla Tür Göster (${widget.categories.length - _visibleCategories.length})',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -661,11 +775,11 @@ class _ModernBackgroundPainter extends CustomPainter {
 
   void _drawAbstractBlobs(Canvas canvas, Size size) {
     final paint1 = Paint()
-      ..color = AppColors.primary.withOpacity(isDark ? 0.08 : 0.06)
+      ..color = AppColors.primary.withValues(alpha: isDark ? 0.08 : 0.06)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 80);
 
     final paint2 = Paint()
-      ..color = AppColors.accent.withOpacity(isDark ? 0.08 : 0.05)
+      ..color = AppColors.accent.withValues(alpha: isDark ? 0.08 : 0.05)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 100);
 
     final offset1 = Offset(
@@ -683,7 +797,7 @@ class _ModernBackgroundPainter extends CustomPainter {
 
   void _drawMeshLines(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = (isDark ? Colors.white : Colors.black).withOpacity(0.03)
+      ..color = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.03)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
 
@@ -695,9 +809,15 @@ class _ModernBackgroundPainter extends CustomPainter {
       path.moveTo(0, yStart);
       path.cubicTo(
         size.width * 0.3,
-        yStart + math.sin(animationValue * math.pi * 2 + i) * 100 * (1 - pageOffset * 0.2),
+        yStart +
+            math.sin(animationValue * math.pi * 2 + i) *
+                100 *
+                (1 - pageOffset * 0.2),
         size.width * 0.7,
-        yStart - math.cos(animationValue * math.pi * 2 + i) * 100 * (1 - pageOffset * 0.2),
+        yStart -
+            math.cos(animationValue * math.pi * 2 + i) *
+                100 *
+                (1 - pageOffset * 0.2),
         size.width,
         yStart,
       );

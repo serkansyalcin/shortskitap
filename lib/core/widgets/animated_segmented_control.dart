@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../app/theme/app_colors.dart';
+
 class SegmentedItem<T> {
   final T value;
   final String label;
@@ -28,15 +30,14 @@ class AnimatedSegmentedControl<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final palette = _SegmentPalette.resolve(theme);
     final container = Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF161616) : theme.cardColor,
+        color: isDark ? AppColors.darkSurface : theme.cardColor,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: isDark
-              ? const Color(0xFF2B2B2B)
-              : theme.colorScheme.outline.withOpacity(0.8),
+          color: palette.containerBorder,
         ),
         boxShadow: [
           BoxShadow(
@@ -80,7 +81,7 @@ class _FixedSegments<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final palette = _SegmentPalette.resolve(theme);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -100,7 +101,7 @@ class _FixedSegments<T> extends StatelessWidget {
                 left: safeIndex * width,
                 top: 0,
                 bottom: 0,
-                child: _SegmentHighlight(width: width),
+                child: _SegmentHighlight(width: width, palette: palette),
               ),
               Row(
                 children: items.map((item) {
@@ -113,10 +114,8 @@ class _FixedSegments<T> extends StatelessWidget {
                           (theme.textTheme.bodyMedium ?? const TextStyle())
                               .copyWith(
                                 color: isSelected
-                                    ? Colors.black
-                                    : isDark
-                                    ? Colors.white70
-                                    : theme.colorScheme.onSurfaceVariant,
+                                    ? palette.selectedForeground
+                                    : palette.unselectedForeground,
                                 fontWeight: FontWeight.w800,
                               ),
                       onTap: () => onChanged(item.value),
@@ -146,7 +145,7 @@ class _ScrollableSegments<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final palette = _SegmentPalette.resolve(theme);
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -161,15 +160,11 @@ class _ScrollableSegments<T> extends StatelessWidget {
               curve: Curves.easeOutCubic,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(999),
-                color: isSelected
-                    ? const Color(0xFF22C55E)
-                    : Colors.transparent,
+                color: isSelected ? palette.selectedBackground : Colors.transparent,
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(
-                            0xFF22C55E,
-                          ).withValues(alpha: 0.28),
+                          color: palette.selectedGlow,
                           blurRadius: 18,
                           offset: const Offset(0, 8),
                         ),
@@ -182,10 +177,8 @@ class _ScrollableSegments<T> extends StatelessWidget {
                 textStyle: (theme.textTheme.bodyMedium ?? const TextStyle())
                     .copyWith(
                       color: isSelected
-                          ? Colors.black
-                          : isDark
-                          ? Colors.white70
-                          : theme.colorScheme.onSurfaceVariant,
+                          ? palette.selectedForeground
+                          : palette.unselectedForeground,
                       fontWeight: FontWeight.w800,
                     ),
                 onTap: () => onChanged(item.value),
@@ -213,7 +206,7 @@ class _SegmentButton<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final palette = _SegmentPalette.resolve(Theme.of(context));
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -233,10 +226,8 @@ class _SegmentButton<T> extends StatelessWidget {
                     item.icon,
                     size: 16,
                     color: isSelected
-                        ? Colors.black
-                        : isDark
-                        ? Colors.white70
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                        ? palette.selectedForeground
+                        : palette.unselectedForeground,
                   ),
                   const SizedBox(width: 8),
                 ],
@@ -257,24 +248,60 @@ class _SegmentButton<T> extends StatelessWidget {
 
 class _SegmentHighlight extends StatelessWidget {
   final double width;
+  final _SegmentPalette palette;
 
-  const _SegmentHighlight({required this.width});
+  const _SegmentHighlight({required this.width, required this.palette});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: width,
       decoration: BoxDecoration(
-        color: const Color(0xFF22C55E),
+        color: palette.selectedBackground,
         borderRadius: BorderRadius.circular(999),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF22C55E).withValues(alpha: 0.28),
+            color: palette.selectedGlow,
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SegmentPalette {
+  final Color containerBorder;
+  final Color selectedBackground;
+  final Color selectedForeground;
+  final Color unselectedForeground;
+  final Color selectedGlow;
+
+  const _SegmentPalette({
+    required this.containerBorder,
+    required this.selectedBackground,
+    required this.selectedForeground,
+    required this.unselectedForeground,
+    required this.selectedGlow,
+  });
+
+  factory _SegmentPalette.resolve(ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+
+    return _SegmentPalette(
+      containerBorder: isDark
+          ? AppColors.outline.withValues(alpha: 0.95)
+          : theme.colorScheme.outline.withValues(alpha: 0.72),
+      selectedBackground: isDark
+          ? AppColors.accent.withValues(alpha: 0.38)
+          : AppColors.accentSoft,
+      selectedForeground: isDark ? AppColors.primaryLight : AppColors.accent,
+      unselectedForeground:
+          isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+      selectedGlow: isDark
+          ? AppColors.primary.withValues(alpha: 0.16)
+          : AppColors.primary.withValues(alpha: 0.18),
     );
   }
 }
