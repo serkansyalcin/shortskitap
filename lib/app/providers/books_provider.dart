@@ -214,11 +214,14 @@ final paragraphsProvider = FutureProvider.family<List<ParagraphModel>, int>((
     final paragraphs = await service.getAllParagraphs(bookId);
     final isPremium = ref.read(isPremiumProvider);
     if (isPremium) {
-      final shouldDownloadAudioFiles = await cache.hasCachedBookRecord(bookId);
+      // Metin önbelleği okuma sırasında dolsun; ses dosyaları yalnızca kullanıcı
+      // açıkça "İndir" dediğinde [BookDownloadController.downloadBook] ile çekilir.
+      // (hasCachedBookRecord, detay sayfasındaki metadata senkronu yüzünden yanlışlıkla
+      // true olabiliyordu ve her okumada tüm sesler indiriliyordu.)
       final cachedParagraphs = await cache.cacheParagraphs(
         bookId,
         paragraphs,
-        downloadAudioFiles: shouldDownloadAudioFiles,
+        downloadAudioFiles: false,
       );
       ref.invalidate(bookCacheStatusProvider(bookId));
       return cachedParagraphs;
