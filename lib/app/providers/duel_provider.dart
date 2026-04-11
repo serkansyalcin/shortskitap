@@ -39,6 +39,7 @@ class DuelNotifier extends StateNotifier<AsyncValue<List<DuelModel>>> {
   final Ref _ref;
   final DuelService _service;
   final int? _userId;
+  bool _disposed = false;
 
   DuelNotifier(this._ref, this._service, this._userId)
     : super(
@@ -51,18 +52,29 @@ class DuelNotifier extends StateNotifier<AsyncValue<List<DuelModel>>> {
     }
   }
 
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  void _setStateSafe(AsyncValue<List<DuelModel>> value) {
+    if (_disposed) return;
+    state = value;
+  }
+
   Future<void> loadDuels() async {
     if (_userId == null) {
-      state = const AsyncValue.data(<DuelModel>[]);
+      _setStateSafe(const AsyncValue.data(<DuelModel>[]));
       return;
     }
 
-    state = const AsyncValue.loading();
+    _setStateSafe(const AsyncValue.loading());
     try {
       final duels = await _service.getMyDuels();
-      state = AsyncValue.data(duels);
+      _setStateSafe(AsyncValue.data(duels));
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      _setStateSafe(AsyncValue.error(e, st));
     }
   }
 

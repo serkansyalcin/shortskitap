@@ -9,6 +9,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../core/models/paragraph_model.dart';
 import '../../../core/utils/user_friendly_error.dart';
 import '../../../core/platform/browser_file_download.dart';
+import '../../../core/widgets/offline_aware_image.dart';
 import '../../../core/widgets/shareable_paragraph_overlay.dart';
 
 class ParagraphCard extends StatefulWidget {
@@ -106,6 +107,10 @@ class _ParagraphCardState extends State<ParagraphCard>
 
   Widget _buildText() {
     final hl = widget.highlightColor;
+    final illUrl = widget.paragraph.illustrationUrl;
+    final hasIllustration = illUrl != null && illUrl.isNotEmpty;
+    final illUrlNonNull = illUrl ?? '';
+
     final textWidget = Text(
       widget.paragraph.content,
       style: _bodyStyle(
@@ -118,33 +123,108 @@ class _ParagraphCardState extends State<ParagraphCard>
       textAlign: TextAlign.left,
     );
 
-    if (hl == null) {
-      return Center(child: textWidget);
+    Widget? illustration;
+
+    if (hasIllustration) {
+      final placeholder = Container(
+        color: widget.mutedColor.withValues(alpha: 0.12),
+        alignment: Alignment.center,
+        child: SizedBox(
+          width: 28,
+          height: 28,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: widget.accentColor.withValues(alpha: 0.5),
+          ),
+        ),
+      );
+      final errorBox = Container(
+        color: widget.mutedColor.withValues(alpha: 0.12),
+        alignment: Alignment.center,
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          color: widget.mutedColor,
+          size: 40,
+        ),
+      );
+      illustration = AspectRatio(
+        aspectRatio: 16 / 11,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: buildOfflineAwareImage(
+            networkUrl: illUrlNonNull,
+            localPath: widget.paragraph.localIllustrationPath,
+            fit: BoxFit.cover,
+            placeholder: placeholder,
+            errorWidget: errorBox,
+          ),
+        ),
+      );
     }
 
-    return Center(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
-              decoration: BoxDecoration(
-                color: hl.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: hl.withOpacity(0.25)),
-              ),
-              child: textWidget,
-            ),
-            Positioned(
-              top: 0,
-              bottom: 0,
-              left: 0,
-              child: Container(width: 4, color: hl),
-            ),
+    if (hl == null) {
+      return _scrollableCenteredColumn(
+        children: [
+          if (illustration != null) ...[
+            illustration,
+            const SizedBox(height: 22),
           ],
+          textWidget,
+        ],
+      );
+    }
+
+    return _scrollableCenteredColumn(
+      children: [
+        if (illustration != null) ...[
+          illustration,
+          const SizedBox(height: 22),
+        ],
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
+                decoration: BoxDecoration(
+                  color: hl.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: hl.withValues(alpha: 0.25)),
+                ),
+                child: textWidget,
+              ),
+              Positioned(
+                top: 0,
+                bottom: 0,
+                left: 0,
+                child: Container(width: 4, color: hl),
+              ),
+            ],
+          ),
         ),
-      ),
+      ],
+    );
+  }
+
+  /// Kısa metin + görsel ortalanır; uzun metinde taşma olmaz, dikey kaydırma açılır.
+  Widget _scrollableCenteredColumn({required List<Widget> children}) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: children,
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -178,32 +258,64 @@ class _ParagraphCardState extends State<ParagraphCard>
     );
 
     if (hl == null) {
-      return Center(child: quoteContent);
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [quoteContent],
+              ),
+            ),
+          );
+        },
+      );
     }
 
-    return Center(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-              decoration: BoxDecoration(
-                color: hl.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: hl.withOpacity(0.25)),
-              ),
-              child: quoteContent,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Stack(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                        decoration: BoxDecoration(
+                          color: hl.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: hl.withValues(alpha: 0.25)),
+                        ),
+                        child: quoteContent,
+                      ),
+                      Positioned(
+                        top: 0,
+                        bottom: 0,
+                        left: 0,
+                        child: Container(width: 4, color: hl),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            Positioned(
-              top: 0,
-              bottom: 0,
-              left: 0,
-              child: Container(width: 4, color: hl),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -547,6 +659,7 @@ class _ParagraphCardState extends State<ParagraphCard>
           );
         }
       } else {
+        if (!parentCtx.mounted) return;
         final xFile = XFile.fromData(
           image,
           mimeType: 'image/png',

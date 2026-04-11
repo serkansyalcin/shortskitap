@@ -19,6 +19,12 @@ class ParagraphModel {
   final String? audioStatus;
   final int? audioDurationSeconds;
 
+  /// CDN URL for optional paragraph illustration (any book; admin upload or AI).
+  final String? illustrationUrl;
+
+  /// Yerel dosya yolu (İndir ile çevrimdışı kullanım için).
+  final String? localIllustrationPath;
+
   const ParagraphModel({
     required this.id,
     required this.bookId,
@@ -35,6 +41,8 @@ class ParagraphModel {
     this.audioProvider,
     this.audioStatus,
     this.audioDurationSeconds,
+    this.illustrationUrl,
+    this.localIllustrationPath,
   });
 
   bool get hasAudio => audioUrl != null && audioUrl!.isNotEmpty;
@@ -50,6 +58,8 @@ class ParagraphModel {
     String? audioProvider,
     String? audioStatus,
     int? audioDurationSeconds,
+    String? illustrationUrl,
+    String? localIllustrationPath,
   }) => ParagraphModel(
     id: id,
     bookId: bookId,
@@ -66,6 +76,8 @@ class ParagraphModel {
     audioProvider: audioProvider ?? this.audioProvider,
     audioStatus: audioStatus ?? this.audioStatus,
     audioDurationSeconds: audioDurationSeconds ?? this.audioDurationSeconds,
+    illustrationUrl: illustrationUrl ?? this.illustrationUrl,
+    localIllustrationPath: localIllustrationPath ?? this.localIllustrationPath,
   );
 
   factory ParagraphModel.fromJson(Map<String, dynamic> json) => ParagraphModel(
@@ -84,6 +96,8 @@ class ParagraphModel {
     audioProvider: json['audio_provider'] as String?,
     audioStatus: json['audio_status'] as String?,
     audioDurationSeconds: json['audio_duration_seconds'] as int?,
+    illustrationUrl: json['illustration_url'] as String?,
+    localIllustrationPath: json['illustration_local_path'] as String?,
   );
 
   static ParagraphType _typeFromString(String? type) {

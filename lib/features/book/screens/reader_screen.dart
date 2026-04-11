@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../app/providers/books_provider.dart';
 import '../../../app/providers/library_provider.dart';
@@ -111,6 +112,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   @override
   void dispose() {
+    unawaited(WakelockPlus.disable());
     _pageController.dispose();
     _debounce?.cancel();
     _sessionTimer?.cancel();
@@ -121,6 +123,45 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
     super.dispose();
+  }
+
+  /// Sesli okuma veya otomatik oynatma açıkken ekranın kapanmasını önler.
+  Future<void> _syncReaderWakelock() async {
+    if (!mounted) return;
+    final keepAwake =
+        ref.read(voiceoverEnabledProvider) || _continuousVoiceoverEnabled;
+    if (keepAwake) {
+      await WakelockPlus.enable();
+    } else {
+      await WakelockPlus.disable();
+    }
+  }
+
+  void _jumpToBookStart() {
+    final items = _lastBuiltItems;
+    if (items.isEmpty) return;
+    final firstIndex = _firstParagraphItemIndex(items);
+
+    setState(() => _continuousVoiceoverEnabled = false);
+    _voiceoverService.stop();
+
+    if (_pageController.hasClients) {
+      unawaited(
+        _pageController.animateToPage(
+          firstIndex,
+          duration: const Duration(milliseconds: 420),
+          curve: Curves.easeInOutCubic,
+        ),
+      );
+    }
+    unawaited(_syncReaderWakelock());
+  }
+
+  int _firstParagraphItemIndex(List<dynamic> items) {
+    for (var i = 0; i < items.length; i++) {
+      if (items[i] is _ParagraphItem) return i;
+    }
+    return 0;
   }
 
   void _onPageChanged(int index) {
@@ -242,6 +283,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         _syncVoiceoverForPage(_lastBuiltItems, currentParagraph, _currentIndex),
       );
     }
+    unawaited(_syncReaderWakelock());
   }
 
   void _toggleContinuousVoiceover() {
@@ -282,6 +324,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     unawaited(
       _syncVoiceoverForPage(_lastBuiltItems, currentParagraph, _currentIndex),
     );
+    unawaited(_syncReaderWakelock());
   }
 
   void _disableContinuousVoiceover({
@@ -315,6 +358,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(message)));
     }
+    unawaited(_syncReaderWakelock());
   }
 
   void _showControlsTemporarily() {
@@ -877,6 +921,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       continuousVoiceoverEnabled: _continuousVoiceoverEnabled,
                       onVoiceoverToggle: _toggleVoiceover,
                       onContinuousVoiceoverToggle: _toggleContinuousVoiceover,
+                      onRestartFromBeginning:
+                          paragraphs.isNotEmpty &&
+                              _currentParagraphOrder == paragraphs.length
+                          ? _jumpToBookStart
+                          : null,
                     ),
                   ),
                 ),
@@ -1471,6 +1520,7 @@ class _ReaderBottomBar extends StatelessWidget {
   final bool continuousVoiceoverEnabled;
   final VoidCallback? onVoiceoverToggle;
   final VoidCallback? onContinuousVoiceoverToggle;
+  final VoidCallback? onRestartFromBeginning;
 
   const _ReaderBottomBar({
     required this.readerTheme,
@@ -1485,6 +1535,7 @@ class _ReaderBottomBar extends StatelessWidget {
     this.continuousVoiceoverEnabled = false,
     this.onVoiceoverToggle,
     this.onContinuousVoiceoverToggle,
+    this.onRestartFromBeginning,
   });
 
   @override
@@ -1652,6 +1703,24 @@ class _ReaderBottomBar extends StatelessWidget {
               ),
             ],
           ),
+          if (onRestartFromBeginning != null) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.accent,
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                ),
+                onPressed: onRestartFromBeginning,
+                icon: const Icon(Icons.replay_rounded, size: 20),
+                label: const Text(
+                  'Baştan başla',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

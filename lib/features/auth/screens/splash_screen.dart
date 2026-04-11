@@ -125,7 +125,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                             ),
                             const SizedBox(height: 24),
                             Text(
-                              'Kisa paragraflarla daha cok oku.',
+                              'Kısa paragraflarla daha çok oku.',
                               style: textTheme.headlineLarge?.copyWith(
                                 color: theme.colorScheme.onSurface,
                                 height: 1.05,

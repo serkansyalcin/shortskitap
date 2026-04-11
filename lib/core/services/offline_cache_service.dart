@@ -23,7 +23,7 @@ class OfflineCacheService {
 
     return openDatabase(
       path,
-      version: 5,
+      version: 7,
       onCreate: (db, version) async {
         await _createTables(db);
       },
@@ -76,6 +76,16 @@ class OfflineCacheService {
           // listesi satırlarını sıfırla (paragraf önbelleği cached_paragraphs kalır).
           await db.delete('cached_books');
         }
+        if (oldVersion < 6) {
+          await db.execute(
+            'ALTER TABLE cached_paragraphs ADD COLUMN illustration_url TEXT',
+          );
+        }
+        if (oldVersion < 7) {
+          await db.execute(
+            'ALTER TABLE cached_paragraphs ADD COLUMN illustration_local_path TEXT',
+          );
+        }
       },
     );
   }
@@ -96,6 +106,8 @@ class OfflineCacheService {
         audio_provider TEXT,
         audio_status TEXT,
         audio_duration_seconds INTEGER,
+        illustration_url TEXT,
+        illustration_local_path TEXT,
         cached_at INTEGER NOT NULL
       )
     ''');
@@ -219,6 +231,7 @@ class OfflineCacheService {
     final batch = db.batch();
     final now = DateTime.now().millisecondsSinceEpoch;
     final localAudioPaths = await _getLocalAudioPathMap(db, bookId);
+    final localIllustrationPaths = await _getLocalIllustrationPathMap(db, bookId);
     final cachedParagraphs = <ParagraphModel>[];
 
     for (final p in paragraphs) {
@@ -229,12 +242,30 @@ class OfflineCacheService {
         localAudioPath = null;
       }
 
+      var localIllustrationPath = localIllustrationPaths[p.id];
+      if (localIllustrationPath != null &&
+          localIllustrationPath.isNotEmpty &&
+          !await localIllustrationFileExists(localIllustrationPath)) {
+        localIllustrationPath = null;
+      }
+
       if (downloadAudioFiles && p.audioUrl != null && p.audioUrl!.isNotEmpty) {
         localAudioPath = await cacheAudioFile(
           bookId: bookId,
           paragraphId: p.id,
           audioUrl: p.audioUrl!,
           currentLocalPath: localAudioPath,
+        );
+      }
+
+      if (downloadAudioFiles &&
+          p.illustrationUrl != null &&
+          p.illustrationUrl!.isNotEmpty) {
+        localIllustrationPath = await cacheIllustrationFile(
+          bookId: bookId,
+          paragraphId: p.id,
+          imageUrl: p.illustrationUrl!,
+          currentLocalPath: localIllustrationPath,
         );
       }
 
@@ -252,10 +283,17 @@ class OfflineCacheService {
         'audio_provider': p.audioProvider,
         'audio_status': p.audioStatus,
         'audio_duration_seconds': p.audioDurationSeconds,
+        'illustration_url': p.illustrationUrl,
+        'illustration_local_path': localIllustrationPath,
         'cached_at': now,
       }, conflictAlgorithm: ConflictAlgorithm.replace);
 
-      cachedParagraphs.add(p.copyWith(localAudioPath: localAudioPath));
+      cachedParagraphs.add(
+        p.copyWith(
+          localAudioPath: localAudioPath,
+          localIllustrationPath: localIllustrationPath,
+        ),
+      );
     }
 
     await batch.commit(noResult: true);
@@ -286,6 +324,8 @@ class OfflineCacheService {
         'audio_provider': row['audio_provider'],
         'audio_status': row['audio_status'],
         'audio_duration_seconds': row['audio_duration_seconds'],
+        'illustration_url': row['illustration_url'],
+        'illustration_local_path': row['illustration_local_path'],
       });
     }).toList();
   }
@@ -322,6 +362,7 @@ class OfflineCacheService {
     batch.delete('cached_books', where: 'id = ?', whereArgs: [bookId]);
     await batch.commit(noResult: true);
     await deleteBookAudioCache(bookId);
+    await deleteBookIllustrationCache(bookId);
   }
 
   Future<void> savePendingProgress(
@@ -368,6 +409,28 @@ class OfflineCacheService {
     for (final row in rows) {
       final paragraphId = row['id'];
       final localPath = row['audio_local_path'];
+      if (paragraphId is int && localPath is String && localPath.isNotEmpty) {
+        paths[paragraphId] = localPath;
+      }
+    }
+    return paths;
+  }
+
+  Future<Map<int, String>> _getLocalIllustrationPathMap(
+    Database db,
+    int bookId,
+  ) async {
+    final rows = await db.query(
+      'cached_paragraphs',
+      columns: ['id', 'illustration_local_path'],
+      where: 'book_id = ?',
+      whereArgs: [bookId],
+    );
+
+    final paths = <int, String>{};
+    for (final row in rows) {
+      final paragraphId = row['id'];
+      final localPath = row['illustration_local_path'];
       if (paragraphId is int && localPath is String && localPath.isNotEmpty) {
         paths[paragraphId] = localPath;
       }
