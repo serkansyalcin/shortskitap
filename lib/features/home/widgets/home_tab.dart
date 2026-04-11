@@ -24,7 +24,9 @@ ProgressModel? _findContinueReadingProgress(
     final book = item.book;
     if (book == null) continue;
     if (item.isCompleted || item.completionPercentage >= 100) continue;
-    if (isKidsMode && book.isKids != true) continue;
+    // Çocuk modu: yalnızca çocuk kitapları; normal mod: çocuk kitaplarını gösterme.
+    if (isKidsMode && !book.isKids) continue;
+    if (!isKidsMode && book.isKids) continue;
     return item;
   }
   return null;

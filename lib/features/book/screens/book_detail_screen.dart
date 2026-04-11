@@ -1027,7 +1027,6 @@ class _BookActionStrip extends ConsumerStatefulWidget {
 class _BookActionStripState extends ConsumerState<_BookActionStrip> {
   bool _isSubmitting = false;
   bool? _optimisticFavorite;
-  bool _syncedDownloadedMetadata = false;
 
   @override
   Widget build(BuildContext context) {
@@ -1041,14 +1040,6 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
     );
     final isDownloaded =
         ref.watch(bookCacheStatusProvider(widget.book.id)).valueOrNull == true;
-    final isPremium = ref.watch(isPremiumProvider);
-    if (isDownloaded && !_syncedDownloadedMetadata && isPremium) {
-      _syncedDownloadedMetadata = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await ref.read(offlineCacheServiceProvider).cacheBook(widget.book);
-        ref.invalidate(downloadedBooksProvider);
-      });
-    }
     final isAuthenticated = authState.isAuthenticated;
     final isFavorite =
         _optimisticFavorite ??
@@ -1282,7 +1273,6 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
       await ref
           .read(bookDownloadControllerProvider.notifier)
           .removeDownload(widget.book.id);
-      _syncedDownloadedMetadata = false;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Kitap cihazdan kaldırıldı.')),

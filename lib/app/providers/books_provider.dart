@@ -145,8 +145,9 @@ final downloadedBooksProvider = FutureProvider<List<BookModel>>((ref) async {
   return books;
 });
 
+/// Yalnızca kullanıcı "İndir" ile oluşturulan [cached_books] kaydı; paragraf önbelleği (okuma) sayılmaz.
 final bookCacheStatusProvider = FutureProvider.family<bool, int>((ref, bookId) {
-  return ref.read(offlineCacheServiceProvider).hasCache(bookId);
+  return ref.read(offlineCacheServiceProvider).hasCachedBookRecord(bookId);
 });
 
 class BookDownloadController extends StateNotifier<Set<int>> {
@@ -156,7 +157,11 @@ class BookDownloadController extends StateNotifier<Set<int>> {
 
   bool isDownloading(int bookId) => state.contains(bookId);
 
-  Future<int> downloadBook(int bookId, {BookModel? book}) async {
+  Future<int> downloadBook(
+    int bookId, {
+    BookModel? book,
+    String? fallbackTitle,
+  }) async {
     if (state.contains(bookId)) return 0;
 
     state = {...state, bookId};
@@ -164,12 +169,13 @@ class BookDownloadController extends StateNotifier<Set<int>> {
       final paragraphs = await _ref
           .read(bookServiceProvider)
           .getAllParagraphs(bookId);
+      final cache = _ref.read(offlineCacheServiceProvider);
       if (book != null) {
-        await _ref.read(offlineCacheServiceProvider).cacheBook(book);
+        await cache.cacheBook(book);
+      } else {
+        await cache.cacheBookPlaceholder(bookId, title: fallbackTitle);
       }
-      await _ref
-          .read(offlineCacheServiceProvider)
-          .cacheParagraphs(bookId, paragraphs, downloadAudioFiles: true);
+      await cache.cacheParagraphs(bookId, paragraphs, downloadAudioFiles: true);
       _ref.invalidate(bookCacheStatusProvider(bookId));
       _ref.invalidate(downloadedBooksProvider);
       _ref.invalidate(paragraphsProvider(bookId));
@@ -214,11 +220,14 @@ final paragraphsProvider = FutureProvider.family<List<ParagraphModel>, int>((
     final paragraphs = await service.getAllParagraphs(bookId);
     final isPremium = ref.read(isPremiumProvider);
     if (isPremium) {
-      final shouldDownloadAudioFiles = await cache.hasCachedBookRecord(bookId);
+      // Metin önbelleği okuma sırasında dolsun; ses dosyaları yalnızca kullanıcı
+      // açıkça "İndir" dediğinde [BookDownloadController.downloadBook] ile çekilir.
+      // (hasCachedBookRecord, detay sayfasındaki metadata senkronu yüzünden yanlışlıkla
+      // true olabiliyordu ve her okumada tüm sesler indiriliyordu.)
       final cachedParagraphs = await cache.cacheParagraphs(
         bookId,
         paragraphs,
-        downloadAudioFiles: shouldDownloadAudioFiles,
+        downloadAudioFiles: false,
       );
       ref.invalidate(bookCacheStatusProvider(bookId));
       return cachedParagraphs;

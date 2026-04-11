@@ -66,6 +66,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   late final AutoVoiceoverService _voiceoverService;
   StreamSubscription<int>? _voiceoverCompletionSubscription;
   final Map<int, String> _localHighlights = {};
+  /// Önceki sayfa (değerlendirme modalı: son sayfaya kaydırarak gelince tetiklemek için).
+  int? _readerPreviousPageIndex;
 
   @override
   void initState() {
@@ -123,6 +125,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   void _onPageChanged(int index) {
     final items = _lastBuiltItems;
+    final previousPageIndex = _readerPreviousPageIndex;
+    _readerPreviousPageIndex = index;
+
     final paragraphOrder = _paragraphOrderForIndex(items, index);
     final paragraph = _paragraphForIndex(items, index);
 
@@ -158,6 +163,30 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _voiceoverService.stop();
       setState(() => _voiceoverLoading = false);
     }
+
+    _maybeShowReviewWhenEnteringLastPage(
+      index,
+      previousPageIndex,
+      items,
+    );
+  }
+
+  /// Son paragrafa aşağı kaydırarak gelindiğinde de (ok ile aynı) değerlendirme açılır.
+  void _maybeShowReviewWhenEnteringLastPage(
+    int index,
+    int? previousPageIndex,
+    List<dynamic> items,
+  ) {
+    if (items.isEmpty) return;
+    final lastIndex = items.length - 1;
+    if (lastIndex < 0 || index != lastIndex) return;
+    if (previousPageIndex == null || previousPageIndex >= lastIndex) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ReviewModal.show(context, widget.bookId);
+    });
   }
 
   Future<void> _syncVoiceoverForPage(
@@ -168,8 +197,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     await _triggerVoiceover(paragraph, index);
     if (!mounted || _currentIndex != index) return;
 
-    final nextParagraph = _nextParagraphAfterIndex(items, index);
-    if (nextParagraph != null && nextParagraph.hasAudio) {
+    final nextParagraph = _nextParagraphWithAudioAfterIndex(items, index);
+    if (nextParagraph != null) {
       await _voiceoverService.preloadNextParagraph(nextParagraph);
     }
   }
@@ -233,6 +262,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       return;
     }
 
+    if (!ref.read(isPremiumProvider)) {
+      if (!mounted) return;
+      _showPremiumUpsellDialog(
+        title: 'Otomatik oynatma',
+        description:
+            'Dinlemeyi bir kez başlatman yeterli. Otomatik olarak sonraki paragrafa geçer, sen de hiç kesilmeden kitabın akışında kalırsın. Bu özellik Premium ile açılır.',
+        icon: Icons.playlist_play_rounded,
+      );
+      return;
+    }
+
     if (!ref.read(voiceoverEnabledProvider)) {
       ref.read(voiceoverEnabledProvider.notifier).state = true;
       _voiceoverService.enable();
@@ -282,11 +322,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     _startControlsTimer();
   }
 
-  void _showPremiumRequiredForDownloadModal() {
+  /// Ortalanmış premium upsell diyaloğu — indirme ve otomatik oynatma vb. için ortak.
+  void _showPremiumUpsellDialog({
+    required String title,
+    required String description,
+    IconData icon = Icons.workspace_premium_rounded,
+  }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => Dialog(
         backgroundColor: isDark ? const Color(0xFF171A17) : theme.cardColor,
@@ -308,14 +353,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.workspace_premium_rounded,
+                child: Icon(
+                  icon,
                   color: AppColors.primary,
                   size: 32,
                 ),
               ),
               Text(
-                'Premium Özellik',
+                title,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 22,
@@ -325,7 +370,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               ),
               const SizedBox(height: 12),
               Text(
-                'Kitapları cihazınıza indirip çevrimdışı okumak için Kitaplig Premium abonesi olmalısınız. İstediğiniz zaman, internete ihtiyaç duymadan okuma keyfini çıkarın!',
+                description,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 15,
@@ -377,6 +422,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
+  void _showPremiumRequiredForDownloadModal() {
+    _showPremiumUpsellDialog(
+      title: 'Premium Özellik',
+      description:
+          'Kitapları cihazınıza indirip çevrimdışı okumak için Kitaplig Premium abonesi olmalısınız. '
+          'İstediğiniz zaman, internete ihtiyaç duymadan okuma keyfini çıkarın!',
+    );
+  }
+
   Future<void> _downloadBook() async {
     final isPremium = ref.read(isPremiumProvider);
     if (!isPremium) {
@@ -389,7 +443,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     try {
       final count = await ref
           .read(bookDownloadControllerProvider.notifier)
-          .downloadBook(widget.bookId);
+          .downloadBook(
+            widget.bookId,
+            fallbackTitle: widget.bookTitle,
+          );
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(
@@ -452,7 +509,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   Future<void> _advanceContinuousVoiceover() async {
-    final nextIndex = _nextParagraphIndexAfterIndex(
+    final nextIndex = _nextParagraphIndexWithAudioAfterIndex(
       _lastBuiltItems,
       _currentIndex,
     );
@@ -545,23 +602,24 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     return null;
   }
 
-  ParagraphModel? _nextParagraphAfterIndex(List<dynamic> items, int index) {
+  /// Next page index that has ready audio (skips ads, scene breaks, quotes without audio, etc.).
+  int? _nextParagraphIndexWithAudioAfterIndex(List<dynamic> items, int index) {
     for (var i = index + 1; i < items.length; i++) {
       final item = items[i];
-      if (item is _ParagraphItem) {
-        return item.paragraph;
+      if (item is _ParagraphItem && item.paragraph.hasAudio) {
+        return i;
       }
     }
     return null;
   }
 
-  int? _nextParagraphIndexAfterIndex(List<dynamic> items, int index) {
-    for (var i = index + 1; i < items.length; i++) {
-      if (items[i] is _ParagraphItem) {
-        return i;
-      }
-    }
-    return null;
+  ParagraphModel? _nextParagraphWithAudioAfterIndex(
+    List<dynamic> items,
+    int index,
+  ) {
+    final i = _nextParagraphIndexWithAudioAfterIndex(items, index);
+    if (i == null) return null;
+    return _paragraphForIndex(items, i);
   }
 
   @override

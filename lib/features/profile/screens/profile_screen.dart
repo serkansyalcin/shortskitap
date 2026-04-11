@@ -83,20 +83,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _logout() async {
     final approved = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Çıkış Yap'),
-        content: const Text('Oturumunu kapatmak istediğine emin misin?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('İptal'),
+      builder: (dialogContext) {
+        final scheme = Theme.of(dialogContext).colorScheme;
+        return AlertDialog(
+          title: Text(
+            'Çıkış Yap',
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w800,
+              fontSize: 20,
+            ),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Çıkış Yap'),
+          content: Text(
+            'Oturumunu kapatmak istediğine emin misin?',
+            style: TextStyle(
+              color: scheme.onSurface.withValues(alpha: 0.92),
+              height: 1.45,
+            ),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('İptal'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Çıkış Yap'),
+            ),
+          ],
+        );
+      },
     );
     if (approved != true) return;
     await ref.read(authProvider.notifier).logout();
