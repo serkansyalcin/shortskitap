@@ -100,6 +100,8 @@ class LeagueMembershipModel {
 class LeaderboardEntry {
   final int rank;
   final int userId;
+  final int? readerProfileId;
+  final String profileType;
   final String name;
   final String username;
   final String? avatarUrl;
@@ -112,6 +114,8 @@ class LeaderboardEntry {
   const LeaderboardEntry({
     required this.rank,
     required this.userId,
+    this.readerProfileId,
+    this.profileType = 'parent',
     required this.name,
     required this.username,
     this.avatarUrl,
@@ -126,6 +130,8 @@ class LeaderboardEntry {
     return LeaderboardEntry(
       rank: json['rank'] as int,
       userId: json['user_id'] as int,
+      readerProfileId: json['reader_profile_id'] as int?,
+      profileType: json['profile_type'] as String? ?? 'parent',
       name: json['name'] as String,
       username: json['username'] as String? ?? '',
       avatarUrl: json['avatar_url'] as String?,

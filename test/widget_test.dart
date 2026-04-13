@@ -74,14 +74,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Dark Route'), findsOneWidget);
-      expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
-          ThemeMode.dark);
+      expect(
+        tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
+        ThemeMode.dark,
+      );
     });
   });
 }
 
 class _TestSettingsNotifier extends SettingsNotifier {
-  _TestSettingsNotifier(UserSettings value) : super() {
-    state = value;
-  }
+  _TestSettingsNotifier(UserSettings value)
+    : super(initialSettings: value, loadFromStorage: false);
 }

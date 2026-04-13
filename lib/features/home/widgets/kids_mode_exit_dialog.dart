@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/utils/user_friendly_error.dart';
+
 class KidsModeExitDialog extends StatefulWidget {
   const KidsModeExitDialog({
     super.key,
@@ -11,11 +13,11 @@ class KidsModeExitDialog extends StatefulWidget {
 
   final VoidCallback onSuccess;
   final VoidCallback onCancel;
-  final bool Function(String) verifyPin;
+  final Future<bool> Function(String) verifyPin;
 
   static Future<bool?> show(
     BuildContext context, {
-    required bool Function(String) verifyPin,
+    required Future<bool> Function(String) verifyPin,
   }) {
     return showDialog<bool>(
       context: context,
@@ -36,6 +38,7 @@ class _KidsModeExitDialogState extends State<KidsModeExitDialog> {
   final _controller = TextEditingController();
   String _error = '';
   bool _obscure = true;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -43,16 +46,41 @@ class _KidsModeExitDialogState extends State<KidsModeExitDialog> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
+    if (_isSubmitting) return;
+
     final pin = _controller.text.trim();
     if (pin.isEmpty) {
       setState(() => _error = 'Lütfen şifreyi girin.');
       return;
     }
-    if (widget.verifyPin(pin)) {
-      widget.onSuccess();
-    } else {
-      setState(() => _error = 'Yanlış şifre. Tekrar deneyin.');
+
+    setState(() {
+      _error = '';
+      _isSubmitting = true;
+    });
+
+    try {
+      final isValid = await widget.verifyPin(pin);
+      if (!mounted) return;
+
+      if (isValid) {
+        widget.onSuccess();
+      } else {
+        setState(() => _error = 'Yanlış şifre. Tekrar deneyin.');
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = apiFormErrorMessage(
+          error,
+          fallback: 'Şifre doğrulanamadı. Lütfen tekrar deneyin.',
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -82,7 +110,7 @@ class _KidsModeExitDialogState extends State<KidsModeExitDialog> {
           const SizedBox(width: 14),
           Expanded(
             child: Text(
-              'Çocuk Modundan Çık',
+              'Çocuk Profilinden Çık',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -97,7 +125,7 @@ class _KidsModeExitDialogState extends State<KidsModeExitDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Erişkin içeriğe geçmek için ebeveyn şifresini girin. Bu sayede çocukların uygun olmayan içeriklere erişmesi engellenir.',
+            'Ebeveyn profiline dönmek için ebeveyn şifresini girin. Bu sayede çocukların uygun olmayan içeriklere erişmesi engellenir.',
             style: TextStyle(
               fontSize: 14,
               height: 1.5,
@@ -109,7 +137,10 @@ class _KidsModeExitDialogState extends State<KidsModeExitDialog> {
             controller: _controller,
             obscureText: _obscure,
             keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(6),
+            ],
             autofocus: true,
             onChanged: (_) => setState(() => _error = ''),
             onSubmitted: (_) => _submit(),
@@ -121,23 +152,31 @@ class _KidsModeExitDialogState extends State<KidsModeExitDialog> {
                 icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
           ),
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: widget.onCancel,
-          child: const Text('İptal'),
-        ),
+        TextButton(onPressed: widget.onCancel, child: const Text('İptal')),
         FilledButton(
-          onPressed: _submit,
+          onPressed: _isSubmitting ? null : _submit,
           style: FilledButton.styleFrom(
             backgroundColor: accent,
             foregroundColor: Colors.white,
           ),
-          child: const Text('Doğrula'),
+          child: _isSubmitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('Doğrula'),
         ),
       ],
     );

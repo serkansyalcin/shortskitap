@@ -77,6 +77,43 @@ void main() {
         throwsA(isA<FormatException>()),
       );
     });
+
+    test('profil scope varken ayni hesaptaki rolleri user id ile karistirmaz', () {
+      final duel = DuelModel.fromJson({
+        ..._duelJson(),
+        'challenger_id': 5,
+        'challenger_reader_profile_id': 11,
+        'opponent_id': 5,
+        'opponent_reader_profile_id': 12,
+        'challenger': {
+          'id': 5,
+          'reader_profile_id': 11,
+          'name': 'Ada Çocuk',
+          'avatar_url': null,
+        },
+        'opponent': {
+          'id': 5,
+          'reader_profile_id': 12,
+          'name': 'Efe Çocuk',
+          'avatar_url': null,
+        },
+      });
+
+      expect(
+        duel.isIncomingForActor(userId: 5, readerProfileId: 11),
+        isFalse,
+      );
+      expect(duel.isOutgoingForActor(userId: 5, readerProfileId: 11), isTrue);
+      expect(duel.isIncomingForActor(userId: 5, readerProfileId: 12), isTrue);
+      expect(
+        duel.isOutgoingForActor(userId: 5, readerProfileId: 12),
+        isFalse,
+      );
+      expect(
+        duel.otherUserForActor(userId: 5, readerProfileId: 12)?.readerProfileId,
+        11,
+      );
+    });
   });
 
   group('DuelService hata parse akisi', () {

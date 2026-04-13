@@ -1,12 +1,16 @@
 class DuelModel {
   final int id;
   final int challengerId;
+  final int? challengerReaderProfileId;
   final int opponentId;
+  final int? opponentReaderProfileId;
+  final String profileType;
   final String status;
   final int challengerScore;
   final int opponentScore;
   final int pointsAtStake;
   final int? winnerId;
+  final int? winnerReaderProfileId;
   final DateTime? startsAt;
   final DateTime? expiresAt;
   final DuelUserModel? challenger;
@@ -15,12 +19,16 @@ class DuelModel {
   const DuelModel({
     required this.id,
     required this.challengerId,
+    this.challengerReaderProfileId,
     required this.opponentId,
+    this.opponentReaderProfileId,
+    this.profileType = 'parent',
     required this.status,
     required this.challengerScore,
     required this.opponentScore,
     required this.pointsAtStake,
     this.winnerId,
+    this.winnerReaderProfileId,
     this.startsAt,
     this.expiresAt,
     this.challenger,
@@ -31,12 +39,25 @@ class DuelModel {
     return DuelModel(
       id: _DuelJsonParser.requiredInt(json, 'id'),
       challengerId: _DuelJsonParser.requiredInt(json, 'challenger_id'),
+      challengerReaderProfileId: _DuelJsonParser.nullableInt(
+        json,
+        'challenger_reader_profile_id',
+      ),
       opponentId: _DuelJsonParser.requiredInt(json, 'opponent_id'),
+      opponentReaderProfileId: _DuelJsonParser.nullableInt(
+        json,
+        'opponent_reader_profile_id',
+      ),
+      profileType: json['profile_type'] as String? ?? 'parent',
       status: json['status'] as String,
       challengerScore: _DuelJsonParser.requiredInt(json, 'challenger_score'),
       opponentScore: _DuelJsonParser.requiredInt(json, 'opponent_score'),
       pointsAtStake: _DuelJsonParser.requiredInt(json, 'points_at_stake'),
       winnerId: _DuelJsonParser.nullableInt(json, 'winner_id'),
+      winnerReaderProfileId: _DuelJsonParser.nullableInt(
+        json,
+        'winner_reader_profile_id',
+      ),
       startsAt: json['starts_at'] != null
           ? DateTime.parse(json['starts_at'] as String)
           : null,
@@ -58,17 +79,32 @@ class DuelModel {
   bool get isExpired => status == 'expired';
   bool get isDeclined => status == 'declined';
   bool get isOpen => isPending || isActive;
+  bool get hasReaderProfileScope =>
+      challengerReaderProfileId != null || opponentReaderProfileId != null;
 
   bool involvesUser(int userId) {
     return challengerId == userId || opponentId == userId;
+  }
+
+  bool involvesReaderProfile(int readerProfileId) {
+    return challengerReaderProfileId == readerProfileId ||
+        opponentReaderProfileId == readerProfileId;
   }
 
   bool isIncomingFor(int userId) {
     return isPending && opponentId == userId;
   }
 
+  bool isIncomingForReaderProfile(int readerProfileId) {
+    return isPending && opponentReaderProfileId == readerProfileId;
+  }
+
   bool isOutgoingFor(int userId) {
     return isPending && challengerId == userId;
+  }
+
+  bool isOutgoingForReaderProfile(int readerProfileId) {
+    return isPending && challengerReaderProfileId == readerProfileId;
   }
 
   int? otherUserIdFor(int userId) {
@@ -78,11 +114,51 @@ class DuelModel {
     return challengerId == userId ? opponentId : challengerId;
   }
 
+  int? otherReaderProfileIdFor(int readerProfileId) {
+    if (!involvesReaderProfile(readerProfileId)) {
+      return null;
+    }
+    return challengerReaderProfileId == readerProfileId
+        ? opponentReaderProfileId
+        : challengerReaderProfileId;
+  }
+
   DuelUserModel? otherUserFor(int userId) {
     if (!involvesUser(userId)) {
       return null;
     }
     return challengerId == userId ? opponent : challenger;
+  }
+
+  DuelUserModel? otherUserForReaderProfile(int readerProfileId) {
+    if (!involvesReaderProfile(readerProfileId)) {
+      return null;
+    }
+    return challengerReaderProfileId == readerProfileId ? opponent : challenger;
+  }
+
+  bool isIncomingForActor({int? userId, int? readerProfileId}) {
+    if (hasReaderProfileScope && readerProfileId != null) {
+      return isIncomingForReaderProfile(readerProfileId);
+    }
+
+    return userId != null && isIncomingFor(userId);
+  }
+
+  bool isOutgoingForActor({int? userId, int? readerProfileId}) {
+    if (hasReaderProfileScope && readerProfileId != null) {
+      return isOutgoingForReaderProfile(readerProfileId);
+    }
+
+    return userId != null && isOutgoingFor(userId);
+  }
+
+  DuelUserModel? otherUserForActor({int? userId, int? readerProfileId}) {
+    if (hasReaderProfileScope && readerProfileId != null) {
+      return otherUserForReaderProfile(readerProfileId);
+    }
+
+    return userId == null ? null : otherUserFor(userId);
   }
 
   Duration? get timeRemaining {
@@ -111,12 +187,14 @@ class DuelActionResult {
 
 class DuelUserModel {
   final int id;
+  final int? readerProfileId;
   final String name;
   final String username;
   final String? avatarUrl;
 
   const DuelUserModel({
     required this.id,
+    this.readerProfileId,
     required this.name,
     required this.username,
     this.avatarUrl,
@@ -125,6 +203,7 @@ class DuelUserModel {
   factory DuelUserModel.fromJson(Map<String, dynamic> json) {
     return DuelUserModel(
       id: _DuelJsonParser.requiredInt(json, 'id'),
+      readerProfileId: _DuelJsonParser.nullableInt(json, 'reader_profile_id'),
       name: json['name'] as String,
       username: json['username'] as String? ?? '',
       avatarUrl: json['avatar_url'] as String?,

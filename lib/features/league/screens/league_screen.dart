@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kitaplig/app/theme/app_colors.dart';
 import 'package:kitaplig/app/theme/app_ui.dart';
@@ -51,6 +53,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final isKidsMode = ref.watch(kidsModeProvider);
 
     if (authState.status == AuthStatus.unknown) {
       return _wrap(
@@ -73,6 +76,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
         ),
         error: (error, stackTrace) => _LeagueErrorState(
           embedded: widget.embedded,
+          error: error,
           onRetry: () => ref.refresh(myLeagueProvider),
         ),
         data: (status) => _LeagueContent(
@@ -81,7 +85,7 @@ class _LeagueScreenState extends ConsumerState<LeagueScreen> {
           onTabChanged: (value) => setState(() => _tab = value),
           onRefresh: _handleRefresh,
           status: status,
-          isKidsMode: ref.watch(kidsModeProvider),
+          isKidsMode: isKidsMode,
         ),
       ),
     );
@@ -262,9 +266,14 @@ class _LeagueContent extends StatelessWidget {
 
 class _LeagueErrorState extends StatelessWidget {
   final bool embedded;
+  final Object? error;
   final VoidCallback onRetry;
 
-  const _LeagueErrorState({required this.embedded, required this.onRetry});
+  const _LeagueErrorState({
+    required this.embedded,
+    required this.error,
+    required this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -328,6 +337,26 @@ class _LeagueErrorState extends StatelessWidget {
                       height: 1.5,
                     ),
                   ),
+                  if (kDebugMode) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        _debugLeagueErrorText(error),
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          height: 1.45,
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   FilledButton.icon(
                     onPressed: onRetry,
@@ -344,6 +373,17 @@ class _LeagueErrorState extends StatelessWidget {
   }
 }
 
+String _debugLeagueErrorText(Object? error) {
+  if (error is DioException) {
+    final status = error.response?.statusCode;
+    final data = error.response?.data;
+    final message = error.message;
+    return 'status=${status ?? '-'} data=$data message=${message ?? '-'}';
+  }
+
+  return error?.toString() ?? 'Bilinmeyen hata';
+}
+
 class _DuelTabContent extends ConsumerWidget {
   const _DuelTabContent();
 
@@ -352,6 +392,9 @@ class _DuelTabContent extends ConsumerWidget {
     final duelsAsync = ref.watch(duelStateProvider);
     final currentUserId = ref.watch(
       authProvider.select((state) => state.user?.id),
+    );
+    final currentProfileId = ref.watch(
+      authProvider.select((state) => state.activeProfile?.id),
     );
 
     return duelsAsync.when(
@@ -402,13 +445,28 @@ class _DuelTabContent extends ConsumerWidget {
         ),
       ),
       data: (duels) {
-        final incomingDuels = currentUserId == null
-            ? const <DuelModel>[]
-            : duels.where((duel) => duel.isIncomingFor(currentUserId)).toList();
+        bool isIncoming(DuelModel duel) {
+          return duel.isIncomingForActor(
+            userId: currentUserId,
+            readerProfileId: currentProfileId,
+          );
+        }
+
+        bool isOutgoing(DuelModel duel) {
+          return duel.isOutgoingForActor(
+            userId: currentUserId,
+            readerProfileId: currentProfileId,
+          );
+        }
+
+        final incomingDuels = duels.where(isIncoming).toList();
         final activeDuels = duels.where((duel) => duel.isActive).toList();
-        final outgoingDuels = currentUserId == null
-            ? const <DuelModel>[]
-            : duels.where((duel) => duel.isOutgoingFor(currentUserId)).toList();
+        final outgoingDuels = duels.where(isOutgoing).toList();
+        final historyDuels = duels
+            .where(
+              (duel) => duel.isCompleted || duel.isExpired || duel.isDeclined,
+            )
+            .toList();
 
         if (duels.isEmpty) {
           return const LeagueEmptyState(
@@ -434,6 +492,7 @@ class _DuelTabContent extends ConsumerWidget {
                         child: _DuelListTile(
                           duel: duel,
                           currentUserId: currentUserId,
+                          currentProfileId: currentProfileId,
                         ),
                       ),
                     )
@@ -453,6 +512,7 @@ class _DuelTabContent extends ConsumerWidget {
                         child: _DuelListTile(
                           duel: duel,
                           currentUserId: currentUserId,
+                          currentProfileId: currentProfileId,
                         ),
                       ),
                     )
@@ -472,6 +532,27 @@ class _DuelTabContent extends ConsumerWidget {
                         child: _DuelListTile(
                           duel: duel,
                           currentUserId: currentUserId,
+                          currentProfileId: currentProfileId,
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            if (outgoingDuels.isNotEmpty && historyDuels.isNotEmpty)
+              const SizedBox(height: AppUI.sectionGap),
+            if (historyDuels.isNotEmpty)
+              _DuelSection(
+                title: 'Düello Geçmişi',
+                subtitle:
+                    'Tamamlanan, reddedilen veya süresi dolan düellolarını buradan tekrar inceleyebilirsin.',
+                children: historyDuels
+                    .map(
+                      (duel) => Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: _DuelListTile(
+                          duel: duel,
+                          currentUserId: currentUserId,
+                          currentProfileId: currentProfileId,
                         ),
                       ),
                     )
@@ -537,22 +618,35 @@ class _DuelSection extends StatelessWidget {
 class _DuelListTile extends ConsumerWidget {
   final DuelModel duel;
   final int? currentUserId;
+  final int? currentProfileId;
 
-  const _DuelListTile({required this.duel, required this.currentUserId});
+  const _DuelListTile({
+    required this.duel,
+    required this.currentUserId,
+    required this.currentProfileId,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final counterpart = currentUserId == null
-        ? duel.opponent ?? duel.challenger
-        : duel.otherUserFor(currentUserId!) ?? duel.opponent ?? duel.challenger;
-    final canAccept =
-        currentUserId != null && duel.isIncomingFor(currentUserId!);
-    final canCancel =
-        currentUserId != null && duel.isOutgoingFor(currentUserId!);
-    final statusText = _statusText(duel, currentUserId);
-    final scoreText = duel.isActive
+    final counterpart =
+        duel.otherUserForActor(
+          userId: currentUserId,
+          readerProfileId: currentProfileId,
+        ) ??
+        duel.opponent ??
+        duel.challenger;
+    final canAccept = duel.isIncomingForActor(
+      userId: currentUserId,
+      readerProfileId: currentProfileId,
+    );
+    final canCancel = duel.isOutgoingForActor(
+      userId: currentUserId,
+      readerProfileId: currentProfileId,
+    );
+    final statusText = _statusText(duel, currentUserId, currentProfileId);
+    final scoreText = duel.isActive || duel.isCompleted
         ? 'Skor: ${duel.challengerScore} - ${duel.opponentScore}'
         : '${duel.pointsAtStake} LP riskte';
 
@@ -686,12 +780,22 @@ class _DuelListTile extends ConsumerWidget {
     );
   }
 
-  String _statusText(DuelModel duel, int? currentUserId) {
-    if (currentUserId != null && duel.isIncomingFor(currentUserId)) {
+  String _statusText(
+    DuelModel duel,
+    int? currentUserId,
+    int? currentProfileId,
+  ) {
+    if (duel.isIncomingForActor(
+      userId: currentUserId,
+      readerProfileId: currentProfileId,
+    )) {
       return 'Sana meydan okundu. İstersen hemen kabul edebilirsin.';
     }
 
-    if (currentUserId != null && duel.isOutgoingFor(currentUserId)) {
+    if (duel.isOutgoingForActor(
+      userId: currentUserId,
+      readerProfileId: currentProfileId,
+    )) {
       return 'Teklif gönderildi, rakibinin yanıtı bekleniyor.';
     }
 
@@ -699,6 +803,18 @@ class _DuelListTile extends ConsumerWidget {
       return duel.expiresAt == null
           ? 'Düello devam ediyor.'
           : 'Düello sürüyor. Süre bitmeden daha fazla paragraf oku.';
+    }
+
+    if (duel.isCompleted) {
+      return 'Düello tamamlandı. Detayları görmek için dokun.';
+    }
+
+    if (duel.isDeclined) {
+      return 'Bu düello teklifi kapandı. Detayları görmek için dokun.';
+    }
+
+    if (duel.isExpired) {
+      return 'Süresi dolan düelloyu incelemek için dokun.';
     }
 
     return 'Düello detayı için dokun.';

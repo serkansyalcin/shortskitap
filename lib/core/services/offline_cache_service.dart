@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../api/api_client.dart';
 import '../platform/offline_audio_storage.dart';
 import '../models/book_model.dart';
 import '../models/paragraph_model.dart';
@@ -23,7 +24,7 @@ class OfflineCacheService {
 
     return openDatabase(
       path,
-      version: 7,
+      version: 8,
       onCreate: (db, version) async {
         await _createTables(db);
       },
@@ -86,6 +87,11 @@ class OfflineCacheService {
             'ALTER TABLE cached_paragraphs ADD COLUMN illustration_local_path TEXT',
           );
         }
+        if (oldVersion < 8) {
+          await db.execute(
+            'ALTER TABLE pending_progress ADD COLUMN reader_profile_id INTEGER',
+          );
+        }
       },
     );
   }
@@ -114,6 +120,7 @@ class OfflineCacheService {
     await db.execute('''
       CREATE TABLE pending_progress (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        reader_profile_id INTEGER,
         book_id INTEGER NOT NULL,
         last_paragraph_order INTEGER NOT NULL,
         session_seconds INTEGER NOT NULL DEFAULT 0,
@@ -231,7 +238,10 @@ class OfflineCacheService {
     final batch = db.batch();
     final now = DateTime.now().millisecondsSinceEpoch;
     final localAudioPaths = await _getLocalAudioPathMap(db, bookId);
-    final localIllustrationPaths = await _getLocalIllustrationPathMap(db, bookId);
+    final localIllustrationPaths = await _getLocalIllustrationPathMap(
+      db,
+      bookId,
+    );
     final cachedParagraphs = <ParagraphModel>[];
 
     for (final p in paragraphs) {
@@ -368,10 +378,14 @@ class OfflineCacheService {
   Future<void> savePendingProgress(
     int bookId,
     int lastOrder,
-    int sessionSeconds,
-  ) async {
+    int sessionSeconds, {
+    int? readerProfileId,
+  }) async {
     final db = await database;
+    final effectiveProfileId =
+        readerProfileId ?? await ApiClient.getActiveReaderProfileId();
     await db.insert('pending_progress', {
+      'reader_profile_id': effectiveProfileId,
       'book_id': bookId,
       'last_paragraph_order': lastOrder,
       'session_seconds': sessionSeconds,
@@ -379,14 +393,42 @@ class OfflineCacheService {
     });
   }
 
-  Future<List<Map<String, dynamic>>> getPendingProgress() async {
+  Future<List<Map<String, dynamic>>> getPendingProgress({
+    int? readerProfileId,
+  }) async {
     final db = await database;
-    return db.query('pending_progress', orderBy: 'created_at ASC');
+    final effectiveProfileId =
+        readerProfileId ?? await ApiClient.getActiveReaderProfileId();
+    if (effectiveProfileId != null) {
+      return db.query(
+        'pending_progress',
+        where: 'reader_profile_id = ?',
+        whereArgs: [effectiveProfileId],
+        orderBy: 'created_at ASC',
+      );
+    }
+
+    return db.query(
+      'pending_progress',
+      where: 'reader_profile_id IS NULL',
+      orderBy: 'created_at ASC',
+    );
   }
 
-  Future<void> clearPendingProgress() async {
+  Future<void> clearPendingProgress({int? readerProfileId}) async {
     final db = await database;
-    await db.delete('pending_progress');
+    final effectiveProfileId =
+        readerProfileId ?? await ApiClient.getActiveReaderProfileId();
+    if (effectiveProfileId != null) {
+      await db.delete(
+        'pending_progress',
+        where: 'reader_profile_id = ?',
+        whereArgs: [effectiveProfileId],
+      );
+      return;
+    }
+
+    await db.delete('pending_progress', where: 'reader_profile_id IS NULL');
   }
 
   Map<String, dynamic>? _decodeJsonMap(String? source) {

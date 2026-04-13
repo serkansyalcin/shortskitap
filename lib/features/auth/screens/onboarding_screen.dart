@@ -23,6 +23,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     with TickerProviderStateMixin {
   final _pageController = PageController();
   late final AnimationController _bgAnimationController;
+  static const int _pageCount = 6;
   int _currentPage = 0;
   bool _isSubmitting = false;
 
@@ -60,7 +61,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   }
 
   void _nextPage() {
-    if (_currentPage < 4) {
+    if (_currentPage < _pageCount - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 600),
         curve: Curves.fastOutSlowIn,
@@ -108,7 +109,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   Widget _buildDotIndicator() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(5, (index) {
+      children: List.generate(_pageCount, (index) {
         final active = _currentPage == index;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 300),
@@ -217,6 +218,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                         accentColor: Colors.amber.shade600,
                         isDark: isDark,
                       ),
+                      _FeaturePage(
+                        icon: Icons.family_restroom_rounded,
+                        title: 'Çocuk\nModu',
+                        description:
+                            'Çocuk Modu ile yalnızca çocuklara uygun içerikler gösterilir. İstersen çocuklar için ayrı bir profil oluşturabilir, yetişkin alanına dönüşü şifreyle koruyabilirsin.',
+                        accentColor: Colors.pinkAccent,
+                        isDark: isDark,
+                      ),
                       _SetupPage(
                         goals: _goals,
                         categories: onboardingCategories,
@@ -244,7 +253,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                     children: [
                       _buildDotIndicator(),
                       const SizedBox(height: 36),
-                      if (_currentPage < 4)
+                      if (_currentPage < _pageCount - 1)
                         SizedBox(
                           width: double.infinity,
                           height: 60,
@@ -344,7 +353,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                                   ),
                                 ),
                               )
-                            else if (_currentPage == 4 && !_canFinish)
+                            else if (_currentPage == _pageCount - 1 &&
+                                !_canFinish)
                               const SizedBox(height: 48),
                           ],
                         ),

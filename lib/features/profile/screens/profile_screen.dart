@@ -16,6 +16,7 @@ import '../../../core/models/user_model.dart';
 import '../../../core/services/subscription_service.dart';
 import '../widgets/achievement_badge_grid.dart';
 import '../widgets/delete_account_dialog.dart';
+import '../widgets/reader_profile_dialogs.dart';
 import '../widgets/reading_heatmap_widget.dart';
 import '../../home/widgets/kids_mode_exit_dialog.dart';
 import '../../home/widgets/kids_mode_pin_set_dialog.dart';
@@ -41,7 +42,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _refresh() async {
     final username = _username;
     if (username == null || username.isEmpty) return;
-    await ref.refresh(publicProfileProvider(username).future);
+    ref.invalidate(publicProfileProvider(username));
+    await ref.read(publicProfileProvider(username).future);
     if (_isSelf) ref.invalidate(earnedAchievementsProvider);
   }
 
@@ -144,18 +146,115 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   static const Color _kidsAccent = Color(0xFFE91E63);
 
-  Future<void> _onKidsModeSwitch(bool wantOn) async {
-    if (wantOn) {
-      await ref.read(kidsModeProvider.notifier).setEnabled(true);
-      return;
-    }
+  Future<bool> _ensureParentPinBeforeEnteringKidsMode() async {
+    final auth = ref.read(authProvider);
     final svc = await ref.read(kidsModePinServiceProvider.future);
-    if (!svc.hasPin()) {
+    final userHasParentPin = auth.user?.hasParentPin;
+    if (userHasParentPin == true ||
+        (userHasParentPin == null && svc.hasPin())) {
+      return true;
+    }
+
+    if (!mounted) return false;
+    final ok = await KidsModePinSetDialog.show(
+      context,
+      onSave: (pin) async {
+        final service = await ref.read(kidsModePinServiceProvider.future);
+        await service.setPin(pin);
+        ref.invalidate(kidsModePinServiceProvider);
+        await ref.read(authProvider.notifier).refreshMe();
+      },
+    );
+
+    if (ok == true) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Çocuk modundan çıkmak için önce ebeveyn şifresi belirleyin.',
+              'Ebeveyn şifresi kaydedildi. Çocuk moduna geçiliyor.',
+            ),
+          ),
+        );
+      }
+      return true;
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Çocuk moduna geçmek için önce ebeveyn şifresi belirlemelisiniz.',
+          ),
+        ),
+      );
+    }
+    return false;
+  }
+
+  Future<void> _onKidsModeSwitch(bool wantOn) async {
+    if (wantOn) {
+      final auth = ref.read(authProvider);
+      var childProfiles = auth.profiles
+          .where((profile) => profile.isChild && !profile.isArchived)
+          .toList(growable: false);
+
+      if (childProfiles.isEmpty) {
+        final name = await ReaderProfileDialogs.showCreateChildProfileDialog(
+          context,
+        );
+        if (name == null || name.trim().isEmpty) return;
+
+        final created = await ref
+            .read(authProvider.notifier)
+            .createChildProfile(name: name.trim());
+        if (!created || !mounted) return;
+
+        childProfiles = ref
+            .read(authProvider)
+            .profiles
+            .where((profile) => profile.isChild && !profile.isArchived)
+            .toList(growable: false);
+      }
+
+      if (childProfiles.isEmpty || !mounted) return;
+      final selected = childProfiles.length == 1
+          ? childProfiles.first
+          : await ReaderProfileDialogs.showChildProfilePicker(
+              context,
+              profiles: childProfiles,
+            );
+      if (selected == null) return;
+
+      final hasParentPin = await _ensureParentPinBeforeEnteringKidsMode();
+      if (!hasParentPin || !mounted) return;
+
+      await ref.read(authProvider.notifier).activateReaderProfile(selected.id);
+      return;
+    }
+
+    final auth = ref.read(authProvider);
+    dynamic parentProfile;
+    for (final profile in auth.profiles) {
+      if (profile.isParent && !profile.isArchived) {
+        parentProfile = profile;
+        break;
+      }
+    }
+    if (parentProfile == null) return;
+
+    final svc = await ref.read(kidsModePinServiceProvider.future);
+    final hasParentPin = auth.user?.hasParentPin ?? svc.hasPin();
+    if (!hasParentPin) {
+      final switched = await ref
+          .read(authProvider.notifier)
+          .activateReaderProfile(parentProfile.id as int);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              switched
+                  ? 'Ebeveyn şifresi bulunmadığı için ebeveyn profiline dönüldü. Lütfen bir şifre belirleyin.'
+                  : 'Ebeveyn profiline dönülemedi. Lütfen tekrar deneyin.',
             ),
           ),
         );
@@ -165,17 +264,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (!mounted) return;
     final ok = await KidsModeExitDialog.show(context, verifyPin: svc.verifyPin);
     if (ok == true && mounted) {
-      await ref.read(kidsModeProvider.notifier).setEnabled(false);
+      await ref
+          .read(authProvider.notifier)
+          .activateReaderProfile(parentProfile.id as int);
     }
   }
 
   Future<void> _onOpenParentPinDialog() async {
+    if (ref.read(kidsModeProvider)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Ebeveyn şifresi sadece ebeveyn profilindeyken değiştirilebilir.',
+          ),
+        ),
+      );
+      return;
+    }
+
     final ok = await KidsModePinSetDialog.show(
       context,
       onSave: (pin) async {
         final service = await ref.read(kidsModePinServiceProvider.future);
         await service.setPin(pin);
         ref.invalidate(kidsModePinServiceProvider);
+        await ref.read(authProvider.notifier).refreshMe();
       },
     );
     if (ok == true && mounted) {
@@ -1199,6 +1312,9 @@ class _KidsModeProfileSection extends ConsumerWidget {
     final borderColor = accent.withOpacity(isDark ? 0.45 : 0.35);
     final kidsOn = ref.watch(kidsModeProvider);
     final pinAsync = ref.watch(kidsModePinServiceProvider);
+    final userHasParentPin = ref.watch(
+      authProvider.select((state) => state.user?.hasParentPin),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1322,7 +1438,11 @@ class _KidsModeProfileSection extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  svc.hasPin()
+                                  kidsOn
+                                      ? ((userHasParentPin ?? svc.hasPin())
+                                            ? 'Şifreyi değiştirmek için önce ebeveyn profiline dönün'
+                                            : 'Şifreyi ebeveyn profiline döndükten sonra belirleyin')
+                                      : (userHasParentPin ?? svc.hasPin())
                                       ? 'Çıkış için şifre tanımlı — değiştirmek için dokun'
                                       : 'Çocuk modundan çıkmak için şifre belirleyin',
                                   style: theme.textTheme.bodySmall?.copyWith(
@@ -1726,7 +1846,7 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final mappedAsset = switch (label) {
       'Okunan' => 'assets/icons/books-read.svg',
-      'Başlanan' || 'BaÅŸlanan' => 'assets/icons/books.svg',
+      'Başlanan' => 'assets/icons/books.svg',
       'Biten' => 'assets/icons/line-dock.svg',
       'Seri' => 'assets/icons/time.svg',
       _ => null,

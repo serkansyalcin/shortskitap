@@ -12,7 +12,10 @@ final progressServiceProvider = Provider<svc.ProgressService>(
 
 final allProgressProvider = FutureProvider<List<ProgressModel>>((ref) {
   final auth = ref.watch(authProvider);
-  if (!auth.isAuthenticated) {
+  final activeProfileId = ref.watch(
+    authProvider.select((state) => state.activeProfile?.id),
+  );
+  if (!auth.isAuthenticated || activeProfileId == null) {
     return Future.value(const <ProgressModel>[]);
   }
   return ref.read(progressServiceProvider).getProgress();
@@ -23,7 +26,10 @@ final bookProgressProvider = FutureProvider.family<ProgressModel?, int>((
   bookId,
 ) {
   final auth = ref.watch(authProvider);
-  if (!auth.isAuthenticated) {
+  final activeProfileId = ref.watch(
+    authProvider.select((state) => state.activeProfile?.id),
+  );
+  if (!auth.isAuthenticated || activeProfileId == null) {
     return Future.value(null);
   }
   return ref.read(progressServiceProvider).getBookProgress(bookId);

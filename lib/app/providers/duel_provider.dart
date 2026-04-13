@@ -12,7 +12,10 @@ final duelServiceProvider = Provider<DuelService>((ref) {
 
 final myDuelsProvider = FutureProvider<List<DuelModel>>((ref) {
   final userId = ref.watch(authProvider.select((state) => state.user?.id));
-  if (userId == null) {
+  final activeProfileId = ref.watch(
+    authProvider.select((state) => state.activeProfile?.id),
+  );
+  if (userId == null || activeProfileId == null) {
     return const [];
   }
   return ref.read(duelServiceProvider).getMyDuels();
@@ -22,7 +25,13 @@ final duelDetailsProvider = FutureProvider.autoDispose.family<DuelModel, int>((
   ref,
   duelId,
 ) {
+  final activeProfileId = ref.watch(
+    authProvider.select((state) => state.activeProfile?.id),
+  );
   ref.watch(authProvider.select((state) => state.user?.id));
+  if (activeProfileId == null) {
+    throw StateError('Aktif okuyucu profili bulunamadı.');
+  }
   return ref.read(duelServiceProvider).getDuelDetails(duelId);
 });
 
@@ -32,22 +41,36 @@ final duelStateProvider =
       AsyncValue<List<DuelModel>>
     >((ref) {
       final userId = ref.watch(authProvider.select((state) => state.user?.id));
-      return DuelNotifier(ref, ref.read(duelServiceProvider), userId);
+      final activeProfileId = ref.watch(
+        authProvider.select((state) => state.activeProfile?.id),
+      );
+      return DuelNotifier(
+        ref,
+        ref.read(duelServiceProvider),
+        userId,
+        activeProfileId: activeProfileId,
+      );
     });
 
 class DuelNotifier extends StateNotifier<AsyncValue<List<DuelModel>>> {
   final Ref _ref;
   final DuelService _service;
   final int? _userId;
+  final int? _activeProfileId;
   bool _disposed = false;
 
-  DuelNotifier(this._ref, this._service, this._userId)
-    : super(
-        _userId == null
-            ? const AsyncValue.data(<DuelModel>[])
-            : const AsyncValue.loading(),
-      ) {
-    if (_userId != null) {
+  DuelNotifier(
+    this._ref,
+    this._service,
+    this._userId, {
+    required int? activeProfileId,
+  }) : _activeProfileId = activeProfileId,
+       super(
+         _userId == null || activeProfileId == null
+             ? const AsyncValue.data(<DuelModel>[])
+             : const AsyncValue.loading(),
+       ) {
+    if (_userId != null && _activeProfileId != null) {
       loadDuels();
     }
   }
@@ -64,7 +87,7 @@ class DuelNotifier extends StateNotifier<AsyncValue<List<DuelModel>>> {
   }
 
   Future<void> loadDuels() async {
-    if (_userId == null) {
+    if (_userId == null || _activeProfileId == null) {
       _setStateSafe(const AsyncValue.data(<DuelModel>[]));
       return;
     }
@@ -78,15 +101,33 @@ class DuelNotifier extends StateNotifier<AsyncValue<List<DuelModel>>> {
     }
   }
 
-  DuelModel? findOpenDuelWithUser(int otherUserId) {
+  DuelModel? findOpenDuelWithUser(
+    int otherUserId, {
+    int? otherReaderProfileId,
+  }) {
     final currentUserId = _userId;
-    if (currentUserId == null) {
+    final activeProfileId = _activeProfileId;
+    if (currentUserId == null || activeProfileId == null) {
       return null;
     }
 
     for (final duel in state.valueOrNull ?? const <DuelModel>[]) {
-      if (duel.isOpen &&
-          duel.involvesUser(currentUserId) &&
+      if (!duel.isOpen) {
+        continue;
+      }
+
+      if (duel.hasReaderProfileScope && otherReaderProfileId != null &&
+          duel.involvesReaderProfile(activeProfileId) &&
+          duel.otherReaderProfileIdFor(activeProfileId) ==
+              otherReaderProfileId) {
+        return duel;
+      }
+
+      if (duel.hasReaderProfileScope) {
+        continue;
+      }
+
+      if (duel.involvesUser(currentUserId) &&
           duel.otherUserIdFor(currentUserId) == otherUserId) {
         return duel;
       }
@@ -95,19 +136,43 @@ class DuelNotifier extends StateNotifier<AsyncValue<List<DuelModel>>> {
     return null;
   }
 
-  Future<DuelActionResult> challenge(int userId) async {
-    final result = await _service.challenge(userId);
+  Future<DuelActionResult> challenge(
+    int userId, {
+    int? opponentReaderProfileId,
+  }) async {
+    if (_activeProfileId == null) {
+      return const DuelActionResult(
+        success: false,
+        message: 'Aktif okuyucu profili bulunamadı.',
+      );
+    }
+    final result = await _service.challenge(
+      userId,
+      opponentReaderProfileId: opponentReaderProfileId,
+    );
     await _syncAfterMutation();
     return result;
   }
 
   Future<DuelActionResult> accept(int duelId) async {
+    if (_activeProfileId == null) {
+      return const DuelActionResult(
+        success: false,
+        message: 'Aktif okuyucu profili bulunamadı.',
+      );
+    }
     final result = await _service.accept(duelId);
     await _syncAfterMutation(extraInvalidations: [duelDetailsProvider(duelId)]);
     return result;
   }
 
   Future<DuelActionResult> decline(int duelId) async {
+    if (_activeProfileId == null) {
+      return const DuelActionResult(
+        success: false,
+        message: 'Aktif okuyucu profili bulunamadı.',
+      );
+    }
     final result = await _service.decline(duelId);
     await _syncAfterMutation(extraInvalidations: [duelDetailsProvider(duelId)]);
     return result;

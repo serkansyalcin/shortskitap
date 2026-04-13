@@ -88,19 +88,26 @@ class _HomeTabSectionState extends ConsumerState<HomeTabSection>
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final user = authState.user;
+    final activeProfile = authState.activeProfile;
     final isAuthenticated = authState.isAuthenticated;
     final progressAsync = ref.watch(allProgressProvider);
     final featuredAsync = ref.watch(featuredBooksProvider);
     final categoriesAsync = ref.watch(homeQuickCategoriesProvider);
     final isPremium = ref.watch(isPremiumProvider);
     final kidsModeEnabled = ref.watch(kidsModeProvider);
+    final infoCardDismissed = ref.watch(
+      kidsUiPrefsProvider.select((state) => state.infoCardDismissed),
+    );
+    final displayUser = kidsModeEnabled && user != null && activeProfile != null
+        ? user.copyWith(name: activeProfile.name)
+        : user;
     final continueReadingProgress = isAuthenticated
         ? _findContinueReadingProgress(
             progressAsync.valueOrNull ?? const [],
             isKidsMode: kidsModeEnabled,
           )
         : null;
-    final showLeagueSection = isAuthenticated && !kidsModeEnabled;
+    final showLeagueSection = isAuthenticated;
 
     return SafeArea(
       child: Scrollbar(
@@ -117,7 +124,7 @@ class _HomeTabSectionState extends ConsumerState<HomeTabSection>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (kidsModeEnabled) ...[
+              if (kidsModeEnabled && !infoCardDismissed) ...[
                 const SizedBox(height: AppUI.blockGap),
                 const KidsModeInfoCard(),
                 const SizedBox(height: AppUI.blockGap),
@@ -137,7 +144,8 @@ class _HomeTabSectionState extends ConsumerState<HomeTabSection>
               ],
               const SizedBox(height: AppUI.blockGap),
               HomeGreetingSection(
-                user: user,
+                user: displayUser,
+                activeProfile: activeProfile,
                 isAuthenticated: isAuthenticated,
                 kidsModeEnabled: kidsModeEnabled,
                 onSearchTap: () => context.push('/home/search'),

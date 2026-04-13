@@ -11,6 +11,7 @@ class UserModel {
   final String preferredTheme;
   final int preferredFontSize;
   final bool childrenModeEnabled;
+  final bool hasParentPin;
   final DateTime? termsAcceptedAt;
   final DateTime? privacyPolicyAcceptedAt;
 
@@ -27,6 +28,7 @@ class UserModel {
     required this.preferredTheme,
     required this.preferredFontSize,
     required this.childrenModeEnabled,
+    required this.hasParentPin,
     this.termsAcceptedAt,
     this.privacyPolicyAcceptedAt,
   });
@@ -46,6 +48,7 @@ class UserModel {
     preferredTheme: json['preferred_theme'] as String? ?? 'dark',
     preferredFontSize: json['preferred_font_size'] as int? ?? 16,
     childrenModeEnabled: json['children_mode_enabled'] == true,
+    hasParentPin: json['has_parent_pin'] == true,
     termsAcceptedAt: json['terms_accepted_at'] != null
         ? DateTime.tryParse(json['terms_accepted_at'] as String)
         : null,
@@ -67,6 +70,7 @@ class UserModel {
     'preferred_theme': preferredTheme,
     'preferred_font_size': preferredFontSize,
     'children_mode_enabled': childrenModeEnabled,
+    'has_parent_pin': hasParentPin,
     'terms_accepted_at': termsAcceptedAt?.toIso8601String(),
     'privacy_policy_accepted_at': privacyPolicyAcceptedAt?.toIso8601String(),
   };
@@ -81,6 +85,7 @@ class UserModel {
     String? preferredTheme,
     int? preferredFontSize,
     bool? childrenModeEnabled,
+    bool? hasParentPin,
     DateTime? termsAcceptedAt,
     DateTime? privacyPolicyAcceptedAt,
   }) => UserModel(
@@ -96,6 +101,7 @@ class UserModel {
     preferredTheme: preferredTheme ?? this.preferredTheme,
     preferredFontSize: preferredFontSize ?? this.preferredFontSize,
     childrenModeEnabled: childrenModeEnabled ?? this.childrenModeEnabled,
+    hasParentPin: hasParentPin ?? this.hasParentPin,
     termsAcceptedAt: termsAcceptedAt ?? this.termsAcceptedAt,
     privacyPolicyAcceptedAt:
         privacyPolicyAcceptedAt ?? this.privacyPolicyAcceptedAt,

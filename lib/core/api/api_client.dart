@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
+  static const _activeReaderProfileIdKey = 'active_reader_profile_id';
   static ApiClient? _instance;
   late final Dio _dio;
 
@@ -43,6 +44,10 @@ class ApiClient {
         final token = prefs.getString('auth_token');
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
+        }
+        final activeReaderProfileId = prefs.getInt(_activeReaderProfileIdKey);
+        if (activeReaderProfileId != null) {
+          options.headers['X-Reader-Profile-Id'] = '$activeReaderProfileId';
         }
         assert(() {
           // Debug: log API requests
@@ -89,10 +94,25 @@ class ApiClient {
   static Future<void> clearToken() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
+    await prefs.remove(_activeReaderProfileIdKey);
   }
 
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_token');
+  }
+
+  static Future<void> saveActiveReaderProfileId(int? profileId) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (profileId == null) {
+      await prefs.remove(_activeReaderProfileIdKey);
+      return;
+    }
+    await prefs.setInt(_activeReaderProfileIdKey, profileId);
+  }
+
+  static Future<int?> getActiveReaderProfileId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_activeReaderProfileIdKey);
   }
 }

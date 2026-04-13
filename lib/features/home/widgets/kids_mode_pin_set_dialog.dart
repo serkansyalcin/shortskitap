@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/utils/user_friendly_error.dart';
+
 class KidsModePinSetDialog extends StatefulWidget {
   const KidsModePinSetDialog({
     super.key,
@@ -34,6 +36,7 @@ class _KidsModePinSetDialogState extends State<KidsModePinSetDialog> {
   String _error = '';
   bool _obscurePin = true;
   bool _obscureConfirm = true;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -43,6 +46,8 @@ class _KidsModePinSetDialogState extends State<KidsModePinSetDialog> {
   }
 
   Future<void> _submit() async {
+    if (_isSubmitting) return;
+
     final pin = _pinController.text.trim();
     final confirm = _confirmController.text.trim();
 
@@ -55,8 +60,27 @@ class _KidsModePinSetDialogState extends State<KidsModePinSetDialog> {
       return;
     }
 
-    await widget.onSave(pin);
-    if (mounted) Navigator.of(context).pop(true);
+    setState(() {
+      _error = '';
+      _isSubmitting = true;
+    });
+
+    try {
+      await widget.onSave(pin);
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = apiFormErrorMessage(
+          error,
+          fallback: 'Ebeveyn şifresi kaydedilemedi. Lütfen tekrar deneyin.',
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   @override
@@ -121,10 +145,14 @@ class _KidsModePinSetDialogState extends State<KidsModePinSetDialog> {
               labelText: 'Yeni şifre',
               hintText: '4-6 hane',
               suffixIcon: IconButton(
-                icon: Icon(_obscurePin ? Icons.visibility_off : Icons.visibility),
+                icon: Icon(
+                  _obscurePin ? Icons.visibility_off : Icons.visibility,
+                ),
                 onPressed: () => setState(() => _obscurePin = !_obscurePin),
               ),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
           ),
           const SizedBox(height: 14),
@@ -143,26 +171,40 @@ class _KidsModePinSetDialogState extends State<KidsModePinSetDialog> {
               hintText: '4-6 hane',
               errorText: _error.isEmpty ? null : _error,
               suffixIcon: IconButton(
-                icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility),
-                onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                icon: Icon(
+                  _obscureConfirm ? Icons.visibility_off : Icons.visibility,
+                ),
+                onPressed: () =>
+                    setState(() => _obscureConfirm = !_obscureConfirm),
               ),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
           ),
         ],
       ),
       actions: [
         TextButton(
-          onPressed: widget.onCancel,
+          onPressed: _isSubmitting ? null : widget.onCancel,
           child: const Text('İptal'),
         ),
         FilledButton(
-          onPressed: _submit,
+          onPressed: _isSubmitting ? null : _submit,
           style: FilledButton.styleFrom(
             backgroundColor: accent,
             foregroundColor: Colors.white,
           ),
-          child: const Text('Kaydet'),
+          child: _isSubmitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('Kaydet'),
         ),
       ],
     );

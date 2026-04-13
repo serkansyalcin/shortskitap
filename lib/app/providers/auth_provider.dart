@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/api/api_client.dart';
+import '../../core/models/auth_session_model.dart';
+import '../../core/models/reader_profile_model.dart';
 import '../../core/models/user_model.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/cached_user_store.dart';
@@ -15,6 +17,8 @@ enum AuthStatus { unknown, authenticated, unauthenticated }
 class AuthState {
   final AuthStatus status;
   final UserModel? user;
+  final List<ReaderProfileModel> profiles;
+  final ReaderProfileModel? activeProfile;
   final String? error;
 
   /// True when `/me` could not be reached but a locally cached profile is used.
@@ -23,19 +27,28 @@ class AuthState {
   const AuthState({
     required this.status,
     this.user,
+    this.profiles = const <ReaderProfileModel>[],
+    this.activeProfile,
     this.error,
     this.isOfflineSession = false,
   });
 
   const AuthState.unknown() : this(status: AuthStatus.unknown);
 
-  AuthState.authenticated(UserModel user, {bool offlineSession = false})
-    : status = AuthStatus.authenticated,
-      user = user,
-      error = null,
-      isOfflineSession = offlineSession;
+  AuthState.authenticated(
+    UserModel user, {
+    List<ReaderProfileModel> profiles = const <ReaderProfileModel>[],
+    ReaderProfileModel? activeProfile,
+    bool offlineSession = false,
+  }) : status = AuthStatus.authenticated,
+       user = user,
+       profiles = profiles,
+       activeProfile = activeProfile,
+       error = null,
+       isOfflineSession = offlineSession;
 
-  const AuthState.unauthenticated() : this(status: AuthStatus.unauthenticated);
+  const AuthState.unauthenticated()
+    : this(status: AuthStatus.unauthenticated);
 
   bool get isAuthenticated => status == AuthStatus.authenticated;
 }
@@ -54,12 +67,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return;
     }
 
-    final (result, user) = await _service.fetchSessionUser();
+    final (result, session) = await _service.fetchSessionUser();
     switch (result) {
       case SessionFetchResult.success:
-        if (user != null) {
-          await CachedUserStore.save(user);
-          state = AuthState.authenticated(user, offlineSession: false);
+        if (session != null) {
+          await _setSession(session, offlineSession: false);
         } else {
           await ApiClient.clearToken();
           await CachedUserStore.clear();
@@ -74,7 +86,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       case SessionFetchResult.offline:
         final cached = await CachedUserStore.load();
         if (cached != null) {
-          state = AuthState.authenticated(cached, offlineSession: true);
+          state = _stateFromSession(cached, offlineSession: true);
         } else {
           state = const AuthState.unauthenticated();
         }
@@ -85,8 +97,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> login(String email, String password) async {
     try {
       final result = await _service.login(email, password);
-      await CachedUserStore.save(result.user);
-      state = AuthState.authenticated(result.user, offlineSession: false);
+      await _setSession(result.session, offlineSession: false);
       _syncOnboardingPrefs();
       return true;
     } catch (e) {
@@ -113,8 +124,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         acceptTerms: acceptTerms,
         acceptPrivacyPolicy: acceptPrivacyPolicy,
       );
-      await CachedUserStore.save(result.user);
-      state = AuthState.authenticated(result.user, offlineSession: false);
+      await _setSession(result.session, offlineSession: false);
       _syncOnboardingPrefs();
       return true;
     } catch (e) {
@@ -155,7 +165,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String? avatarFileName,
   }) async {
     try {
-      final user = await _service.updateMe(
+      final session = await _service.updateMe(
         name: name,
         username: username,
         email: email,
@@ -166,13 +176,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
         avatarBytes: avatarBytes,
         avatarFileName: avatarFileName,
       );
-      await CachedUserStore.save(user);
-      state = AuthState.authenticated(user, offlineSession: false);
+      await _setSession(session, offlineSession: false);
       return true;
     } catch (e) {
       state = AuthState(
         status: AuthStatus.authenticated,
         user: state.user,
+        profiles: state.profiles,
+        activeProfile: state.activeProfile,
         error: _parseError(e),
         isOfflineSession: state.isOfflineSession,
       );
@@ -187,12 +198,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return false;
     }
 
-    final (result, user) = await _service.fetchSessionUser();
+    final (result, session) = await _service.fetchSessionUser();
     switch (result) {
       case SessionFetchResult.success:
-        if (user != null) {
-          await CachedUserStore.save(user);
-          state = AuthState.authenticated(user, offlineSession: false);
+        if (session != null) {
+          await _setSession(session, offlineSession: false);
           return true;
         }
         await ApiClient.clearToken();
@@ -206,9 +216,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return false;
       case SessionFetchResult.offline:
         final cached = await CachedUserStore.load();
-        final fallback = state.user ?? cached;
+        final fallback = _sessionFromState(state) ?? cached;
         if (fallback != null) {
-          state = AuthState.authenticated(fallback, offlineSession: true);
+          state = _stateFromSession(fallback, offlineSession: true);
           return true;
         }
         state = const AuthState.unauthenticated();
@@ -217,9 +227,88 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   void updateUser(UserModel user) {
-    state = AuthState.authenticated(user, offlineSession: false);
-    unawaited(CachedUserStore.save(user));
+    state = AuthState.authenticated(
+      user,
+      profiles: state.profiles,
+      activeProfile: state.activeProfile,
+      offlineSession: false,
+    );
+    final snapshot = _sessionFromState(state);
+    if (snapshot != null) {
+      unawaited(CachedUserStore.save(snapshot));
+    }
     _syncOnboardingPrefs();
+  }
+
+  Future<bool> createChildProfile({
+    required String name,
+    int? birthYear,
+    String? avatarUrl,
+  }) async {
+    try {
+      await _service.createChildProfile(
+        name: name,
+        birthYear: birthYear,
+        avatarUrl: avatarUrl,
+      );
+      return await refreshMe();
+    } catch (e) {
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        user: state.user,
+        profiles: state.profiles,
+        activeProfile: state.activeProfile,
+        error: _parseError(e),
+        isOfflineSession: state.isOfflineSession,
+      );
+      return false;
+    }
+  }
+
+  Future<bool> activateReaderProfile(
+    int profileId, {
+    String? parentPin,
+  }) async {
+    try {
+      final session = await _service.activateReaderProfile(
+        profileId,
+        parentPin: parentPin,
+      );
+      await _setSession(session, offlineSession: false);
+      return true;
+    } catch (e) {
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        user: state.user,
+        profiles: state.profiles,
+        activeProfile: state.activeProfile,
+        error: _parseError(e),
+        isOfflineSession: state.isOfflineSession,
+      );
+      return false;
+    }
+  }
+
+  Future<bool> setParentPin(String pin) async {
+    try {
+      final session = await _service.setParentPin(pin);
+      await _setSession(session, offlineSession: false);
+      return true;
+    } catch (e) {
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        user: state.user,
+        profiles: state.profiles,
+        activeProfile: state.activeProfile,
+        error: _parseError(e),
+        isOfflineSession: state.isOfflineSession,
+      );
+      return false;
+    }
+  }
+
+  Future<bool> verifyParentPin(String pin) {
+    return _service.verifyParentPin(pin);
   }
 
   Future<void> _syncOnboardingPrefs() async {
@@ -276,7 +365,44 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (message == 'Unauthenticated.') {
       return 'Oturumun sona ermiş görünüyor. Lütfen tekrar giriş yap.';
     }
+    if (message == 'Ebeveyn şifresi doğrulanamadı.') {
+      return 'Ebeveyn şifresi hatalı. Lütfen tekrar deneyin.';
+    }
     return message;
+  }
+
+  Future<void> _setSession(
+    AuthSessionModel session, {
+    required bool offlineSession,
+  }) async {
+    await CachedUserStore.save(session);
+    await ApiClient.saveActiveReaderProfileId(session.activeProfile?.id);
+    state = _stateFromSession(session, offlineSession: offlineSession);
+  }
+
+  AuthState _stateFromSession(
+    AuthSessionModel session, {
+    required bool offlineSession,
+  }) {
+    return AuthState.authenticated(
+      session.account,
+      profiles: session.profiles,
+      activeProfile: session.activeProfile,
+      offlineSession: offlineSession,
+    );
+  }
+
+  AuthSessionModel? _sessionFromState(AuthState authState) {
+    final user = authState.user;
+    if (user == null) {
+      return null;
+    }
+
+    return AuthSessionModel(
+      account: user,
+      profiles: authState.profiles,
+      activeProfile: authState.activeProfile,
+    );
   }
 }
 

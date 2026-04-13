@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../app/providers/books_provider.dart';
+import '../../../app/providers/kids_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/book_model.dart';
 import '../../../core/models/category_model.dart';
 import '../../../core/models/progress_model.dart';
+import '../../../core/models/reader_profile_model.dart';
 import '../../../core/models/user_model.dart';
 import 'home_async_inline_retry.dart';
 import 'notification_bell_button.dart';
@@ -15,12 +17,14 @@ class HomeGreetingSection extends StatelessWidget {
   const HomeGreetingSection({
     super.key,
     required this.user,
+    required this.activeProfile,
     required this.isAuthenticated,
     required this.kidsModeEnabled,
     required this.onSearchTap,
   });
 
   final UserModel? user;
+  final ReaderProfileModel? activeProfile;
   final bool isAuthenticated;
   final bool kidsModeEnabled;
   final VoidCallback onSearchTap;
@@ -30,6 +34,9 @@ class HomeGreetingSection extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    final greetingName = kidsModeEnabled
+        ? (activeProfile?.name.split(' ').first ?? 'Küçük Okuyucu')
+        : (user?.name.split(' ').first ?? 'Okuyucu');
 
     return Row(
       children: [
@@ -630,11 +637,11 @@ class OfflineReadingBanner extends StatelessWidget {
   }
 }
 
-class KidsModeInfoCard extends StatelessWidget {
+class KidsModeInfoCard extends ConsumerWidget {
   const KidsModeInfoCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
@@ -689,13 +696,37 @@ class KidsModeInfoCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Güvenli Okuma Alanı',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? accent : Colors.pink.shade800,
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Güvenli Okuma Alanı',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? accent : Colors.pink.shade800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () => ref
+                          .read(kidsUiPrefsProvider.notifier)
+                          .dismissInfoCard(),
+                      borderRadius: BorderRadius.circular(999),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: isDark
+                              ? colorScheme.onSurface.withValues(alpha: 0.72)
+                              : Colors.pink.shade500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 6),
                 Text(

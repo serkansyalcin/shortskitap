@@ -15,9 +15,20 @@ class DuelService {
         .toList();
   }
 
-  Future<DuelActionResult> challenge(int userId) async {
+  Future<DuelActionResult> challenge(
+    int userId, {
+    int? opponentReaderProfileId,
+  }) async {
     try {
-      final response = await _api.post('/duels/challenge/$userId');
+      final data = <String, dynamic>{};
+      if (opponentReaderProfileId != null) {
+        data['opponent_reader_profile_id'] = opponentReaderProfileId;
+      }
+
+      final response = await _api.post(
+        '/duels/challenge/$userId',
+        data: data.isEmpty ? null : data,
+      );
       return DuelActionResult(
         success: response.data['success'] as bool? ?? true,
         message:

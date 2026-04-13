@@ -11,8 +11,14 @@ final leagueServiceProvider = Provider<LeagueService>((ref) {
 
 final myLeagueProvider = FutureProvider<LeagueStatusModel>((ref) {
   final userId = ref.watch(authProvider.select((state) => state.user?.id));
+  final activeProfileId = ref.watch(
+    authProvider.select((state) => state.activeProfile?.id),
+  );
   if (userId == null) {
     throw StateError('Lig verileri için giriş yapmalısın.');
+  }
+  if (activeProfileId == null) {
+    throw StateError('Aktif okuyucu profili bulunamadı.');
   }
   return ref.read(leagueServiceProvider).getMyLeague();
 });
@@ -63,7 +69,10 @@ class LeaderboardController extends StateNotifier<LeaderboardState> {
 
   Future<void> loadInitial() async {
     final userId = _ref.read(authProvider.select((state) => state.user?.id));
-    if (userId == null) {
+    final activeProfileId = _ref.read(
+      authProvider.select((state) => state.activeProfile?.id),
+    );
+    if (userId == null || activeProfileId == null) {
       state = const LeaderboardState();
       return;
     }
@@ -100,7 +109,11 @@ class LeaderboardController extends StateNotifier<LeaderboardState> {
 
   Future<void> loadMore() async {
     final userId = _ref.read(authProvider.select((state) => state.user?.id));
+    final activeProfileId = _ref.read(
+      authProvider.select((state) => state.activeProfile?.id),
+    );
     if (userId == null ||
+        activeProfileId == null ||
         state.isLoading ||
         state.isLoadingMore ||
         !state.hasMore) {
@@ -128,12 +141,16 @@ class LeaderboardController extends StateNotifier<LeaderboardState> {
 final leaderboardProvider =
     StateNotifierProvider<LeaderboardController, LeaderboardState>((ref) {
       ref.watch(authProvider.select((state) => state.user?.id));
+      ref.watch(authProvider.select((state) => state.activeProfile?.id));
       return LeaderboardController(ref);
     });
 
 final leagueHistoryProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
   final userId = ref.watch(authProvider.select((state) => state.user?.id));
-  if (userId == null) {
+  final activeProfileId = ref.watch(
+    authProvider.select((state) => state.activeProfile?.id),
+  );
+  if (userId == null || activeProfileId == null) {
     return const <Map<String, dynamic>>[];
   }
   return ref.read(leagueServiceProvider).getHistory();

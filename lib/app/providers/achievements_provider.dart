@@ -12,7 +12,10 @@ final earnedAchievementsProvider = FutureProvider<List<AchievementModel>>((
   ref,
 ) async {
   final auth = ref.watch(authProvider);
-  if (!auth.isAuthenticated) {
+  final activeProfileId = ref.watch(
+    authProvider.select((state) => state.activeProfile?.id),
+  );
+  if (!auth.isAuthenticated || activeProfileId == null) {
     return const <AchievementModel>[];
   }
 

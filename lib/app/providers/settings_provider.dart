@@ -20,17 +20,18 @@ class UserSettings {
     int? fontSize,
     bool? onboardingDone,
     int? dailyGoal,
-  }) =>
-      UserSettings(
-        theme: theme ?? this.theme,
-        fontSize: fontSize ?? this.fontSize,
-        onboardingDone: onboardingDone ?? this.onboardingDone,
-        dailyGoal: dailyGoal ?? this.dailyGoal,
-      );
+  }) => UserSettings(
+    theme: theme ?? this.theme,
+    fontSize: fontSize ?? this.fontSize,
+    onboardingDone: onboardingDone ?? this.onboardingDone,
+    dailyGoal: dailyGoal ?? this.dailyGoal,
+  );
 }
 
 String resolveDefaultTheme() {
-  final configured = (dotenv.env['APP_DEFAULT_THEME'] ?? 'dark').trim().toLowerCase();
+  final configured = (dotenv.env['APP_DEFAULT_THEME'] ?? 'dark')
+      .trim()
+      .toLowerCase();
   switch (configured) {
     case 'light':
     case 'dark':
@@ -42,8 +43,11 @@ String resolveDefaultTheme() {
 }
 
 class SettingsNotifier extends StateNotifier<UserSettings> {
-  SettingsNotifier() : super(UserSettings(theme: resolveDefaultTheme())) {
-    _load();
+  SettingsNotifier({UserSettings? initialSettings, bool loadFromStorage = true})
+    : super(initialSettings ?? UserSettings(theme: resolveDefaultTheme())) {
+    if (loadFromStorage) {
+      _load();
+    }
   }
 
   Future<void> _load() async {
@@ -108,7 +112,8 @@ class SettingsNotifier extends StateNotifier<UserSettings> {
   }
 }
 
-final settingsProvider =
-    StateNotifierProvider<SettingsNotifier, UserSettings>((ref) {
+final settingsProvider = StateNotifierProvider<SettingsNotifier, UserSettings>((
+  ref,
+) {
   return SettingsNotifier();
 });

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kitaplig/app/providers/auth_provider.dart';
 import 'package:kitaplig/app/providers/duel_provider.dart';
+import 'package:kitaplig/app/providers/kids_provider.dart';
 import 'package:kitaplig/app/theme/app_colors.dart';
 import 'package:kitaplig/app/theme/app_ui.dart';
 import 'package:kitaplig/core/models/duel_model.dart';
@@ -41,26 +42,22 @@ class _DuelScreenState extends ConsumerState<DuelScreen> {
   @override
   Widget build(BuildContext context) {
     final duelAsync = ref.watch(duelDetailsProvider(widget.duelId));
+    final isKidsMode = ref.watch(kidsModeProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(
-          'Düello Detayı',
-          style: AppUI.pageTitle(context),
-        ),
+        title: Text('Düello Detayı', style: AppUI.pageTitle(context)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
       body: duelAsync.when(
         loading: () => Center(
-          child: CircularProgressIndicator(
-            color: theme.colorScheme.primary,
-          ),
+          child: CircularProgressIndicator(color: theme.colorScheme.primary),
         ),
-        error: (err, __) => Center(
+        error: (err, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(28),
             child: Column(
@@ -105,7 +102,10 @@ class _DuelScreenState extends ConsumerState<DuelScreen> {
             ),
           ),
         ),
-        data: (duel) => _DuelContent(duel: duel),
+        data: (duel) => _DuelContent(
+          duel: duel,
+          disableProfileNavigation: isKidsMode,
+        ),
       ),
     );
   }
@@ -113,8 +113,12 @@ class _DuelScreenState extends ConsumerState<DuelScreen> {
 
 class _DuelContent extends StatelessWidget {
   final DuelModel duel;
+  final bool disableProfileNavigation;
 
-  const _DuelContent({required this.duel});
+  const _DuelContent({
+    required this.duel,
+    this.disableProfileNavigation = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -144,7 +148,10 @@ class _DuelContent extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _DuelHeroCard(duel: duel),
+              _DuelHeroCard(
+                duel: duel,
+                disableProfileNavigation: disableProfileNavigation,
+              ),
               const SizedBox(height: AppUI.sectionGap),
               _DuelStats(duel: duel),
               if (duel.isPending) ...[
@@ -161,8 +168,12 @@ class _DuelContent extends StatelessWidget {
 
 class _DuelHeroCard extends StatelessWidget {
   final DuelModel duel;
+  final bool disableProfileNavigation;
 
-  const _DuelHeroCard({required this.duel});
+  const _DuelHeroCard({
+    required this.duel,
+    this.disableProfileNavigation = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -194,7 +205,10 @@ class _DuelHeroCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -209,7 +223,9 @@ class _DuelHeroCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Canlı Karşılaşma',
+                      duel.isActive
+                          ? 'Canlı Karşılaşma'
+                          : _statusLabel(duel.status),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: isDark
                             ? AppColors.primaryLight
@@ -223,7 +239,10 @@ class _DuelHeroCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 22),
-          _VersusHeader(duel: duel),
+          _VersusHeader(
+            duel: duel,
+            disableProfileNavigation: disableProfileNavigation,
+          ),
           const SizedBox(height: 24),
           _ProgressComparison(duel: duel),
         ],
@@ -234,8 +253,12 @@ class _DuelHeroCard extends StatelessWidget {
 
 class _VersusHeader extends StatelessWidget {
   final DuelModel duel;
+  final bool disableProfileNavigation;
 
-  const _VersusHeader({required this.duel});
+  const _VersusHeader({
+    required this.duel,
+    this.disableProfileNavigation = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -247,6 +270,7 @@ class _VersusHeader extends StatelessWidget {
             user: duel.challenger,
             label: 'Meydan Okuyan',
             alignEnd: true,
+            disableProfileNavigation: disableProfileNavigation,
           ),
         ),
         Padding(
@@ -257,6 +281,7 @@ class _VersusHeader extends StatelessWidget {
           child: _UserAvatar(
             user: duel.opponent,
             label: 'Rakip',
+            disableProfileNavigation: disableProfileNavigation,
           ),
         ),
       ],
@@ -311,11 +336,13 @@ class _UserAvatar extends StatelessWidget {
   final DuelUserModel? user;
   final String label;
   final bool alignEnd;
+  final bool disableProfileNavigation;
 
   const _UserAvatar({
     this.user,
     required this.label,
     this.alignEnd = false,
+    this.disableProfileNavigation = false,
   });
 
   @override
@@ -331,7 +358,7 @@ class _UserAvatar extends StatelessWidget {
       crossAxisAlignment: crossAxisAlignment,
       children: [
         InkWell(
-          onTap: user?.username.isNotEmpty == true
+          onTap: !disableProfileNavigation && user?.username.isNotEmpty == true
               ? () => context.push('/profil/${user!.username}')
               : null,
           borderRadius: BorderRadius.circular(999),
@@ -357,9 +384,7 @@ class _UserAvatar extends StatelessWidget {
                   ? Icon(
                       Icons.person_rounded,
                       size: 38,
-                      color: isDark
-                          ? AppColors.primaryLight
-                          : AppColors.accent,
+                      color: isDark ? AppColors.primaryLight : AppColors.accent,
                     )
                   : null,
             ),
@@ -369,7 +394,7 @@ class _UserAvatar extends StatelessWidget {
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 132),
           child: InkWell(
-            onTap: user?.username.isNotEmpty == true
+            onTap: !disableProfileNavigation && user?.username.isNotEmpty == true
                 ? () => context.push('/profil/${user!.username}')
                 : null,
             borderRadius: BorderRadius.circular(12),
@@ -567,10 +592,7 @@ class _DuelStats extends StatelessWidget {
                   ),
                 ),
               ),
-              _StatusChip(
-                label: _statusLabel(duel.status),
-                color: statusColor,
-              ),
+              _StatusChip(label: _statusLabel(duel.status), color: statusColor),
             ],
           ),
           const SizedBox(height: 18),
@@ -693,8 +715,13 @@ class _PendingActions extends ConsumerWidget {
     final currentUserId = ref.watch(
       authProvider.select((state) => state.user?.id),
     );
-    final isIncomingRequest =
-        currentUserId != null && duel.isIncomingFor(currentUserId);
+    final currentProfileId = ref.watch(
+      authProvider.select((state) => state.activeProfile?.id),
+    );
+    final isIncomingRequest = duel.isIncomingForActor(
+      userId: currentUserId,
+      readerProfileId: currentProfileId,
+    );
     final theme = Theme.of(context);
 
     Future<void> handleAccept() async {
@@ -739,7 +766,9 @@ class _PendingActions extends ConsumerWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: theme.colorScheme.onSurface,
                       side: BorderSide(
-                        color: theme.colorScheme.outline.withValues(alpha: 0.52),
+                        color: theme.colorScheme.outline.withValues(
+                          alpha: 0.52,
+                        ),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),

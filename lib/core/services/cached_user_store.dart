@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../models/user_model.dart';
+import '../models/auth_session_model.dart';
 
 const _kCachedUserJson = 'cached_user_profile_json';
 
@@ -10,17 +10,17 @@ const _kCachedUserJson = 'cached_user_profile_json';
 class CachedUserStore {
   CachedUserStore._();
 
-  static Future<void> save(UserModel user) async {
+  static Future<void> save(AuthSessionModel session) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kCachedUserJson, jsonEncode(user.toJson()));
+    await prefs.setString(_kCachedUserJson, jsonEncode(session.toJson()));
   }
 
-  static Future<UserModel?> load() async {
+  static Future<AuthSessionModel?> load() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_kCachedUserJson);
     if (raw == null || raw.isEmpty) return null;
     try {
-      return UserModel.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      return AuthSessionModel.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } catch (_) {
       return null;
     }

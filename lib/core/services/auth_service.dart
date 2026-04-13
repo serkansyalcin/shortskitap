@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import '../api/api_client.dart';
+import '../models/auth_session_model.dart';
+import '../models/reader_profile_model.dart';
 import '../models/user_model.dart';
 
 /// Result of validating the stored session against `/me`.
@@ -37,7 +39,7 @@ bool _isUnreachableDioError(DioException e) {
 class AuthService {
   final ApiClient _client = ApiClient.instance;
 
-  Future<({UserModel user, String token})> login(
+  Future<({AuthSessionModel session, String token})> login(
     String email,
     String password,
   ) async {
@@ -46,13 +48,14 @@ class AuthService {
       data: {'email': email, 'password': password},
     );
     final data = res.data['data'] as Map<String, dynamic>;
-    final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
+    final session = AuthSessionModel.fromJson(data);
     final token = data['token'] as String;
     await ApiClient.saveToken(token);
-    return (user: user, token: token);
+    await ApiClient.saveActiveReaderProfileId(session.activeProfile?.id);
+    return (session: session, token: token);
   }
 
-  Future<({UserModel user, String token})> register(
+  Future<({AuthSessionModel session, String token})> register(
     String name,
     String email,
     String password, {
@@ -71,10 +74,11 @@ class AuthService {
       },
     );
     final data = res.data['data'] as Map<String, dynamic>;
-    final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
+    final session = AuthSessionModel.fromJson(data);
     final token = data['token'] as String;
     await ApiClient.saveToken(token);
-    return (user: user, token: token);
+    await ApiClient.saveActiveReaderProfileId(session.activeProfile?.id);
+    return (session: session, token: token);
   }
 
   Future<void> logout() async {
@@ -85,11 +89,14 @@ class AuthService {
   }
 
   /// Distinguishes invalid token (401) from network/API unreachable.
-  Future<(SessionFetchResult, UserModel?)> fetchSessionUser() async {
+  Future<(SessionFetchResult, AuthSessionModel?)> fetchSessionUser() async {
     try {
       final res = await _client.get('/me');
-      final user = UserModel.fromJson(res.data['data'] as Map<String, dynamic>);
-      return (SessionFetchResult.success, user);
+      final session = AuthSessionModel.fromJson(
+        res.data['data'] as Map<String, dynamic>,
+      );
+      await ApiClient.saveActiveReaderProfileId(session.activeProfile?.id);
+      return (SessionFetchResult.success, session);
     } on DioException catch (e) {
       final code = e.response?.statusCode;
       if (code == 401) {
@@ -107,13 +114,13 @@ class AuthService {
     }
   }
 
-  Future<UserModel?> getMe() async {
-    final (result, user) = await fetchSessionUser();
-    if (result == SessionFetchResult.success) return user;
+  Future<AuthSessionModel?> getMe() async {
+    final (result, session) = await fetchSessionUser();
+    if (result == SessionFetchResult.success) return session;
     return null;
   }
 
-  Future<UserModel> updateMe({
+  Future<AuthSessionModel> updateMe({
     String? name,
     String? username,
     String? email,
@@ -138,11 +145,11 @@ class AuthService {
       payload['children_mode_enabled'] = childrenModeEnabled;
     }
 
-    UserModel? updatedUser;
+    AuthSessionModel? updatedSession;
 
     if (payload.isNotEmpty) {
       final res = await _client.put('/me', data: payload);
-      updatedUser = UserModel.fromJson(
+      updatedSession = AuthSessionModel.fromJson(
         res.data['data'] as Map<String, dynamic>,
       );
     }
@@ -157,13 +164,14 @@ class AuthService {
           ),
         }),
       );
-      updatedUser = UserModel.fromJson(
+      updatedSession = AuthSessionModel.fromJson(
         res.data['data'] as Map<String, dynamic>,
       );
     }
 
-    if (updatedUser != null) {
-      return updatedUser;
+    if (updatedSession != null) {
+      await ApiClient.saveActiveReaderProfileId(updatedSession.activeProfile?.id);
+      return updatedSession;
     }
 
     final me = await getMe();
@@ -207,7 +215,7 @@ class AuthService {
     );
   }
 
-  Future<({UserModel user, String token})> socialLogin({
+  Future<({AuthSessionModel session, String token})> socialLogin({
     required String provider,
     String? idToken,
     String? accessToken,
@@ -231,9 +239,88 @@ class AuthService {
       },
     );
     final data = res.data['data'] as Map<String, dynamic>;
-    final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
+    final session = AuthSessionModel.fromJson(data);
     final token = data['token'] as String;
     await ApiClient.saveToken(token);
-    return (user: user, token: token);
+    await ApiClient.saveActiveReaderProfileId(session.activeProfile?.id);
+    return (session: session, token: token);
+  }
+
+  Future<List<ReaderProfileModel>> getReaderProfiles() async {
+    final res = await _client.get('/me/profiles');
+    final data = res.data['data'] as Map<String, dynamic>;
+    final profiles = data['profiles'] as List<dynamic>? ?? const <dynamic>[];
+    return profiles
+        .whereType<Map<String, dynamic>>()
+        .map(ReaderProfileModel.fromJson)
+        .toList(growable: false);
+  }
+
+  Future<void> createChildProfile({
+    required String name,
+    int? birthYear,
+    String? avatarUrl,
+  }) async {
+    await _client.post(
+      '/me/profiles',
+      data: {
+        'name': name,
+        if (birthYear != null) 'birth_year': birthYear,
+        if (avatarUrl != null) 'avatar_url': avatarUrl,
+      },
+    );
+  }
+
+  Future<void> updateReaderProfile({
+    required int profileId,
+    required String name,
+    int? birthYear,
+    String? avatarUrl,
+  }) async {
+    await _client.put(
+      '/me/profiles/$profileId',
+      data: {
+        'name': name,
+        'birth_year': birthYear,
+        'avatar_url': avatarUrl,
+      },
+    );
+  }
+
+  Future<AuthSessionModel> activateReaderProfile(
+    int profileId, {
+    String? parentPin,
+  }) async {
+    final res = await _client.post(
+      '/me/profiles/$profileId/activate',
+      data: {
+        if (parentPin != null && parentPin.isNotEmpty) 'parent_pin': parentPin,
+      },
+    );
+    final session = AuthSessionModel.fromJson(
+      res.data['data'] as Map<String, dynamic>,
+    );
+    await ApiClient.saveActiveReaderProfileId(session.activeProfile?.id);
+    return session;
+  }
+
+  Future<AuthSessionModel> archiveReaderProfile(int profileId) async {
+    final res = await _client.delete('/me/profiles/$profileId');
+    final session = AuthSessionModel.fromJson(
+      res.data['data'] as Map<String, dynamic>,
+    );
+    await ApiClient.saveActiveReaderProfileId(session.activeProfile?.id);
+    return session;
+  }
+
+  Future<AuthSessionModel> setParentPin(String pin) async {
+    final res = await _client.put('/me/parent-pin', data: {'pin': pin});
+    return AuthSessionModel.fromJson(res.data['data'] as Map<String, dynamic>);
+  }
+
+  Future<bool> verifyParentPin(String pin) async {
+    final res = await _client.post('/me/parent-pin/verify', data: {'pin': pin});
+    final data = res.data['data'] as Map<String, dynamic>? ?? {};
+    return data['valid'] == true;
   }
 }

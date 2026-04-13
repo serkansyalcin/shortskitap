@@ -1,6 +1,7 @@
+import '../api/api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _keyParentPin = 'kids_mode_parent_pin';
+const _keyParentPinExists = 'kids_mode_parent_pin_exists';
 
 class KidsModePinService {
   KidsModePinService(this._prefs);
@@ -13,16 +14,26 @@ class KidsModePinService {
   }
 
   Future<void> setPin(String pin) async {
-    await _prefs.setString(_keyParentPin, pin);
+    await ApiClient.instance.put('/me/parent-pin', data: {'pin': pin});
+    await _prefs.setBool(_keyParentPinExists, true);
   }
 
-  String? getPin() => _prefs.getString(_keyParentPin);
+  bool hasPin() => _prefs.getBool(_keyParentPinExists) ?? false;
 
-  bool hasPin() => _prefs.containsKey(_keyParentPin) && (_prefs.getString(_keyParentPin) ?? '').length >= 4;
-
-  bool verifyPin(String input) => getPin() == input;
+  Future<bool> verifyPin(String input) async {
+    final response = await ApiClient.instance.post(
+      '/me/parent-pin/verify',
+      data: {'pin': input},
+    );
+    final data = response.data['data'] as Map<String, dynamic>? ?? {};
+    final valid = data['valid'] == true;
+    if (valid) {
+      await _prefs.setBool(_keyParentPinExists, true);
+    }
+    return valid;
+  }
 
   Future<void> clearPin() async {
-    await _prefs.remove(_keyParentPin);
+    await _prefs.remove(_keyParentPinExists);
   }
 }

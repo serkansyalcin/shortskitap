@@ -6,6 +6,7 @@ import '../../core/models/highlight_model.dart';
 import '../../core/services/bookmark_service.dart';
 import '../../core/services/favorite_service.dart';
 import '../../core/services/highlight_service.dart';
+import 'auth_provider.dart';
 import 'kids_provider.dart';
 
 /// When set to true, [LibraryView] opens the "İndirilenler" segment once.
@@ -24,10 +25,26 @@ final highlightServiceProvider = Provider<HighlightService>((ref) {
 });
 
 final favoritesProvider = FutureProvider<List<FavoriteModel>>((ref) {
+  final auth = ref.watch(authProvider);
+  final activeProfileId = ref.watch(
+    authProvider.select((state) => state.activeProfile?.id),
+  );
+  if (!auth.isAuthenticated || activeProfileId == null) {
+    return Future.value(const <FavoriteModel>[]);
+  }
+
   return ref.read(favoriteServiceProvider).getFavorites();
 });
 
 final bookmarksProvider = FutureProvider<List<BookmarkModel>>((ref) {
+  final auth = ref.watch(authProvider);
+  final activeProfileId = ref.watch(
+    authProvider.select((state) => state.activeProfile?.id),
+  );
+  if (!auth.isAuthenticated || activeProfileId == null) {
+    return Future.value(const <BookmarkModel>[]);
+  }
+
   return ref.read(bookmarkServiceProvider).getBookmarks();
 });
 
@@ -70,6 +87,19 @@ class HighlightsListNotifier extends AsyncNotifier<HighlightsListState> {
 
   @override
   Future<HighlightsListState> build() async {
+    final auth = ref.watch(authProvider);
+    final activeProfileId = ref.watch(
+      authProvider.select((state) => state.activeProfile?.id),
+    );
+    if (!auth.isAuthenticated || activeProfileId == null) {
+      return const HighlightsListState(
+        items: <HighlightModel>[],
+        total: 0,
+        currentPage: 1,
+        lastPage: 1,
+      );
+    }
+
     final kidsOnly = ref.watch(kidsModeProvider);
     final svc = ref.read(highlightServiceProvider);
     final page = await svc.fetchHighlightsPage(
@@ -116,15 +146,15 @@ class HighlightsListNotifier extends AsyncNotifier<HighlightsListState> {
     final cur = state.valueOrNull;
     if (cur == null) return;
     await ref.read(highlightServiceProvider).deleteHighlight(id);
-    final nextItems = cur.items.where((h) => h.id != id).toList(growable: false);
+    final nextItems = cur.items
+        .where((h) => h.id != id)
+        .toList(growable: false);
     final nextTotal = cur.total > 0 ? cur.total - 1 : 0;
-    state = AsyncData(
-      cur.copyWith(items: nextItems, total: nextTotal),
-    );
+    state = AsyncData(cur.copyWith(items: nextItems, total: nextTotal));
   }
 }
 
 final highlightsProvider =
     AsyncNotifierProvider<HighlightsListNotifier, HighlightsListState>(
-  HighlightsListNotifier.new,
-);
+      HighlightsListNotifier.new,
+    );

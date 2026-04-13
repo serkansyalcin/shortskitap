@@ -259,7 +259,7 @@ class _LeaderboardTile extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: InkWell(
-                  onTap: entry.username.isEmpty
+                  onTap: entry.username.isEmpty || (isKidsMode && !entry.isMe)
                       ? null
                       : () => context.push('/profil/${entry.username}'),
                   borderRadius: BorderRadius.circular(14),
@@ -363,11 +363,15 @@ class _LeaderboardTile extends StatelessWidget {
                 final duelNotifier = ref.read(duelStateProvider.notifier);
                 final existingDuel = duelNotifier.findOpenDuelWithUser(
                   entry.userId,
+                  otherReaderProfileId: entry.readerProfileId,
                 );
                 final hasIncomingPending =
                     existingDuel != null &&
                     existingDuel.isPending &&
-                    existingDuel.challengerId == entry.userId;
+                    (entry.readerProfileId != null
+                        ? existingDuel.challengerReaderProfileId ==
+                              entry.readerProfileId
+                        : existingDuel.challengerId == entry.userId);
                 final actionLabel = existingDuel == null
                     ? 'Düello et'
                     : existingDuel.isActive
@@ -389,7 +393,10 @@ class _LeaderboardTile extends StatelessWidget {
                     return;
                   }
 
-                  final result = await duelNotifier.challenge(entry.userId);
+                  final result = await duelNotifier.challenge(
+                    entry.userId,
+                    opponentReaderProfileId: entry.readerProfileId,
+                  );
                   if (!context.mounted) {
                     return;
                   }

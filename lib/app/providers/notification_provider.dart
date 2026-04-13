@@ -14,7 +14,10 @@ final notificationCenterServiceProvider = Provider<NotificationCenterService>((
 
 final unreadNotificationsCountProvider = FutureProvider<int>((ref) async {
   final userId = ref.watch(authProvider.select((state) => state.user?.id));
-  if (userId == null) {
+  final activeProfileId = ref.watch(
+    authProvider.select((state) => state.activeProfile?.id),
+  );
+  if (userId == null || activeProfileId == null) {
     return 0;
   }
 
@@ -31,7 +34,10 @@ final notificationPreviewProvider = FutureProvider<NotificationPageModel>((
   ref,
 ) async {
   final userId = ref.watch(authProvider.select((state) => state.user?.id));
-  if (userId == null) {
+  final activeProfileId = ref.watch(
+    authProvider.select((state) => state.activeProfile?.id),
+  );
+  if (userId == null || activeProfileId == null) {
     return const NotificationPageModel.empty();
   }
 
@@ -62,10 +68,14 @@ final notificationsFeedProvider =
       NotificationsFeedState
     >((ref) {
       final userId = ref.watch(authProvider.select((state) => state.user?.id));
+      final activeProfileId = ref.watch(
+        authProvider.select((state) => state.activeProfile?.id),
+      );
       return NotificationsFeedNotifier(
         ref,
         ref.read(notificationCenterServiceProvider),
         userId,
+        activeProfileId,
       );
     });
 
@@ -113,12 +123,17 @@ class NotificationsFeedNotifier extends StateNotifier<NotificationsFeedState> {
   final Ref _ref;
   final NotificationCenterService _service;
   final int? _userId;
+  final int? _activeProfileId;
 
-  NotificationsFeedNotifier(this._ref, this._service, this._userId)
-    : super(const NotificationsFeedState());
+  NotificationsFeedNotifier(
+    this._ref,
+    this._service,
+    this._userId,
+    this._activeProfileId,
+  ) : super(const NotificationsFeedState());
 
   Future<void> loadInitial() async {
-    if (_userId == null) {
+    if (_userId == null || _activeProfileId == null) {
       state = const NotificationsFeedState();
       return;
     }
@@ -142,7 +157,8 @@ class NotificationsFeedNotifier extends StateNotifier<NotificationsFeedState> {
         isLoadingInitial: false,
         errorMessage: userFacingErrorMessage(
           error,
-          fallback: 'Bildirimler su anda yuklenemiyor. Lutfen biraz sonra tekrar deneyin.',
+          fallback:
+              'Bildirimler su anda yuklenemiyor. Lutfen biraz sonra tekrar deneyin.',
         ),
       );
     }
@@ -154,6 +170,7 @@ class NotificationsFeedNotifier extends StateNotifier<NotificationsFeedState> {
 
   Future<void> loadMore() async {
     if (_userId == null ||
+        _activeProfileId == null ||
         state.isLoadingInitial ||
         state.isLoadingMore ||
         !state.hasMore) {
