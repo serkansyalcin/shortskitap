@@ -219,8 +219,18 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
     final booksAsync = ref.watch(booksProvider(currentFilter));
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final surfaceColor = theme.cardColor;
     final textSecondary = colorScheme.onSurfaceVariant;
+    final selectedCategoryBackground = isDark
+        ? AppColors.accent.withValues(alpha: 0.38)
+        : AppColors.accentSoft;
+    final selectedCategoryForeground = isDark
+        ? AppColors.primaryLight
+        : AppColors.accent;
+    final selectedCategoryBorder = isDark
+        ? AppColors.outline.withValues(alpha: 0.95)
+        : colorScheme.outline.withValues(alpha: 0.72);
 
     return SafeArea(
       child: CustomScrollView(
@@ -310,12 +320,12 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primary : surfaceColor,
+                          color: isSelected
+                              ? selectedCategoryBackground
+                              : surfaceColor,
                           borderRadius: BorderRadius.circular(20),
                           border: isSelected
-                              ? Border.all(
-                                  color: AppColors.primary.withOpacity(0.35),
-                                )
+                              ? Border.all(color: selectedCategoryBorder)
                               : null,
                         ),
                         child: Row(
@@ -326,7 +336,7 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
                                 Icons.grid_view_rounded,
                                 size: 16,
                                 color: isSelected
-                                    ? Colors.black
+                                    ? selectedCategoryForeground
                                     : colorScheme.onSurface,
                               )
                             else
@@ -338,7 +348,7 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
                                 ).icon,
                                 size: 16,
                                 color: isSelected
-                                    ? Colors.black
+                                    ? selectedCategoryForeground
                                     : colorScheme.onSurface,
                               ),
                             const SizedBox(width: 6),
@@ -348,7 +358,7 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: isSelected
-                                    ? Colors.black
+                                    ? selectedCategoryForeground
                                     : colorScheme.onSurface,
                               ),
                             ),
