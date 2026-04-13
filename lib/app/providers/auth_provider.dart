@@ -35,8 +35,7 @@ class AuthState {
       error = null,
       isOfflineSession = offlineSession;
 
-  const AuthState.unauthenticated()
-    : this(status: AuthStatus.unauthenticated);
+  const AuthState.unauthenticated() : this(status: AuthStatus.unauthenticated);
 
   bool get isAuthenticated => status == AuthStatus.authenticated;
 }
@@ -151,6 +150,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     int? dailyGoal,
     String? preferredTheme,
     int? preferredFontSize,
+    bool? childrenModeEnabled,
     Uint8List? avatarBytes,
     String? avatarFileName,
   }) async {
@@ -162,6 +162,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         dailyGoal: dailyGoal,
         preferredTheme: preferredTheme,
         preferredFontSize: preferredFontSize,
+        childrenModeEnabled: childrenModeEnabled,
         avatarBytes: avatarBytes,
         avatarFileName: avatarFileName,
       );

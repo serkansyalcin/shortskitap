@@ -6,11 +6,7 @@ import '../api/api_client.dart';
 import '../models/user_model.dart';
 
 /// Result of validating the stored session against `/me`.
-enum SessionFetchResult {
-  success,
-  unauthorized,
-  offline,
-}
+enum SessionFetchResult { success, unauthorized, offline }
 
 bool _isUnreachableDioError(DioException e) {
   switch (e.type) {
@@ -42,11 +38,13 @@ class AuthService {
   final ApiClient _client = ApiClient.instance;
 
   Future<({UserModel user, String token})> login(
-      String email, String password) async {
-    final res = await _client.post('/auth/login', data: {
-      'email': email,
-      'password': password,
-    });
+    String email,
+    String password,
+  ) async {
+    final res = await _client.post(
+      '/auth/login',
+      data: {'email': email, 'password': password},
+    );
     final data = res.data['data'] as Map<String, dynamic>;
     final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
     final token = data['token'] as String;
@@ -61,14 +59,17 @@ class AuthService {
     required bool acceptTerms,
     required bool acceptPrivacyPolicy,
   }) async {
-    final res = await _client.post('/auth/register', data: {
-      'name': name,
-      'email': email,
-      'password': password,
-      'password_confirmation': password,
-      'accept_terms': acceptTerms,
-      'accept_privacy_policy': acceptPrivacyPolicy,
-    });
+    final res = await _client.post(
+      '/auth/register',
+      data: {
+        'name': name,
+        'email': email,
+        'password': password,
+        'password_confirmation': password,
+        'accept_terms': acceptTerms,
+        'accept_privacy_policy': acceptPrivacyPolicy,
+      },
+    );
     final data = res.data['data'] as Map<String, dynamic>;
     final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
     final token = data['token'] as String;
@@ -119,6 +120,7 @@ class AuthService {
     int? dailyGoal,
     String? preferredTheme,
     int? preferredFontSize,
+    bool? childrenModeEnabled,
     Uint8List? avatarBytes,
     String? avatarFileName,
   }) async {
@@ -132,12 +134,17 @@ class AuthService {
     if (preferredFontSize != null) {
       payload['preferred_font_size'] = preferredFontSize;
     }
+    if (childrenModeEnabled != null) {
+      payload['children_mode_enabled'] = childrenModeEnabled;
+    }
 
     UserModel? updatedUser;
 
     if (payload.isNotEmpty) {
       final res = await _client.put('/me', data: payload);
-      updatedUser = UserModel.fromJson(res.data['data'] as Map<String, dynamic>);
+      updatedUser = UserModel.fromJson(
+        res.data['data'] as Map<String, dynamic>,
+      );
     }
 
     if (avatarBytes != null) {
@@ -150,7 +157,9 @@ class AuthService {
           ),
         }),
       );
-      updatedUser = UserModel.fromJson(res.data['data'] as Map<String, dynamic>);
+      updatedUser = UserModel.fromJson(
+        res.data['data'] as Map<String, dynamic>,
+      );
     }
 
     if (updatedUser != null) {
@@ -159,7 +168,9 @@ class AuthService {
 
     final me = await getMe();
     if (me == null) {
-      throw StateError('Profil güncellemesi sonrası kullanıcı verisi alınamadı.');
+      throw StateError(
+        'Profil güncellemesi sonrası kullanıcı verisi alınamadı.',
+      );
     }
     return me;
   }
@@ -174,10 +185,10 @@ class AuthService {
   }
 
   Future<void> verifyResetCode(String email, String code) async {
-    await _client.post('/auth/verify-reset-code', data: {
-      'email': email,
-      'code': code,
-    });
+    await _client.post(
+      '/auth/verify-reset-code',
+      data: {'email': email, 'code': code},
+    );
   }
 
   Future<void> submitNewPassword(
@@ -185,12 +196,15 @@ class AuthService {
     String code,
     String password,
   ) async {
-    await _client.post('/auth/reset-password', data: {
-      'email': email,
-      'code': code,
-      'password': password,
-      'password_confirmation': password,
-    });
+    await _client.post(
+      '/auth/reset-password',
+      data: {
+        'email': email,
+        'code': code,
+        'password': password,
+        'password_confirmation': password,
+      },
+    );
   }
 
   Future<({UserModel user, String token})> socialLogin({
@@ -203,16 +217,19 @@ class AuthService {
     String? email,
     String? avatarUrl,
   }) async {
-    final res = await _client.post('/auth/social', data: {
-      'provider': provider,
-      if (idToken != null) 'id_token': idToken,
-      if (accessToken != null) 'access_token': accessToken,
-      if (identityToken != null) 'identity_token': identityToken,
-      if (authorizationCode != null) 'authorization_code': authorizationCode,
-      if (name != null) 'name': name,
-      if (email != null) 'email': email,
-      if (avatarUrl != null) 'avatar_url': avatarUrl,
-    });
+    final res = await _client.post(
+      '/auth/social',
+      data: {
+        'provider': provider,
+        if (idToken != null) 'id_token': idToken,
+        if (accessToken != null) 'access_token': accessToken,
+        if (identityToken != null) 'identity_token': identityToken,
+        if (authorizationCode != null) 'authorization_code': authorizationCode,
+        if (name != null) 'name': name,
+        if (email != null) 'email': email,
+        if (avatarUrl != null) 'avatar_url': avatarUrl,
+      },
+    );
     final data = res.data['data'] as Map<String, dynamic>;
     final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
     final token = data['token'] as String;

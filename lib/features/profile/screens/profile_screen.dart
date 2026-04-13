@@ -146,7 +146,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _onKidsModeSwitch(bool wantOn) async {
     if (wantOn) {
-      ref.read(kidsModeProvider.notifier).state = true;
+      await ref.read(kidsModeProvider.notifier).setEnabled(true);
       return;
     }
     final svc = await ref.read(kidsModePinServiceProvider.future);
@@ -165,7 +165,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (!mounted) return;
     final ok = await KidsModeExitDialog.show(context, verifyPin: svc.verifyPin);
     if (ok == true && mounted) {
-      ref.read(kidsModeProvider.notifier).state = false;
+      await ref.read(kidsModeProvider.notifier).setEnabled(false);
     }
   }
 

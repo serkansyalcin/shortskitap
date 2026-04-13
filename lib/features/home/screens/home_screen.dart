@@ -1191,7 +1191,9 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                         activeColor: Colors.pink.shade500,
                         onChanged: (val) async {
                           if (val) {
-                            ref.read(kidsModeProvider.notifier).state = true;
+                            await ref
+                                .read(kidsModeProvider.notifier)
+                                .setEnabled(true);
                           } else {
                             final svc = await ref.read(
                               kidsModePinServiceProvider.future,
@@ -1214,7 +1216,9 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                               verifyPin: svc.verifyPin,
                             );
                             if (ok == true && context.mounted) {
-                              ref.read(kidsModeProvider.notifier).state = false;
+                              await ref
+                                  .read(kidsModeProvider.notifier)
+                                  .setEnabled(false);
                             }
                           }
                         },
@@ -1222,7 +1226,9 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                       onTap: () async {
                         final val = !ref.read(kidsModeProvider);
                         if (val) {
-                          ref.read(kidsModeProvider.notifier).state = true;
+                          await ref
+                              .read(kidsModeProvider.notifier)
+                              .setEnabled(true);
                         } else {
                           final svc = await ref.read(
                             kidsModePinServiceProvider.future,
@@ -1245,7 +1251,9 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                             verifyPin: svc.verifyPin,
                           );
                           if (ok == true && context.mounted) {
-                            ref.read(kidsModeProvider.notifier).state = false;
+                            await ref
+                                .read(kidsModeProvider.notifier)
+                                .setEnabled(false);
                           }
                         }
                       },
