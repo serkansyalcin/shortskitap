@@ -51,7 +51,11 @@ class _KidsModeExitDialogState extends State<KidsModeExitDialog> {
 
     final pin = _controller.text.trim();
     if (pin.isEmpty) {
-      setState(() => _error = 'Lütfen şifreyi girin.');
+      setState(() => _error = 'Lütfen ebeveyn şifresini girin.');
+      return;
+    }
+    if (pin.length < 4 || pin.length > 6) {
+      setState(() => _error = 'Şifre 4 ile 6 hane arasında olmalı.');
       return;
     }
 
@@ -67,7 +71,7 @@ class _KidsModeExitDialogState extends State<KidsModeExitDialog> {
       if (isValid) {
         widget.onSuccess();
       } else {
-        setState(() => _error = 'Yanlış şifre. Tekrar deneyin.');
+        setState(() => _error = 'Şifre yanlış. Lütfen tekrar deneyin.');
       }
     } catch (error) {
       if (!mounted) return;

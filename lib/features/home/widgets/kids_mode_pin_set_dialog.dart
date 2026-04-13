@@ -51,8 +51,16 @@ class _KidsModePinSetDialogState extends State<KidsModePinSetDialog> {
     final pin = _pinController.text.trim();
     final confirm = _confirmController.text.trim();
 
-    if (pin.length < 4) {
-      setState(() => _error = 'Şifre en az 4 haneli olmalı.');
+    if (pin.isEmpty) {
+      setState(() => _error = 'Lütfen bir ebeveyn şifresi girin.');
+      return;
+    }
+    if (pin.length < 4 || pin.length > 6) {
+      setState(() => _error = 'Şifre 4 ile 6 hane arasında olmalı.');
+      return;
+    }
+    if (confirm.isEmpty) {
+      setState(() => _error = 'Lütfen şifreyi tekrar girin.');
       return;
     }
     if (pin != confirm) {
@@ -124,7 +132,7 @@ class _KidsModePinSetDialogState extends State<KidsModePinSetDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Çocuk modundan çıkmak için kullanılacak 4-6 haneli bir şifre belirleyin. Bu şifre çocukların erişkin içeriklere erişmesini engeller.',
+            'Çocuk modundan çıkmak için kullanılacak 4-6 haneli bir şifre belirleyin. Bu şifre çocukların yetişkin içeriklere erişmesini engeller.',
             style: TextStyle(
               fontSize: 14,
               height: 1.5,
