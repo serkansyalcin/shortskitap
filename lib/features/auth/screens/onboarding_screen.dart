@@ -88,9 +88,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       } catch (_) {}
     }
 
-    // Kurulum tamamlandı bilgisini hem cihaza hem de memory'deki state'e yazıyoruz.
-    // app_router artık Provider olarak settings'i izlemediği için (sadece redirect anında read ile okuyor)
-    // state'in güncellenmesi yönlendiriciyi çökertmeyecek, ancak bir sonraki sayfa geçişine izin verecektir.
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('daily_goal', _selectedGoal);
     await prefs.setStringList('onboarding_prefs', _selectedCategories.toList());

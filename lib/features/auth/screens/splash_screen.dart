@@ -134,7 +134,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              'Okuma ritmini kur, kategorilerini kesfet, ligde yuksel.',
+                              'Okuma ritmini kur, kitapları keşfet, ligde yüksel.',
                               style: textTheme.bodyLarge?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                                 height: 1.55,
@@ -161,7 +161,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                   ),
                                 ),
                                 child: Text(
-                                  'Okuma aliskanligini hafiflet, surekliligi buyut',
+                                  'Okumayı kolaylaştır, alışkanlığı kalıcı hale getir.',
                                   style: textTheme.bodySmall?.copyWith(
                                     color: theme.colorScheme.onSurfaceVariant,
                                     fontWeight: FontWeight.w700,
@@ -193,7 +193,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       ),
                       const SizedBox(height: 14),
                       Text(
-                        'Hazirlaniyor',
+                        'Hazırlanıyor',
                         style: textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                           letterSpacing: 0.4,
