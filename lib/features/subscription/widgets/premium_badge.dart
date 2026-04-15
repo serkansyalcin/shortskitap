@@ -33,7 +33,7 @@ class PremiumBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFFD700).withOpacity(0.4),
+            color: const Color(0xFFFFD700).withValues(alpha: 0.4),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -115,7 +115,7 @@ class UpgradeBanner extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.3),
+              color: AppColors.primary.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -145,7 +145,7 @@ class UpgradeBanner extends StatelessWidget {
                   Text(
                     'Reklamsız okuma, tüm kitaplar ve daha fazlası',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 12,
                     ),
                   ),

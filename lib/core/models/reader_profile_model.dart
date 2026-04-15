@@ -38,17 +38,17 @@ class ReaderProfileModel {
       );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'user_id': userId,
-        'name': name,
-        'type': type,
-        'content_mode': contentMode,
-        'avatar_url': avatarUrl,
-        'birth_year': birthYear,
-        'is_default': isDefault,
-        'is_active_for_last_session': isActiveForLastSession,
-        'is_archived': isArchived,
-      };
+    'id': id,
+    'user_id': userId,
+    'name': name,
+    'type': type,
+    'content_mode': contentMode,
+    'avatar_url': avatarUrl,
+    'birth_year': birthYear,
+    'is_default': isDefault,
+    'is_active_for_last_session': isActiveForLastSession,
+    'is_archived': isArchived,
+  };
 
   bool get isChild => type == 'child';
 

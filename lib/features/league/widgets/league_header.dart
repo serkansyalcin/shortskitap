@@ -28,8 +28,9 @@ class LeagueHeader extends StatelessWidget {
         ? 1.0
         : (1 - (membership.lpToPromotion! / 600).clamp(0, 1)).toDouble();
 
-    final shellColor =
-        isDark ? AppColors.darkSurfaceHigh : AppColors.lightSurfaceMuted;
+    final shellColor = isDark
+        ? AppColors.darkSurfaceHigh
+        : AppColors.lightSurfaceMuted;
     final panelColor = isDark ? AppColors.darkSurface : Colors.white;
     final promotionColor = isDark ? AppColors.primaryLight : AppColors.primary;
     final neutralColor = isDark ? AppColors.lpGreen300 : AppColors.lpDGreen400;

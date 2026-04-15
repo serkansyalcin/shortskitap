@@ -16,8 +16,8 @@ class BookService {
     final res = await _client.get(
       '/books',
       params: {
-        if (category != null) 'category': category,
-        if (sort != null) 'sort': sort,
+        ...?_optionalParam('category', category),
+        ...?_optionalParam('sort', sort),
         'is_kids': isKids ? 1 : 0,
         'page': page,
         'per_page': perPage,
@@ -42,6 +42,11 @@ class BookService {
 
   Future<BookModel> getBook(String slug) async {
     final res = await _client.get('/books/$slug');
+    return BookModel.fromJson(res.data['data'] as Map<String, dynamic>);
+  }
+
+  Future<BookModel> getBookById(int id) async {
+    final res = await _client.get('/books/$id');
     return BookModel.fromJson(res.data['data'] as Map<String, dynamic>);
   }
 
@@ -101,5 +106,13 @@ class BookService {
     }
 
     return paragraphs;
+  }
+
+  Map<String, dynamic>? _optionalParam(String key, Object? value) {
+    if (value == null) {
+      return null;
+    }
+
+    return <String, dynamic>{key: value};
   }
 }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'offline_aware_image_stub.dart'
-    if (dart.library.io) 'offline_aware_image_io.dart' as impl;
+    if (dart.library.io) 'offline_aware_image_io.dart'
+    as impl;
 
 /// [localPath] doluysa ve dosya varsa yerel görüntü; aksi halde [networkUrl] ile ağ (önbellek).
 Widget buildOfflineAwareImage({

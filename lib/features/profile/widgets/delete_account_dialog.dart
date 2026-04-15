@@ -44,11 +44,15 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFEF2F2).withOpacity(isDark ? 0.05 : 1.0),
+                      color: const Color(
+                        0xFFFEF2F2,
+                      ).withValues(alpha: isDark ? 0.05 : 1.0),
                       borderRadius: BorderRadius.circular(16),
                       border: isDark
                           ? Border.all(
-                              color: const Color(0xFF7C2D12).withOpacity(0.3),
+                              color: const Color(
+                                0xFF7C2D12,
+                              ).withValues(alpha: 0.3),
                             )
                           : null,
                     ),
@@ -90,11 +94,16 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF2A1F1A) : const Color(0xFFFFF1F2),
+                  color: isDark
+                      ? const Color(0xFF2A1F1A)
+                      : const Color(0xFFFFF1F2),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: (isDark ? const Color(0xFF7C2D12) : const Color(0xFFFDA4AF))
-                        .withOpacity(0.5),
+                    color:
+                        (isDark
+                                ? const Color(0xFF7C2D12)
+                                : const Color(0xFFFDA4AF))
+                            .withValues(alpha: 0.5),
                   ),
                 ),
                 child: Text(
@@ -102,7 +111,9 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
                   style: TextStyle(
                     fontSize: 14,
                     height: 1.5,
-                    color: isDark ? const Color(0xFFFECDD3) : const Color(0xFF9F1239),
+                    color: isDark
+                        ? const Color(0xFFFECDD3)
+                        : const Color(0xFF9F1239),
                   ),
                 ),
               ),
@@ -128,10 +139,13 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
                 decoration: InputDecoration(
                   hintText: 'Şifrenizi girin',
                   hintStyle: TextStyle(
-                    color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.5,
+                    ),
                   ),
                   filled: true,
-                  fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                  fillColor: theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.5),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 16,
@@ -143,7 +157,9 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide(
-                      color: isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626),
+                      color: isDark
+                          ? const Color(0xFFF87171)
+                          : const Color(0xFFDC2626),
                       width: 1.5,
                     ),
                   ),
@@ -157,7 +173,9 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
                 children: [
                   Expanded(
                     child: TextButton(
-                      onPressed: _loading ? null : () => Navigator.of(context).pop(),
+                      onPressed: _loading
+                          ? null
+                          : () => Navigator.of(context).pop(),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(

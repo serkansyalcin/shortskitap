@@ -22,17 +22,17 @@ class HighlightModel {
   });
 
   factory HighlightModel.fromJson(Map<String, dynamic> json) => HighlightModel(
-        id: json['id'] as int,
-        bookId: json['book_id'] as int,
-        paragraphId: json['paragraph_id'] as int?,
-        text: json['text'] as String? ?? '',
-        note: json['note'] as String?,
-        color: json['color'] as String?,
-        createdAt: json['created_at'] != null
-            ? DateTime.tryParse(json['created_at'] as String)
-            : null,
-        book: json['book'] != null
-            ? BookModel.fromJson(json['book'] as Map<String, dynamic>)
-            : null,
-      );
+    id: json['id'] as int,
+    bookId: json['book_id'] as int,
+    paragraphId: json['paragraph_id'] as int?,
+    text: json['text'] as String? ?? '',
+    note: json['note'] as String?,
+    color: json['color'] as String?,
+    createdAt: json['created_at'] != null
+        ? DateTime.tryParse(json['created_at'] as String)
+        : null,
+    book: json['book'] != null
+        ? BookModel.fromJson(json['book'] as Map<String, dynamic>)
+        : null,
+  );
 }

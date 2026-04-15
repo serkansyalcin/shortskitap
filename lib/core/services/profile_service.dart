@@ -8,7 +8,9 @@ class ProfileService {
   ProfileService(this._client);
 
   Future<PublicProfileModel> getProfile(String username) async {
-    final response = await _client.get('/profiles/${Uri.encodeComponent(username)}');
+    final response = await _client.get(
+      '/profiles/${Uri.encodeComponent(username)}',
+    );
     return PublicProfileModel.fromJson(
       response.data['data'] as Map<String, dynamic>,
     );
@@ -64,10 +66,7 @@ class ProfileService {
   }) async {
     final response = await _client.get(
       '/search/users',
-      params: {
-        'q': query,
-        'limit': limit,
-      },
+      params: {'q': query, 'limit': limit},
     );
 
     final data = response.data['data'] as List<dynamic>? ?? const [];

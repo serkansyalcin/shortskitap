@@ -116,7 +116,8 @@ class DuelNotifier extends StateNotifier<AsyncValue<List<DuelModel>>> {
         continue;
       }
 
-      if (duel.hasReaderProfileScope && otherReaderProfileId != null &&
+      if (duel.hasReaderProfileScope &&
+          otherReaderProfileId != null &&
           duel.involvesReaderProfile(activeProfileId) &&
           duel.otherReaderProfileIdFor(activeProfileId) ==
               otherReaderProfileId) {

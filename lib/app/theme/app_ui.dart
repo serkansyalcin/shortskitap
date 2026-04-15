@@ -12,11 +12,7 @@ class AppUI {
   /// Sayfa başlığı stili
   static TextStyle pageTitle(BuildContext context) {
     final color = Theme.of(context).colorScheme.onSurface;
-    return TextStyle(
-      fontSize: 22,
-      fontWeight: FontWeight.bold,
-      color: color,
-    );
+    return TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color);
   }
 
   /// İkincil metin rengi
@@ -24,8 +20,7 @@ class AppUI {
       Theme.of(context).colorScheme.onSurfaceVariant;
 
   /// Kart arka plan rengi (tema uyumlu)
-  static Color cardColor(BuildContext context) =>
-      Theme.of(context).cardColor;
+  static Color cardColor(BuildContext context) => Theme.of(context).cardColor;
 
   /// Bölüm başlığı (GÖRÜNÜM, AYARLAR vb.)
   static Widget sectionTitle(BuildContext context, String text) {
@@ -56,7 +51,7 @@ class AppUI {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 2),
           ),

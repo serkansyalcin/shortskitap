@@ -1,10 +1,7 @@
 import 'dart:typed_data';
 
 class PickedAvatar {
-  const PickedAvatar({
-    required this.bytes,
-    required this.fileName,
-  });
+  const PickedAvatar({required this.bytes, required this.fileName});
 
   final Uint8List bytes;
   final String fileName;

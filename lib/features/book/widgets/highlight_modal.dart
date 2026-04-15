@@ -6,6 +6,7 @@ import '../../../core/models/paragraph_model.dart';
 class HighlightModal extends StatefulWidget {
   final int bookId;
   final ParagraphModel paragraph;
+
   /// Called with (paragraphId, colorHex) after a successful save.
   final void Function(int paragraphId, String colorHex)? onSaved;
 
@@ -72,13 +73,15 @@ class _HighlightModalState extends State<HighlightModal> {
       // Notify the reader before closing so it can update local state
       widget.onSaved?.call(widget.paragraph.id, _selectedColor);
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vurgu kaydedildi!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Vurgu kaydedildi!')));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Hata oluştu. Giriş yaptığınızdan emin olun.')),
+        const SnackBar(
+          content: Text('Hata oluştu. Giriş yaptığınızdan emin olun.'),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -92,11 +95,15 @@ class _HighlightModalState extends State<HighlightModal> {
     // Parse the current selected color safely
     Color highlightColor = const Color(0xFFFFEB3B);
     try {
-      highlightColor = Color(int.parse(_selectedColor.replaceFirst('#', '0xFF')));
+      highlightColor = Color(
+        int.parse(_selectedColor.replaceFirst('#', '0xFF')),
+      );
     } catch (_) {}
 
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         decoration: BoxDecoration(
           color: theme.scaffoldBackgroundColor,
@@ -112,7 +119,9 @@ class _HighlightModalState extends State<HighlightModal> {
                 width: 42,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.35),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.35,
+                  ),
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -135,10 +144,10 @@ class _HighlightModalState extends State<HighlightModal> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: highlightColor.withOpacity(0.15),
+                      color: highlightColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: highlightColor.withOpacity(0.3),
+                        color: highlightColor.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Text(
@@ -157,10 +166,7 @@ class _HighlightModalState extends State<HighlightModal> {
                     top: 0,
                     bottom: 0,
                     left: 0,
-                    child: Container(
-                      width: 4,
-                      color: highlightColor,
-                    ),
+                    child: Container(width: 4, color: highlightColor),
                   ),
                 ],
               ),
@@ -193,12 +199,25 @@ class _HighlightModalState extends State<HighlightModal> {
                     decoration: BoxDecoration(
                       color: c,
                       shape: BoxShape.circle,
-                      border: isSelected ? Border.all(color: theme.colorScheme.onSurface, width: 3) : null,
-                      boxShadow: isSelected ? [
-                        BoxShadow(color: c.withOpacity(0.4), blurRadius: 8, spreadRadius: 2)
-                      ] : null,
+                      border: isSelected
+                          ? Border.all(
+                              color: theme.colorScheme.onSurface,
+                              width: 3,
+                            )
+                          : null,
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: c.withValues(alpha: 0.4),
+                                blurRadius: 8,
+                                spreadRadius: 2,
+                              ),
+                            ]
+                          : null,
                     ),
-                    child: isSelected ? const Icon(Icons.check, color: Colors.white) : null,
+                    child: isSelected
+                        ? const Icon(Icons.check, color: Colors.white)
+                        : null,
                   ),
                 );
               }).toList(),
@@ -211,7 +230,9 @@ class _HighlightModalState extends State<HighlightModal> {
               decoration: InputDecoration(
                 hintText: 'Kendinize bir not ekleyin... (İsteğe bağlı)',
                 filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.4,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
@@ -231,8 +252,21 @@ class _HighlightModalState extends State<HighlightModal> {
                 elevation: 0,
               ),
               child: _isSubmitting
-                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('Vurguyu Kaydet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text(
+                      'Vurguyu Kaydet',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
             ),
           ],
         ),

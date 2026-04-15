@@ -69,92 +69,96 @@ class _ReaderScreenState extends State<ReaderScreen> {
       },
       child: Scaffold(
         body: Stack(
-        children: [
-          GestureDetector(
-            onTap: _onTap,
-            behavior: HitTestBehavior.opaque,
-            child: PageView.builder(
-              controller: _pageController,
-              scrollDirection: Axis.vertical,
-              onPageChanged: (index) => setState(() => _currentPage = index),
-              itemCount: total + 1,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return _CoverPage(
-                    book: widget.book,
-                    onStart: () {
-                      _pageController.nextPage(
-                        duration: const Duration(milliseconds: 380),
-                        curve: Curves.easeOutCubic,
-                      );
-                    },
+          children: [
+            GestureDetector(
+              onTap: _onTap,
+              behavior: HitTestBehavior.opaque,
+              child: PageView.builder(
+                controller: _pageController,
+                scrollDirection: Axis.vertical,
+                onPageChanged: (index) => setState(() => _currentPage = index),
+                itemCount: total + 1,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return _CoverPage(
+                      book: widget.book,
+                      onStart: () {
+                        _pageController.nextPage(
+                          duration: const Duration(milliseconds: 380),
+                          curve: Curves.easeOutCubic,
+                        );
+                      },
+                    );
+                  }
+                  return _ParagraphPage(
+                    paragraph: paragraphs[index - 1],
+                    pageIndex: index - 1,
                   );
-                }
-                return _ParagraphPage(
-                  paragraph: paragraphs[index - 1],
-                  pageIndex: index - 1,
-                );
-              },
+                },
+              ),
             ),
-          ),
-          // İnce progress bar — her zaman üstte, minimal
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 0,
-            child: SafeArea(
-              bottom: false,
-              child: IgnorePointer(
-                child: Container(
-                  height: 3,
-                  margin: const EdgeInsets.symmetric(horizontal: 24),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(2),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      backgroundColor: AppColors.surfaceVariant.withValues(alpha: 0.5),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        progressColor.withValues(alpha: 0.8),
+            // İnce progress bar — her zaman üstte, minimal
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              child: SafeArea(
+                bottom: false,
+                child: IgnorePointer(
+                  child: Container(
+                    height: 3,
+                    margin: const EdgeInsets.symmetric(horizontal: 24),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(2),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        backgroundColor: AppColors.surfaceVariant.withValues(
+                          alpha: 0.5,
+                        ),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          progressColor.withValues(alpha: 0.8),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          // Tap ile açılan tek kontrol: geri
-          if (_showOverlay)
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _closeReader,
-                          borderRadius: BorderRadius.circular(24),
-                          child: Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              size: 20,
-                              color: AppColors.textPrimary.withValues(alpha: 0.9),
+            // Tap ile açılan tek kontrol: geri
+            if (_showOverlay)
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _closeReader,
+                            borderRadius: BorderRadius.circular(24),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                size: 20,
+                                color: AppColors.textPrimary.withValues(
+                                  alpha: 0.9,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -221,8 +225,13 @@ class _CoverPage extends StatelessWidget {
                 onPressed: onStart,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.accent,
-                  side: BorderSide(color: AppColors.accent.withValues(alpha: 0.7)),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  side: BorderSide(
+                    color: AppColors.accent.withValues(alpha: 0.7),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                 ),
                 child: const Text('Başla'),
               ),

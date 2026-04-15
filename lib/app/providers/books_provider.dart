@@ -98,6 +98,13 @@ final bookDetailProvider = FutureProvider.family<BookModel, String>((
   return ref.read(bookServiceProvider).getBook(slug);
 });
 
+final bookByIdProvider = FutureProvider.family<BookModel, int>((ref, id) async {
+  // We can fetch by ID using the paragraphs endpoint as a proxy or add a specific endpoint.
+  // For now, let's assume getBook can handle ID string if needed, or if the service supports it.
+  // Actually, let's search for an ID-based fetch in BookService.
+  return ref.read(bookServiceProvider).getBookById(id);
+});
+
 final searchProvider = FutureProvider.family<List<BookModel>, String>((
   ref,
   query,

@@ -129,7 +129,7 @@ class _PodcastSectionWidgetState extends State<PodcastSectionWidget> {
                   gradient: LinearGradient(
                     colors: [
                       AppColors.primary,
-                      AppColors.primary.withOpacity(0.7),
+                      AppColors.primary.withValues(alpha: 0.7),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -202,12 +202,10 @@ class _SpoilerNotice extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF3B2A12)
-            : const Color(0xFFFFF4DB),
+        color: isDark ? const Color(0xFF3B2A12) : const Color(0xFFFFF4DB),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: const Color(0xFFF2B94B).withOpacity(isDark ? 0.45 : 0.7),
+          color: const Color(0xFFF2B94B).withValues(alpha: isDark ? 0.45 : 0.7),
         ),
       ),
       child: Row(
@@ -278,13 +276,13 @@ class _PodcastTileState extends State<_PodcastTile> {
       decoration: BoxDecoration(
         color: widget.isActive
             ? (isDark
-                  ? AppColors.primary.withOpacity(0.15)
-                  : AppColors.primary.withOpacity(0.06))
-            : colorScheme.surfaceContainerHighest.withOpacity(0.4),
+                  ? AppColors.primary.withValues(alpha: 0.15)
+                  : AppColors.primary.withValues(alpha: 0.06))
+            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: widget.isActive
-              ? AppColors.primary.withOpacity(0.35)
+              ? AppColors.primary.withValues(alpha: 0.35)
               : Colors.transparent,
           width: 1.5,
         ),
@@ -345,8 +343,8 @@ class _PodcastTileState extends State<_PodcastTile> {
                               Icon(
                                 Icons.access_time_rounded,
                                 size: 11,
-                                color: colorScheme.onSurfaceVariant.withOpacity(
-                                  0.7,
+                                color: colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.7,
                                 ),
                               ),
                               const SizedBox(width: 3),
@@ -355,7 +353,7 @@ class _PodcastTileState extends State<_PodcastTile> {
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: colorScheme.onSurfaceVariant
-                                      .withOpacity(0.7),
+                                      .withValues(alpha: 0.7),
                                   fontFeatures: const [
                                     FontFeature.tabularFigures(),
                                   ],
@@ -373,7 +371,7 @@ class _PodcastTileState extends State<_PodcastTile> {
                     IconButton(
                       icon: Icon(
                         Icons.stop_rounded,
-                        color: AppColors.primary.withOpacity(0.7),
+                        color: AppColors.primary.withValues(alpha: 0.7),
                         size: 20,
                       ),
                       onPressed: widget.onStop,
@@ -441,18 +439,18 @@ class _PlayButton extends StatelessWidget {
               ? LinearGradient(
                   colors: [
                     AppColors.primary,
-                    AppColors.primary.withOpacity(0.8),
+                    AppColors.primary.withValues(alpha: 0.8),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
               : null,
-          color: isActive ? null : AppColors.primary.withOpacity(0.12),
+          color: isActive ? null : AppColors.primary.withValues(alpha: 0.12),
           shape: BoxShape.circle,
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.35),
+                    color: AppColors.primary.withValues(alpha: 0.35),
                     blurRadius: 10,
                     offset: const Offset(0, 3),
                   ),
@@ -530,9 +528,9 @@ class _ProgressBar extends StatelessWidget {
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
               overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
               activeTrackColor: AppColors.primary,
-              inactiveTrackColor: AppColors.primary.withOpacity(0.18),
+              inactiveTrackColor: AppColors.primary.withValues(alpha: 0.18),
               thumbColor: AppColors.primary,
-              overlayColor: AppColors.primary.withOpacity(0.12),
+              overlayColor: AppColors.primary.withValues(alpha: 0.12),
             ),
             child: Slider(
               value: progress,
@@ -574,7 +572,7 @@ class _ProgressBar extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: colorScheme.surface.withOpacity(0.28),
+              color: colorScheme.surface.withValues(alpha: 0.28),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -586,8 +584,8 @@ class _ProgressBar extends StatelessWidget {
                       ? colorScheme.onSurfaceVariant
                       : AppColors.primary,
                   style: IconButton.styleFrom(
-                    backgroundColor: AppColors.primary.withOpacity(
-                      volume == 0 ? 0.08 : 0.14,
+                    backgroundColor: AppColors.primary.withValues(
+                      alpha: volume == 0 ? 0.08 : 0.14,
                     ),
                     minimumSize: const Size(38, 38),
                     padding: EdgeInsets.zero,
@@ -610,9 +608,11 @@ class _ProgressBar extends StatelessWidget {
                         overlayRadius: 14,
                       ),
                       activeTrackColor: AppColors.primary,
-                      inactiveTrackColor: AppColors.primary.withOpacity(0.18),
+                      inactiveTrackColor: AppColors.primary.withValues(
+                        alpha: 0.18,
+                      ),
                       thumbColor: AppColors.primary,
-                      overlayColor: AppColors.primary.withOpacity(0.12),
+                      overlayColor: AppColors.primary.withValues(alpha: 0.12),
                     ),
                     child: Slider(value: volume, onChanged: onVolumeChanged),
                   ),

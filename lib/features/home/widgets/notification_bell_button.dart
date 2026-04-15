@@ -236,7 +236,10 @@ class _NotificationBellButtonState
                       width: 2,
                     ),
                   ),
-                  constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                  constraints: const BoxConstraints(
+                    minWidth: 20,
+                    minHeight: 20,
+                  ),
                   child: Text(
                     unreadCount > 99 ? '99+' : '$unreadCount',
                     textAlign: TextAlign.center,

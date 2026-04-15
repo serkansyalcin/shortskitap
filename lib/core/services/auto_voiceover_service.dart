@@ -198,7 +198,9 @@ class AutoVoiceoverService {
   }
 
   int? _paragraphIdForPlayer(AudioPlayer player) {
-    return identical(player, _player1) ? _player1ParagraphId : _player2ParagraphId;
+    return identical(player, _player1)
+        ? _player1ParagraphId
+        : _player2ParagraphId;
   }
 
   void _setParagraphIdForPlayer(AudioPlayer player, int? id) {

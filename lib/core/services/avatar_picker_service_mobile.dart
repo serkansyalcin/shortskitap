@@ -14,10 +14,7 @@ class _MobileAvatarPickerService implements AvatarPickerService {
     );
     if (file == null) return null;
 
-    return PickedAvatar(
-      bytes: await file.readAsBytes(),
-      fileName: file.name,
-    );
+    return PickedAvatar(bytes: await file.readAsBytes(), fileName: file.name);
   }
 
   @override
@@ -29,10 +26,7 @@ class _MobileAvatarPickerService implements AvatarPickerService {
     );
     if (file == null) return null;
 
-    return PickedAvatar(
-      bytes: await file.readAsBytes(),
-      fileName: file.name,
-    );
+    return PickedAvatar(bytes: await file.readAsBytes(), fileName: file.name);
   }
 }
 

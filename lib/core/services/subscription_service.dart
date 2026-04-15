@@ -72,45 +72,48 @@ class SubscriptionStatus {
 }
 
 class SubscriptionService {
-    static bool _configured = false;
+  static bool _configured = false;
 
   /// Call this once on app start (after user is identified).
   /// Configure RevenueCat without a user ID (for unauthenticated users).
-static Future<void> configureAnonymous() async {
-  if (_configured) return;
-  if (!PlatformSupport.supportsInAppPurchases) {
-    debugPrint('[RC] In-app purchases not supported on this platform');
-    return;
+  static Future<void> configureAnonymous() async {
+    if (_configured) return;
+    if (!PlatformSupport.supportsInAppPurchases) {
+      debugPrint('[RC] In-app purchases not supported on this platform');
+      return;
+    }
+
+    final apiKey = Platform.isAndroid
+        ? dotenv.env['REVENUECAT_ANDROID_API_KEY'] ?? ''
+        : dotenv.env['REVENUECAT_IOS_API_KEY'] ?? '';
+    if (apiKey.isEmpty) {
+      debugPrint('[RC] API key not set — skipping anonymous RC init');
+      return;
+    }
+
+    await Purchases.setLogLevel(kDebugMode ? LogLevel.debug : LogLevel.error);
+    await Purchases.configure(
+      PurchasesConfiguration(apiKey),
+    ); // no appUserID = anonymous
+    _configured = true;
+    debugPrint('[RC] Configured anonymously');
   }
 
-  final apiKey = Platform.isAndroid
-      ? dotenv.env['REVENUECAT_ANDROID_API_KEY'] ?? ''
-      : dotenv.env['REVENUECAT_IOS_API_KEY'] ?? '';
-  if (apiKey.isEmpty) {
-    debugPrint('[RC] API key not set — skipping anonymous RC init');
-    return;
+  /// When user logs in after anonymous session, switch to their ID.
+  static Future<void> switchUser(String userId) async {
+    if (!PlatformSupport.supportsInAppPurchases) return;
+    if (!_configured) {
+      await configure(userId);
+      return;
+    }
+    try {
+      await Purchases.logIn(userId);
+      debugPrint('[RC] Switched to user $userId');
+    } catch (e) {
+      debugPrint('[RC] switchUser error: $e');
+    }
   }
 
-  await Purchases.setLogLevel(kDebugMode ? LogLevel.debug : LogLevel.error);
-  await Purchases.configure(PurchasesConfiguration(apiKey)); // no appUserID = anonymous
-  _configured = true;
-  debugPrint('[RC] Configured anonymously');
-}
-
-/// When user logs in after anonymous session, switch to their ID.
-static Future<void> switchUser(String userId) async {
-  if (!PlatformSupport.supportsInAppPurchases) return;
-  if (!_configured) {
-    await configure(userId);
-    return;
-  }
-  try {
-    await Purchases.logIn(userId);
-    debugPrint('[RC] Switched to user $userId');
-  } catch (e) {
-    debugPrint('[RC] switchUser error: $e');
-  }
-}
   static Future<void> configure(String userId) async {
     if (!PlatformSupport.supportsInAppPurchases) {
       debugPrint('[RC] In-app purchases are not supported on this platform');
@@ -149,14 +152,14 @@ static Future<void> switchUser(String userId) async {
   }
 
   /// Purchase a package. Returns true on success.
-  Future<bool> purchasePackage(Package package) async {
+  Future<bool> purchase(Package package) async {
     if (!PlatformSupport.supportsInAppPurchases) {
-      debugPrint('[RC] purchasePackage skipped on unsupported platform');
+      debugPrint('[RC] purchase skipped on unsupported platform');
       return false;
     }
 
     try {
-      final result = await Purchases.purchasePackage(package);
+      final result = await Purchases.purchase(PurchaseParams.package(package));
       final info = result.customerInfo;
       await _syncWithBackend(info);
       return info.entitlements.active.containsKey(RcEntitlement.name);
@@ -166,7 +169,7 @@ static Future<void> switchUser(String userId) async {
       }
       rethrow;
     } catch (e) {
-      debugPrint('[RC] purchasePackage error: $e');
+      debugPrint('[RC] purchase error: $e');
       rethrow;
     }
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/app_colors.dart';
 import '../models/book.dart';
+import '../features/interactive_elements/widgets/interactive_elements_section.dart';
 import 'reader_screen.dart';
 
 class BookDetailScreen extends StatelessWidget {
@@ -23,10 +24,7 @@ class BookDetailScreen extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.surfaceVariant,
-                      AppColors.surface,
-                    ],
+                    colors: [AppColors.surfaceVariant, AppColors.surface],
                   ),
                 ),
                 child: Center(
@@ -124,6 +122,19 @@ class BookDetailScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (book.interactiveElements != null &&
+                      book.interactiveElements!.isNotEmpty) ...[
+                    const SizedBox(height: 48),
+                    InteractiveElementsSection(
+                      elements: book.interactiveElements!,
+                      accentColor: AppColors.accent,
+                      titleStyle: GoogleFonts.playfairDisplay(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -135,9 +146,7 @@ class BookDetailScreen extends StatelessWidget {
 
   void _startReading(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => ReaderScreen(book: book),
-      ),
+      MaterialPageRoute<void>(builder: (context) => ReaderScreen(book: book)),
     );
   }
 }

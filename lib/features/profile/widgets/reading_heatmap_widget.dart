@@ -72,7 +72,9 @@ class _ReadingHeatmapWidgetState extends State<ReadingHeatmapWidget> {
         decoration: BoxDecoration(
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: theme.colorScheme.outline.withOpacity(0.6)),
+          border: Border.all(
+            color: theme.colorScheme.outline.withValues(alpha: 0.6),
+          ),
         ),
         child: const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
@@ -89,8 +91,10 @@ class _ReadingHeatmapWidgetState extends State<ReadingHeatmapWidget> {
         .toList(growable: false);
 
     final activeDays = visibleCounts.where((value) => value > 0).length;
-    final totalParagraphs =
-        visibleCounts.fold<int>(0, (sum, value) => sum + value);
+    final totalParagraphs = visibleCounts.fold<int>(
+      0,
+      (sum, value) => sum + value,
+    );
     final maxDailyCount = visibleCounts.fold<int>(
       0,
       (max, value) => value > max ? value : max,
@@ -102,7 +106,9 @@ class _ReadingHeatmapWidgetState extends State<ReadingHeatmapWidget> {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.65)),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.65),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,41 +156,45 @@ class _ReadingHeatmapWidgetState extends State<ReadingHeatmapWidget> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _HeatmapRange.values.map((range) {
-              final isSelected = range == _selectedRange;
-              return InkWell(
-                onTap: () => setState(() => _selectedRange = range),
-                borderRadius: BorderRadius.circular(999),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primary.withValues(alpha: 0.14)
-                        : theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.5),
+            children: _HeatmapRange.values
+                .map((range) {
+                  final isSelected = range == _selectedRange;
+                  return InkWell(
+                    onTap: () => setState(() => _selectedRange = range),
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary.withValues(alpha: 0.25)
-                          : theme.colorScheme.outline.withValues(alpha: 0.18),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.primary.withValues(alpha: 0.14)
+                            : theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.primary.withValues(alpha: 0.25)
+                              : theme.colorScheme.outline.withValues(
+                                  alpha: 0.18,
+                                ),
+                        ),
+                      ),
+                      child: Text(
+                        range.label,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: isSelected
+                              ? AppColors.primary
+                              : theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Text(
-                    range.label,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: isSelected
-                          ? AppColors.primary
-                          : theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(growable: false),
+                  );
+                })
+                .toList(growable: false),
           ),
           const SizedBox(height: 12),
           Text(
@@ -217,26 +227,33 @@ class _ReadingHeatmapWidgetState extends State<ReadingHeatmapWidget> {
                       right: isLastWeek ? 0 : columnSpacing,
                     ),
                     child: Column(
-                      children: week.map((date) {
-                        final isFuture = date.isAfter(today);
-                        final count =
-                            isFuture ? 0 : (_heatmapData[_dateKey(date)] ?? 0);
+                      children: week
+                          .map((date) {
+                            final isFuture = date.isAfter(today);
+                            final count = isFuture
+                                ? 0
+                                : (_heatmapData[_dateKey(date)] ?? 0);
 
-                        return Container(
-                          width: cellSize,
-                          height: cellSize,
-                          margin: const EdgeInsets.only(bottom: rowSpacing),
-                          decoration: BoxDecoration(
-                            color: isFuture
-                                ? theme.colorScheme.surfaceContainerHighest
-                                    .withValues(alpha: 0.28)
-                                : _colorForCount(count, theme, maxDailyCount),
-                            borderRadius: BorderRadius.circular(
-                              cellSize <= 5 ? 2 : 3,
-                            ),
-                          ),
-                        );
-                      }).toList(growable: false),
+                            return Container(
+                              width: cellSize,
+                              height: cellSize,
+                              margin: const EdgeInsets.only(bottom: rowSpacing),
+                              decoration: BoxDecoration(
+                                color: isFuture
+                                    ? theme.colorScheme.surfaceContainerHighest
+                                          .withValues(alpha: 0.28)
+                                    : _colorForCount(
+                                        count,
+                                        theme,
+                                        maxDailyCount,
+                                      ),
+                                borderRadius: BorderRadius.circular(
+                                  cellSize <= 5 ? 2 : 3,
+                                ),
+                              ),
+                            );
+                          })
+                          .toList(growable: false),
                     ),
                   );
                 }),

@@ -151,13 +151,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                 ),
                                 decoration: BoxDecoration(
                                   color: isDark
-                                      ? AppColors.spotifyPanel.withValues(alpha: 0.92)
+                                      ? AppColors.spotifyPanel.withValues(
+                                          alpha: 0.92,
+                                        )
                                       : Colors.white.withValues(alpha: 0.82),
                                   borderRadius: BorderRadius.circular(999),
                                   border: Border.all(
                                     color: isDark
                                         ? AppColors.outline
-                                        : theme.colorScheme.outline.withValues(alpha: 0.75),
+                                        : theme.colorScheme.outline.withValues(
+                                            alpha: 0.75,
+                                          ),
                                   ),
                                 ),
                                 child: Text(

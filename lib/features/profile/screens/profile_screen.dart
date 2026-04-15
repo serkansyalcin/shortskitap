@@ -416,7 +416,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     width: 64,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: colorScheme.outline.withOpacity(0.35),
+                      color: colorScheme.outline.withValues(alpha: 0.35),
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
@@ -430,7 +430,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   decoration: BoxDecoration(
                     color: isDark
                         ? const Color(0xFF3A2A12)
-                        : const Color(0xFFF59E0B).withOpacity(0.12),
+                        : const Color(0xFFF59E0B).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
@@ -575,7 +575,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: CircularProgressIndicator(color: AppColors.primary),
           ),
         ),
-        error: (_, __) => ListView(
+        error: (_, stackTrace) => ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(AppUI.screenHorizontalPadding),
           children: const [
@@ -750,14 +750,14 @@ class _HeroCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : theme.colorScheme.outline.withOpacity(0.7),
+              ? Colors.white.withValues(alpha: 0.08)
+              : theme.colorScheme.outline.withValues(alpha: 0.7),
         ),
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? Colors.black.withOpacity(0.24)
-                : AppColors.primary.withOpacity(0.08),
+                ? Colors.black.withValues(alpha: 0.24)
+                : AppColors.primary.withValues(alpha: 0.08),
             blurRadius: 28,
             offset: const Offset(0, 14),
           ),
@@ -804,7 +804,7 @@ class _HeroCard extends StatelessWidget {
                       '@${profile.profile.username}',
                       style: TextStyle(
                         color: isDark
-                            ? Colors.white.withOpacity(0.72)
+                            ? Colors.white.withValues(alpha: 0.72)
                             : theme.colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                       ),
@@ -814,7 +814,7 @@ class _HeroCard extends StatelessWidget {
                       summary,
                       style: TextStyle(
                         color: isDark
-                            ? Colors.white.withOpacity(0.86)
+                            ? Colors.white.withValues(alpha: 0.86)
                             : theme.colorScheme.onSurface,
                       ),
                     ),
@@ -878,7 +878,11 @@ class _HeroCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _ActionButton('Çıkış Yap', onLogout, dark: isDark),
+                  child: _ActionButton(
+                    'Çıkış Yap',
+                    onLogout,
+                    dark: isDark,
+                  ),
                 ),
               ],
             )
@@ -1054,7 +1058,7 @@ class _UpgradeToProCard extends StatelessWidget {
         ? Colors.white
         : theme.colorScheme.onSurface;
     final subtitleColor = theme.brightness == Brightness.dark
-        ? Colors.white.withOpacity(0.78)
+        ? Colors.white.withValues(alpha: 0.78)
         : theme.colorScheme.onSurfaceVariant;
 
     return Material(
@@ -1074,7 +1078,9 @@ class _UpgradeToProCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            border: Border.all(color: AppColors.primary.withOpacity(0.24)),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.24),
+            ),
           ),
           child: Row(
             children: [
@@ -1082,7 +1088,7 @@ class _UpgradeToProCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.14),
+                  color: AppColors.primary.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
@@ -1170,7 +1176,7 @@ class _MembershipDetailRow extends StatelessWidget {
           decoration: BoxDecoration(
             color:
                 iconBackgroundColor ??
-                const Color(0xFFF59E0B).withOpacity(0.14),
+                const Color(0xFFF59E0B).withValues(alpha: 0.14),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Icon(
@@ -1309,7 +1315,7 @@ class _KidsModeProfileSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final borderColor = accent.withOpacity(isDark ? 0.45 : 0.35);
+    final borderColor = accent.withValues(alpha: isDark ? 0.45 : 0.35);
     final kidsOn = ref.watch(kidsModeProvider);
     final pinAsync = ref.watch(kidsModePinServiceProvider);
     final userHasParentPin = ref.watch(
@@ -1350,7 +1356,7 @@ class _KidsModeProfileSection extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: accent.withOpacity(isDark ? 0.22 : 0.12),
+                          color: accent.withValues(alpha: isDark ? 0.22 : 0.12),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Icon(
@@ -1386,12 +1392,12 @@ class _KidsModeProfileSection extends ConsumerWidget {
                         value: kidsOn,
                         onChanged: (v) => onToggleKidsMode(v),
                         activeThumbColor: accent,
-                        activeTrackColor: accent.withOpacity(0.45),
+                        activeTrackColor: accent.withValues(alpha: 0.45),
                         inactiveThumbColor: isDark
                             ? Colors.grey.shade600
                             : Colors.grey.shade400,
                         inactiveTrackColor: isDark
-                            ? Colors.white.withOpacity(0.12)
+                            ? Colors.white.withValues(alpha: 0.12)
                             : Colors.grey.shade300,
                       ),
                     ],
@@ -1402,8 +1408,8 @@ class _KidsModeProfileSection extends ConsumerWidget {
                   thickness: 1,
                   indent: 16,
                   endIndent: 16,
-                  color: theme.colorScheme.outline.withOpacity(
-                    isDark ? 0.2 : 0.35,
+                  color: theme.colorScheme.outline.withValues(
+                    alpha: isDark ? 0.2 : 0.35,
                   ),
                 ),
                 pinAsync.when(
@@ -1456,7 +1462,7 @@ class _KidsModeProfileSection extends ConsumerWidget {
                           Icon(
                             Icons.chevron_right_rounded,
                             color: theme.colorScheme.onSurfaceVariant
-                                .withOpacity(0.6),
+                                .withValues(alpha: 0.6),
                           ),
                         ],
                       ),
@@ -1475,7 +1481,7 @@ class _KidsModeProfileSection extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  error: (_, __) => const SizedBox.shrink(),
+                  error: (_, stackTrace) => const SizedBox.shrink(),
                 ),
               ],
             ),
@@ -1486,7 +1492,7 @@ class _KidsModeProfileSection extends ConsumerWidget {
   }
 }
 
-/// Profil sonunda — ayarlardaki “Tehlikeli alan” ile aynı görsel dil (açık/koyu).
+/// Profil sonunda — ayarlardaki "Tehlikeli alan" ile aynı görsel dil (açık/koyu).
 class _DeleteAccountSection extends StatelessWidget {
   const _DeleteAccountSection({required this.onTap});
 
@@ -1498,7 +1504,7 @@ class _DeleteAccountSection extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final borderColor = const Color(
       0xFFDC2626,
-    ).withOpacity(isDark ? 0.45 : 0.35);
+    ).withValues(alpha: isDark ? 0.45 : 0.35);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1560,7 +1566,9 @@ class _DeleteAccountSection extends StatelessWidget {
                   ),
                   Icon(
                     Icons.chevron_right_rounded,
-                    color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.6,
+                    ),
                   ),
                 ],
               ),
@@ -1642,7 +1650,8 @@ class _PeopleSheet extends StatelessWidget {
                   Expanded(
                     child: ListView.separated(
                       itemCount: page.items.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      separatorBuilder: (_, index) =>
+                          const SizedBox(height: 10),
                       itemBuilder: (context, index) {
                         final item = page.items[index];
                         return ListTile(
@@ -1684,7 +1693,7 @@ class _Card extends StatelessWidget {
       color: Theme.of(context).cardColor,
       borderRadius: BorderRadius.circular(24),
       border: Border.all(
-        color: Theme.of(context).colorScheme.outline.withOpacity(0.7),
+        color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.7),
       ),
     ),
     child: child,
@@ -1727,8 +1736,8 @@ class _Avatar extends StatelessWidget {
         width: size,
         height: size,
         color: isDark
-            ? Colors.white.withOpacity(0.08)
-            : AppColors.primary.withOpacity(0.14),
+            ? Colors.white.withValues(alpha: 0.08)
+            : AppColors.primary.withValues(alpha: 0.14),
         child: url != null && url!.isNotEmpty
             ? CachedNetworkImage(imageUrl: url!, fit: BoxFit.cover)
             : Center(
@@ -1760,15 +1769,15 @@ class _CountChip extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: dark
-            ? Colors.white.withOpacity(0.06)
+            ? Colors.white.withValues(alpha: 0.06)
             : Theme.of(
                 context,
-              ).colorScheme.surfaceContainerHighest.withOpacity(0.45),
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: dark
-              ? Colors.white.withOpacity(0.08)
-              : Theme.of(context).colorScheme.outline.withOpacity(0.1),
+              ? Colors.white.withValues(alpha: 0.08)
+              : Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
         ),
       ),
       child: Column(
@@ -1785,7 +1794,7 @@ class _CountChip extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: dark ? Colors.white.withOpacity(0.78) : null,
+              color: dark ? Colors.white.withValues(alpha: 0.78) : null,
             ),
           ),
         ],
@@ -1813,7 +1822,7 @@ class _ActionButton extends StatelessWidget {
         backgroundColor: filled
             ? AppColors.primary
             : dark
-            ? Colors.white.withOpacity(0.08)
+            ? Colors.white.withValues(alpha: 0.08)
             : null,
         foregroundColor: filled
             ? Colors.white
@@ -1821,7 +1830,7 @@ class _ActionButton extends StatelessWidget {
             ? Colors.white
             : null,
         side: dark && !filled
-            ? BorderSide(color: Colors.white.withOpacity(0.1))
+            ? BorderSide(color: Colors.white.withValues(alpha: 0.1))
             : null,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -1911,7 +1920,7 @@ class _MiniPill extends StatelessWidget {
     decoration: BoxDecoration(
       color: Theme.of(
         context,
-      ).colorScheme.surfaceContainerHighest.withOpacity(0.45),
+      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
       borderRadius: BorderRadius.circular(14),
     ),
     child: Text('$label: $value'),

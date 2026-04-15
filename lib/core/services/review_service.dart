@@ -33,7 +33,8 @@ class ReviewService {
       '/books/$bookId/reviews',
       data: {
         'rating': rating,
-        if (comment != null && comment.trim().isNotEmpty) 'comment': comment.trim(),
+        if (comment != null && comment.trim().isNotEmpty)
+          'comment': comment.trim(),
       },
     );
   }
@@ -45,10 +46,7 @@ class ReviewService {
   }) async {
     final res = await _client.get(
       '/books/$bookId/reviews',
-      params: {
-        'page': page,
-        'per_page': perPage,
-      },
+      params: {'page': page, 'per_page': perPage},
     );
     final body = res.data;
     if (body is! Map<String, dynamic>) {

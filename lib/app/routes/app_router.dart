@@ -40,12 +40,15 @@ final routerProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = _RouterRefreshNotifier();
   ref.onDispose(refreshNotifier.dispose);
 
-  ref.listen<AuthStatus>(authProvider.select((state) => state.status), (_, __) {
+  ref.listen<AuthStatus>(authProvider.select((state) => state.status), (
+    _,
+    status,
+  ) {
     refreshNotifier.refresh();
   });
   ref.listen<bool>(
     settingsProvider.select((settings) => settings.onboardingDone),
-    (_, __) {
+    (_, onboardingDone) {
       refreshNotifier.refresh();
     },
   );
@@ -97,16 +100,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
+      GoRoute(path: '/splash', builder: (_, state) => const SplashScreen()),
       GoRoute(
         path: '/onboarding',
-        builder: (_, __) => const OnboardingScreen(),
+        builder: (_, state) => const OnboardingScreen(),
       ),
-      GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-      GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
+      GoRoute(path: '/login', builder: (_, state) => const LoginScreen()),
+      GoRoute(path: '/register', builder: (_, state) => const RegisterScreen()),
       GoRoute(
         path: '/forgot-password',
-        builder: (_, __) => const ForgotPasswordScreen(),
+        builder: (_, state) => const ForgotPasswordScreen(),
       ),
       GoRoute(
         path: '/verify-pin',
@@ -122,18 +125,24 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/home',
-        builder: (_, __) => const HomeScreen(),
+        builder: (_, state) => const HomeScreen(),
         routes: [
-          GoRoute(path: 'discover', builder: (_, __) => const DiscoverScreen()),
-          GoRoute(path: 'search', builder: (_, __) => const SearchScreen()),
-          GoRoute(path: 'library', builder: (_, __) => const LibraryScreen()),
+          GoRoute(
+            path: 'discover',
+            builder: (_, state) => const DiscoverScreen(),
+          ),
+          GoRoute(path: 'search', builder: (_, state) => const SearchScreen()),
+          GoRoute(
+            path: 'library',
+            builder: (_, state) => const LibraryScreen(),
+          ),
           GoRoute(
             path: 'notifications',
-            builder: (_, __) => const NotificationsScreen(),
+            builder: (_, state) => const NotificationsScreen(),
           ),
           GoRoute(
             path: 'profile',
-            builder: (_, __) => const ProfileScreen(standalone: true),
+            builder: (_, state) => const ProfileScreen(standalone: true),
           ),
           GoRoute(
             path: 'badges',
@@ -146,14 +155,17 @@ final routerProvider = Provider<GoRouter>((ref) {
               );
             },
           ),
-          GoRoute(path: 'settings', builder: (_, __) => const SettingsScreen()),
+          GoRoute(
+            path: 'settings',
+            builder: (_, state) => const SettingsScreen(),
+          ),
           GoRoute(
             path: 'highlights',
-            builder: (_, __) => const HighlightsScreen(),
+            builder: (_, state) => const HighlightsScreen(),
           ),
         ],
       ),
-      GoRoute(path: '/league', builder: (_, __) => const LeagueScreen()),
+      GoRoute(path: '/league', builder: (_, state) => const LeagueScreen()),
       GoRoute(
         path: '/profil/:username',
         builder: (_, state) => ProfileScreen(
@@ -161,12 +173,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           standalone: true,
         ),
       ),
-      GoRoute(path: '/premium', builder: (_, __) => const PaywallScreen()),
+      GoRoute(path: '/premium', builder: (_, state) => const PaywallScreen()),
       GoRoute(
         path: '/books/:slug/reviews',
-        builder: (_, state) => BookReviewsScreen(
-          slug: state.pathParameters['slug']!,
-        ),
+        builder: (_, state) =>
+            BookReviewsScreen(slug: state.pathParameters['slug']!),
       ),
       GoRoute(
         path: '/books/:slug',

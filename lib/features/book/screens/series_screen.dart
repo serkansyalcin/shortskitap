@@ -71,8 +71,9 @@ class SeriesScreen extends ConsumerWidget {
                           gradient: LinearGradient(
                             colors: [
                               AppColors.primary.withValues(alpha: 0.18),
-                              colorScheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.5),
+                              colorScheme.surfaceContainerHighest.withValues(
+                                alpha: 0.5,
+                              ),
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -93,8 +94,9 @@ class SeriesScreen extends ConsumerWidget {
                                     vertical: 5,
                                   ),
                                   decoration: BoxDecoration(
-                                    color:
-                                        AppColors.primary.withValues(alpha: 0.14),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.14,
+                                    ),
                                     borderRadius: BorderRadius.circular(999),
                                   ),
                                   child: const Text(
@@ -147,8 +149,9 @@ class SeriesScreen extends ConsumerWidget {
                                 style: TextStyle(
                                   fontSize: 14,
                                   height: 1.7,
-                                  color: colorScheme.onSurface
-                                      .withValues(alpha: 0.82),
+                                  color: colorScheme.onSurface.withValues(
+                                    alpha: 0.82,
+                                  ),
                                 ),
                               ),
                             ],
@@ -190,8 +193,9 @@ class SeriesScreen extends ConsumerWidget {
                                   width: 28,
                                   height: 28,
                                   decoration: BoxDecoration(
-                                    color: AppColors.primary
-                                        .withValues(alpha: 0.14),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.14,
+                                    ),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Center(
@@ -208,20 +212,18 @@ class SeriesScreen extends ConsumerWidget {
                                 const SizedBox(width: 12),
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(10),
-                                      child: book.coverImageUrl != null
+                                  child: book.coverImageUrl != null
                                       ? CachedNetworkImage(
                                           imageUrl: book.coverImageUrl!,
                                           width: 52,
                                           height: 68,
                                           fit: BoxFit.cover,
-                                          errorWidget: (_, __, ___) =>
+                                          errorWidget: (_, error, stackTrace) =>
                                               _BookFallback(
-                                            color: AppColors.primary,
-                                          ),
+                                                color: AppColors.primary,
+                                              ),
                                         )
-                                      : _BookFallback(
-                                          color: AppColors.primary,
-                                        ),
+                                      : _BookFallback(color: AppColors.primary),
                                 ),
                                 const SizedBox(width: 14),
                                 Expanded(
@@ -245,8 +247,7 @@ class SeriesScreen extends ConsumerWidget {
                                           '${book.totalParagraphs} paragraf',
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color:
-                                                colorScheme.onSurfaceVariant,
+                                            color: colorScheme.onSurfaceVariant,
                                           ),
                                         ),
                                     ],
@@ -329,10 +330,7 @@ class SeriesScreen extends ConsumerWidget {
 }
 
 class _SeriesAsyncShell extends StatelessWidget {
-  const _SeriesAsyncShell({
-    required this.colorScheme,
-    required this.child,
-  });
+  const _SeriesAsyncShell({required this.colorScheme, required this.child});
 
   final ColorScheme colorScheme;
   final Widget child;
@@ -350,8 +348,9 @@ class _SeriesAsyncShell extends StatelessWidget {
           child: IconButton(
             onPressed: () => context.pop(),
             style: IconButton.styleFrom(
-              backgroundColor: colorScheme.surfaceContainerHighest
-                  .withValues(alpha: 0.72),
+              backgroundColor: colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.72,
+              ),
               padding: EdgeInsets.zero,
               minimumSize: const Size(40, 40),
               maximumSize: const Size(40, 40),

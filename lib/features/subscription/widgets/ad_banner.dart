@@ -121,7 +121,7 @@ class AdBannerWidget extends ConsumerWidget {
         return _ApiAdBanner(ad: ad);
       },
       loading: () => const SizedBox(height: 56),
-      error: (_, __) => const _AdMobBanner(),
+      error: (_, stackTrace) => const _AdMobBanner(),
     );
   }
 }

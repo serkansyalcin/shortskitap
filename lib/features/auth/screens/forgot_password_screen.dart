@@ -12,7 +12,8 @@ class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
   @override
-  ConsumerState<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+  ConsumerState<ForgotPasswordScreen> createState() =>
+      _ForgotPasswordScreenState();
 }
 
 class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
@@ -98,13 +99,18 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       BrandLogo(
-                        variant: isDark ? BrandLogoVariant.dark : BrandLogoVariant.light,
+                        variant: isDark
+                            ? BrandLogoVariant.dark
+                            : BrandLogoVariant.light,
                         height: 48,
                       ),
                       const SizedBox(height: 32),
                       Text(
                         'Şifreni Sıfırla',
-                        style: textTheme.displaySmall?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w800),
+                        style: textTheme.displaySmall?.copyWith(
+                          color: colorScheme.onSurface,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Text(
@@ -121,7 +127,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                           color: theme.cardColor,
                           borderRadius: BorderRadius.circular(30),
                           border: Border.all(
-                            color: colorScheme.outline.withOpacity(0.7),
+                            color: colorScheme.outline.withValues(alpha: 0.7),
                           ),
                           boxShadow: [
                             BoxShadow(
@@ -143,7 +149,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                 keyboardType: TextInputType.emailAddress,
                                 decoration: const InputDecoration(
                                   labelText: 'E-posta',
-                                  prefixIcon: Icon(Icons.alternate_email_rounded),
+                                  prefixIcon: Icon(
+                                    Icons.alternate_email_rounded,
+                                  ),
                                 ),
                                 validator: (value) {
                                   if (value == null || !value.contains('@')) {
@@ -161,17 +169,24 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                   color: const Color(0xFF351717),
                                   borderRadius: BorderRadius.circular(18),
                                   border: Border.all(
-                                    color: const Color(0xFFFF6B6B).withValues(alpha: 0.40),
+                                    color: const Color(
+                                      0xFFFF6B6B,
+                                    ).withValues(alpha: 0.40),
                                   ),
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.error_outline_rounded, color: Color(0xFFFF8B8B)),
+                                    const Icon(
+                                      Icons.error_outline_rounded,
+                                      color: Color(0xFFFF8B8B),
+                                    ),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
                                         _error!,
-                                        style: textTheme.bodyMedium?.copyWith(color: const Color(0xFFFFD3D3)),
+                                        style: textTheme.bodyMedium?.copyWith(
+                                          color: const Color(0xFFFFD3D3),
+                                        ),
                                       ),
                                     ),
                                   ],

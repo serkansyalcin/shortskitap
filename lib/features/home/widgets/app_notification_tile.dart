@@ -28,12 +28,12 @@ class AppNotificationTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: notification.isRead
               ? theme.cardColor
-              : AppColors.primary.withOpacity(0.06),
+              : AppColors.primary.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(compact ? 16 : 20),
           border: Border.all(
             color: notification.isRead
-                ? theme.colorScheme.outline.withOpacity(0.4)
-                : AppColors.primary.withOpacity(0.25),
+                ? theme.colorScheme.outline.withValues(alpha: 0.4)
+                : AppColors.primary.withValues(alpha: 0.25),
           ),
         ),
         child: Row(
@@ -43,7 +43,7 @@ class AppNotificationTile extends StatelessWidget {
               width: compact ? 40 : 46,
               height: compact ? 40 : 46,
               decoration: BoxDecoration(
-                color: _iconColor(notification.type).withOpacity(0.14),
+                color: _iconColor(notification.type).withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(

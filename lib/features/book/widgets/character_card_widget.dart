@@ -46,7 +46,9 @@ class CharacterCardWidget extends StatelessWidget {
                             width: 40,
                             height: 4,
                             decoration: BoxDecoration(
-                              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                              color: colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.3,
+                              ),
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),
@@ -83,7 +85,10 @@ class CharacterCardWidget extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: roleColor.withValues(alpha: 0.12),
                                       borderRadius: BorderRadius.circular(999),
@@ -102,7 +107,8 @@ class CharacterCardWidget extends StatelessWidget {
                             ),
                           ],
                         ),
-                        if (character.description != null && character.description!.isNotEmpty) ...[
+                        if (character.description != null &&
+                            character.description!.isNotEmpty) ...[
                           const SizedBox(height: 20),
                           Text(
                             'Hakkında',
@@ -129,7 +135,10 @@ class CharacterCardWidget extends StatelessWidget {
                             runSpacing: 8,
                             children: character.traits.map((trait) {
                               return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
                                 decoration: BoxDecoration(
                                   color: accentColor.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(999),
@@ -200,8 +209,10 @@ class CharacterCardWidget extends StatelessWidget {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: roleColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(999),
@@ -252,8 +263,10 @@ class CharacterCardWidget extends StatelessWidget {
                   runSpacing: 3,
                   children: character.traits.take(2).map((trait) {
                     return Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: accentColor.withValues(alpha: 0.10),
                         borderRadius: BorderRadius.circular(999),
@@ -278,9 +291,9 @@ class CharacterCardWidget extends StatelessWidget {
   }
 
   Color _roleColor(CharacterRole role) => switch (role) {
-        CharacterRole.protagonist => AppColors.primary,
-        CharacterRole.antagonist => const Color(0xFFEF4444),
-        CharacterRole.narrator => const Color(0xFF8B5CF6),
-        CharacterRole.supporting => const Color(0xFF06B6D4),
-      };
+    CharacterRole.protagonist => AppColors.primary,
+    CharacterRole.antagonist => const Color(0xFFEF4444),
+    CharacterRole.narrator => const Color(0xFF8B5CF6),
+    CharacterRole.supporting => const Color(0xFF06B6D4),
+  };
 }

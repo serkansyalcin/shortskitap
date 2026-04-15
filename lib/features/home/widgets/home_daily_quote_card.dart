@@ -60,6 +60,9 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
   Future<void> _shareQuote(DailyQuoteModel quote) async {
     if (_isSharing) return;
 
+    final messenger = ScaffoldMessenger.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     setState(() => _isSharing = true);
 
     try {
@@ -100,7 +103,6 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
         }
       }
 
-      final isDark = Theme.of(context).brightness == Brightness.dark;
       final image = await _screenshotController.captureFromWidget(
         Material(
           child: ShareableQuoteOverlay(quote: quote, isDark: isDark),
@@ -115,7 +117,7 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
           filename: 'kitaplig_quote_${quote.id}.png',
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             const SnackBar(
               content: Text('Alıntı indirildi! ✨'),
               backgroundColor: AppColors.primary,
@@ -135,14 +137,14 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
         );
         if (mounted) {
           if (result['isSuccess'] == true) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               const SnackBar(
                 content: Text('Alıntı galeriye kaydedildi! ✨'),
                 backgroundColor: AppColors.primary,
               ),
             );
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               const SnackBar(content: Text('Kaydedilirken bir hata oluştu.')),
             );
           }
@@ -184,18 +186,24 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
           width: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: colorScheme.outline.withOpacity(0.35)),
+            border: Border.all(
+              color: colorScheme.outline.withValues(alpha: 0.35),
+            ),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: isDark
                   ? [
-                      colorScheme.surfaceContainerHighest.withOpacity(0.6),
-                      colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                      colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.6,
+                      ),
+                      colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.3,
+                      ),
                     ]
                   : [
-                      AppColors.primary.withOpacity(0.08),
-                      AppColors.accent.withOpacity(0.05),
+                      AppColors.primary.withValues(alpha: 0.08),
+                      AppColors.accent.withValues(alpha: 0.05),
                     ],
             ),
           ),
@@ -208,7 +216,7 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
                 child: Icon(
                   Icons.format_quote_rounded,
                   size: 100,
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                 ),
               ),
               Padding(
@@ -224,7 +232,7 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
                             vertical: 5,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.15),
+                            color: AppColors.primary.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -318,8 +326,8 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
                           Icon(
                             Icons.arrow_forward_ios_rounded,
                             size: 12,
-                            color: colorScheme.onSurfaceVariant.withOpacity(
-                              0.5,
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.5,
                             ),
                           ),
                         ],
@@ -336,7 +344,7 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
         height: 140,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(24),
         ),
         child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
@@ -346,7 +354,7 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
         ref: ref,
         error: err,
         onRetry: () => ref.invalidate(dailyQuoteProvider),
-        hint: 'Günün sözü yüklenemedi',
+        hint: 'Günün alıntısı yüklenemedi',
       ),
     );
   }

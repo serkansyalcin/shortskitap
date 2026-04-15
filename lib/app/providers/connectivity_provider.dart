@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Latest connectivity snapshot from the platform.
-final connectivityProvider = StreamProvider<List<ConnectivityResult>>((ref) async* {
+final connectivityProvider = StreamProvider<List<ConnectivityResult>>((
+  ref,
+) async* {
   if (kIsWeb) {
     yield const [ConnectivityResult.wifi];
     return;
@@ -22,7 +24,9 @@ final connectivityProvider = StreamProvider<List<ConnectivityResult>>((ref) asyn
 /// True when the device reports no usable network (mobile native only).
 final isDeviceOfflineProvider = Provider<bool>((ref) {
   if (kIsWeb) return false;
-  return ref.watch(connectivityProvider).maybeWhen(
+  return ref
+      .watch(connectivityProvider)
+      .maybeWhen(
         data: (results) =>
             results.isEmpty ||
             results.every((r) => r == ConnectivityResult.none),

@@ -13,7 +13,8 @@ class AuthSessionModel {
   });
 
   factory AuthSessionModel.fromJson(Map<String, dynamic> json) {
-    final profilesJson = json['profiles'] as List<dynamic>? ?? const <dynamic>[];
+    final profilesJson =
+        json['profiles'] as List<dynamic>? ?? const <dynamic>[];
     final profiles = profilesJson
         .whereType<Map<String, dynamic>>()
         .map(ReaderProfileModel.fromJson)
@@ -33,8 +34,8 @@ class AuthSessionModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'account': account.toJson(),
-        'profiles': profiles.map((profile) => profile.toJson()).toList(),
-        'active_profile': activeProfile?.toJson(),
-      };
+    'account': account.toJson(),
+    'profiles': profiles.map((profile) => profile.toJson()).toList(),
+    'active_profile': activeProfile?.toJson(),
+  };
 }

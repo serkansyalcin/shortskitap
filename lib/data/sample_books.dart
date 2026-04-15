@@ -1,3 +1,5 @@
+import 'package:kitaplig/core/models/interactive_element_model.dart';
+
 import '../models/book.dart';
 
 /// Örnek kitaplar - ileride API veya veritabanı ile değiştirilebilir
@@ -9,7 +11,8 @@ class SampleBooks {
     title: 'Küçük Prens',
     author: 'Antoine de Saint-Exupéry',
     genre: 'Masal',
-    description: 'Küçük Prens, bir çocuğun gözüyle büyüklerin dünyasını anlatan zamansız bir eser.',
+    description:
+        'Küçük Prens, bir çocuğun gözüyle büyüklerin dünyasını anlatan zamansız bir eser.',
     paragraphs: [
       'Büyükler sayılara bayılır. Onlara yeni bir arkadaşınızdan söz ettiğinizde asla önemli şeyleri sormazlar.',
       '“Sesi nasıldı? Hangi oyunları seviyor? Kelebek koleksiyonu var mı?” diye sormazlar.',
@@ -21,6 +24,40 @@ class SampleBooks {
       'Kitapta şöyle yazıyordu: “Boa yılanı avını çiğnemeden yutar, sonra kıpırdamadan altı ay uyur; ta ki sindirene kadar.”',
       'O zaman ormanın tehlikeleri üzerine çok düşündüm ve bir kurşunkalemle ilk resmimi çizdim.',
       'İşte benim 1 numaralı resmim. Bir boa yılanının bir fili yuttuğunu gösteriyordu.',
+    ],
+    interactiveElements: [
+      InteractiveElementModel(
+        id: 1,
+        type: 'quiz',
+        payload: {
+          'questions': [
+            {
+              'question': 'Küçük Prens kitabında büyükler neye bayılır?',
+              'options': ['Sayılara', 'Kelebeklere', 'Şarkılara', 'Resimlere'],
+              'correct_answer': 'Sayılara',
+            },
+            {
+              'question': 'Boa yılanı avını ne yapmadan yutar?',
+              'options': ['Çiğnemeden', 'Koşmadan', 'Uyumadan', 'Çizmeden'],
+              'correct_answer': 'Çiğnemeden',
+            },
+          ],
+        },
+        rewardPoints: 10,
+      ),
+      InteractiveElementModel(
+        id: 2,
+        type: 'match',
+        payload: {
+          'instruction': 'Kelimeleri doğru eşleştir.',
+          'pairs': [
+            {'left': 'Yutan', 'right': 'Yılan'},
+            {'left': 'Kırmızı', 'right': 'Tuğla'},
+            {'left': 'Sümbül', 'right': 'Çiçek'},
+          ],
+        },
+        rewardPoints: 10,
+      ),
     ],
   );
 

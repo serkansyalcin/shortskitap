@@ -42,7 +42,9 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
     try {
       await AuthService().verifyResetCode(widget.email, code);
       if (!mounted) return;
-      context.push('/reset-password?email=${Uri.encodeComponent(widget.email)}&code=${Uri.encodeComponent(code)}');
+      context.push(
+        '/reset-password?email=${Uri.encodeComponent(widget.email)}&code=${Uri.encodeComponent(code)}',
+      );
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -102,13 +104,18 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       BrandLogo(
-                        variant: isDark ? BrandLogoVariant.dark : BrandLogoVariant.light,
+                        variant: isDark
+                            ? BrandLogoVariant.dark
+                            : BrandLogoVariant.light,
                         height: 48,
                       ),
                       const SizedBox(height: 32),
                       Text(
                         'Kodu Doğrula',
-                        style: textTheme.displaySmall?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w800),
+                        style: textTheme.displaySmall?.copyWith(
+                          color: colorScheme.onSurface,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Text.rich(
@@ -121,9 +128,15 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
                           children: [
                             TextSpan(
                               text: widget.email,
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryLight),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryLight,
+                              ),
                             ),
-                            const TextSpan(text: ') gönderdiğimiz 6 haneli doğrulama kodunu gir.'),
+                            const TextSpan(
+                              text:
+                                  ') gönderdiğimiz 6 haneli doğrulama kodunu gir.',
+                            ),
                           ],
                         ),
                       ),
@@ -134,7 +147,7 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
                           color: theme.cardColor,
                           borderRadius: BorderRadius.circular(30),
                           border: Border.all(
-                            color: colorScheme.outline.withOpacity(0.7),
+                            color: colorScheme.outline.withValues(alpha: 0.7),
                           ),
                           boxShadow: [
                             BoxShadow(
@@ -154,7 +167,11 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
                               keyboardType: TextInputType.number,
                               maxLength: 6,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 24, letterSpacing: 12, fontWeight: FontWeight.w800),
+                              style: const TextStyle(
+                                fontSize: 24,
+                                letterSpacing: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
                               decoration: const InputDecoration(
                                 counterText: '',
                                 labelText: '6 Haneli Kod',
@@ -174,17 +191,24 @@ class _VerifyPinScreenState extends ConsumerState<VerifyPinScreen> {
                                   color: const Color(0xFF351717),
                                   borderRadius: BorderRadius.circular(18),
                                   border: Border.all(
-                                    color: const Color(0xFFFF6B6B).withValues(alpha: 0.40),
+                                    color: const Color(
+                                      0xFFFF6B6B,
+                                    ).withValues(alpha: 0.40),
                                   ),
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.error_outline_rounded, color: Color(0xFFFF8B8B)),
+                                    const Icon(
+                                      Icons.error_outline_rounded,
+                                      color: Color(0xFFFF8B8B),
+                                    ),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
                                         _error!,
-                                        style: textTheme.bodyMedium?.copyWith(color: const Color(0xFFFFD3D3)),
+                                        style: textTheme.bodyMedium?.copyWith(
+                                          color: const Color(0xFFFFD3D3),
+                                        ),
                                       ),
                                     ),
                                   ],

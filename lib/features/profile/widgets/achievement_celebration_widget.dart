@@ -34,14 +34,8 @@ class _AchievementCelebrationOverlayState
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
-    _scaleAnim = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.elasticOut,
-    );
-    _fadeAnim = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeIn,
-    );
+    _scaleAnim = CurvedAnimation(parent: _controller, curve: Curves.elasticOut);
+    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
     _controller.forward();
 
     Future.delayed(const Duration(seconds: 4), () {
@@ -158,10 +152,7 @@ class _AchievementCelebrationOverlayState
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            '⚡',
-                            style: TextStyle(fontSize: 18),
-                          ),
+                          const Text('⚡', style: TextStyle(fontSize: 18)),
                           const SizedBox(width: 8),
                           Text(
                             '+${widget.achievement.xpReward} XP',
@@ -180,8 +171,9 @@ class _AchievementCelebrationOverlayState
                     'Dokunarak kapat',
                     style: TextStyle(
                       fontSize: 12,
-                      color: colorScheme.onSurfaceVariant
-                          .withValues(alpha: 0.5),
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.5,
+                      ),
                     ),
                   ),
                 ],
@@ -194,12 +186,12 @@ class _AchievementCelebrationOverlayState
   }
 
   Color _rarityColor(AchievementRarity rarity) => switch (rarity) {
-        AchievementRarity.common => const Color(0xFF6B7280),
-        AchievementRarity.uncommon => const Color(0xFF10B981),
-        AchievementRarity.rare => const Color(0xFF3B82F6),
-        AchievementRarity.epic => const Color(0xFF8B5CF6),
-        AchievementRarity.legendary => const Color(0xFFFFD35C),
-      };
+    AchievementRarity.common => const Color(0xFF6B7280),
+    AchievementRarity.uncommon => const Color(0xFF10B981),
+    AchievementRarity.rare => const Color(0xFF3B82F6),
+    AchievementRarity.epic => const Color(0xFF8B5CF6),
+    AchievementRarity.legendary => const Color(0xFFFFD35C),
+  };
 }
 
 class _SparkleIcon extends StatefulWidget {
@@ -224,9 +216,10 @@ class _SparkleIconState extends State<_SparkleIcon>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat();
-    _rotationAnim = Tween<double>(begin: -0.05, end: 0.05).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _rotationAnim = Tween<double>(
+      begin: -0.05,
+      end: 0.05,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -239,10 +232,8 @@ class _SparkleIconState extends State<_SparkleIcon>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _rotationAnim,
-      builder: (context, child) => Transform.rotate(
-        angle: _rotationAnim.value,
-        child: child,
-      ),
+      builder: (context, child) =>
+          Transform.rotate(angle: _rotationAnim.value, child: child),
       child: Container(
         width: 80,
         height: 80,
@@ -261,10 +252,7 @@ class _SparkleIconState extends State<_SparkleIcon>
           ],
         ),
         child: Center(
-          child: Text(
-            widget.icon,
-            style: const TextStyle(fontSize: 38),
-          ),
+          child: Text(widget.icon, style: const TextStyle(fontSize: 38)),
         ),
       ),
     );

@@ -43,6 +43,12 @@ class _DuelScreenState extends ConsumerState<DuelScreen> {
   Widget build(BuildContext context) {
     final duelAsync = ref.watch(duelDetailsProvider(widget.duelId));
     final isKidsMode = ref.watch(kidsModeProvider);
+    final currentUserId = ref.watch(
+      authProvider.select((state) => state.user?.id),
+    );
+    final currentProfileId = ref.watch(
+      authProvider.select((state) => state.activeProfile?.id),
+    );
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -104,6 +110,8 @@ class _DuelScreenState extends ConsumerState<DuelScreen> {
         ),
         data: (duel) => _DuelContent(
           duel: duel,
+          currentUserId: currentUserId,
+          currentProfileId: currentProfileId,
           disableProfileNavigation: isKidsMode,
         ),
       ),
@@ -113,10 +121,14 @@ class _DuelScreenState extends ConsumerState<DuelScreen> {
 
 class _DuelContent extends StatelessWidget {
   final DuelModel duel;
+  final int? currentUserId;
+  final int? currentProfileId;
   final bool disableProfileNavigation;
 
   const _DuelContent({
     required this.duel,
+    required this.currentUserId,
+    required this.currentProfileId,
     this.disableProfileNavigation = false,
   });
 
@@ -150,6 +162,8 @@ class _DuelContent extends StatelessWidget {
             children: [
               _DuelHeroCard(
                 duel: duel,
+                currentUserId: currentUserId,
+                currentProfileId: currentProfileId,
                 disableProfileNavigation: disableProfileNavigation,
               ),
               const SizedBox(height: AppUI.sectionGap),
@@ -168,10 +182,14 @@ class _DuelContent extends StatelessWidget {
 
 class _DuelHeroCard extends StatelessWidget {
   final DuelModel duel;
+  final int? currentUserId;
+  final int? currentProfileId;
   final bool disableProfileNavigation;
 
   const _DuelHeroCard({
     required this.duel,
+    required this.currentUserId,
+    required this.currentProfileId,
     this.disableProfileNavigation = false,
   });
 
@@ -245,6 +263,12 @@ class _DuelHeroCard extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           _ProgressComparison(duel: duel),
+          const SizedBox(height: 14),
+          _DuelResultBanner(
+            duel: duel,
+            currentUserId: currentUserId,
+            currentProfileId: currentProfileId,
+          ),
         ],
       ),
     );
@@ -394,7 +418,8 @@ class _UserAvatar extends StatelessWidget {
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 132),
           child: InkWell(
-            onTap: !disableProfileNavigation && user?.username.isNotEmpty == true
+            onTap:
+                !disableProfileNavigation && user?.username.isNotEmpty == true
                 ? () => context.push('/profil/${user!.username}')
                 : null,
             borderRadius: BorderRadius.circular(12),
@@ -481,30 +506,48 @@ class _ProgressComparison extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        Text(
-          _leadSummary(),
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w600,
-          ),
-          textAlign: TextAlign.center,
-        ),
       ],
     );
   }
+}
 
-  String _leadSummary() {
-    if (duel.challengerScore == duel.opponentScore) {
-      return duel.challengerScore == 0
-          ? 'Karşılaşma henüz başlamadı.'
-          : 'Şu an skor eşit gidiyor.';
-    }
+class _DuelResultBanner extends StatelessWidget {
+  const _DuelResultBanner({
+    required this.duel,
+    required this.currentUserId,
+    required this.currentProfileId,
+  });
 
-    final leader = duel.challengerScore > duel.opponentScore
-        ? duel.challenger?.name ?? 'Meydan okuyan'
-        : duel.opponent?.name ?? 'Rakip';
-    return '$leader şu an önde gidiyor.';
+  final DuelModel duel;
+  final int? currentUserId;
+  final int? currentProfileId;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final statusColor = _statusColor(context, duel.status);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: statusColor.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: statusColor.withValues(alpha: 0.22)),
+      ),
+      child: Text(
+        _duelSummaryText(
+          duel,
+          userId: currentUserId,
+          readerProfileId: currentProfileId,
+        ),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurface,
+          fontWeight: FontWeight.w700,
+          height: 1.45,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
   }
 }
 
@@ -597,8 +640,10 @@ class _DuelStats extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           _StatRow(
-            label: 'Kalan Süre',
-            value: _formatDuration(duel.timeRemaining),
+            label: duel.isOpen ? 'Kalan Süre' : 'Tamamlanma',
+            value: duel.isOpen
+                ? _formatDuration(duel.timeRemaining)
+                : _formatEndedAt(duel.resolvedEndedAt),
             valueColor: theme.colorScheme.onSurface,
           ),
           Divider(
@@ -636,6 +681,14 @@ class _DuelStats extends StatelessWidget {
     }
 
     return '$hours s $minutes dk';
+  }
+
+  String _formatEndedAt(DateTime? endedAt) {
+    if (endedAt == null) {
+      return 'Tamamlandı';
+    }
+
+    return _formatRelativeTime(endedAt);
   }
 }
 
@@ -829,4 +882,93 @@ Color _statusColor(BuildContext context, String status) {
     'declined' => Theme.of(context).colorScheme.error,
     _ => Theme.of(context).colorScheme.onSurfaceVariant,
   };
+}
+
+String _duelSummaryText(DuelModel duel, {int? userId, int? readerProfileId}) {
+  if (duel.isPending) {
+    return duel.isIncomingForActor(
+          userId: userId,
+          readerProfileId: readerProfileId,
+        )
+        ? 'Rakibin senden yanıt bekliyor. Kabul edersen düello başlayacak.'
+        : 'Gönderdiğin teklif henüz yanıt bekliyor.';
+  }
+
+  if (duel.isActive) {
+    if (duel.isTie) {
+      return duel.challengerScore == 0
+          ? 'Karşılaşma başladı. İlk paragrafı okuyan öne geçecek.'
+          : 'Düello şu anda başa baş gidiyor.';
+    }
+
+    final leader = duel.challengerWon
+        ? duel.challenger?.name ?? 'Meydan okuyan'
+        : duel.opponent?.name ?? 'Rakip';
+    return '$leader şu anda ${duel.scoreGap} paragraf farkla önde.';
+  }
+
+  final finishedAgo = duel.resolvedEndedAt != null
+      ? _formatRelativeTime(duel.resolvedEndedAt!)
+      : 'az önce';
+
+  if (duel.isCompleted) {
+    if (duel.isTie) {
+      return 'Düello $finishedAgo berabere tamamlandı.';
+    }
+
+    if (duel.didActorWin(userId: userId, readerProfileId: readerProfileId)) {
+      return 'Düelloyu $finishedAgo ${duel.scoreGap} paragraf farkla tamamladın.';
+    }
+
+    if (duel.didActorLose(userId: userId, readerProfileId: readerProfileId)) {
+      return 'Düelloyu $finishedAgo rakibinin ${duel.scoreGap} paragraf gerisinde tamamladın.';
+    }
+
+    final winnerName =
+        duel.winner?.name ?? duel.leadingUser?.name ?? 'Kazanan taraf';
+    return '$winnerName düelloyu $finishedAgo ${duel.scoreGap} paragraf farkla tamamladı.';
+  }
+
+  if (duel.isExpired) {
+    return duel.isTie
+        ? 'Düellonun süresi $finishedAgo doldu ve skor eşit kaldı.'
+        : 'Düellonun süresi $finishedAgo doldu. Son fark ${duel.scoreGap} paragraftı.';
+  }
+
+  if (duel.isDeclined) {
+    return 'Düello teklifi $finishedAgo reddedildi.';
+  }
+
+  return 'Düello durumu güncellendi.';
+}
+
+String _formatRelativeTime(DateTime timestamp) {
+  final diff = DateTime.now().difference(timestamp);
+
+  if (diff.inSeconds < 60) {
+    return 'az önce';
+  }
+  if (diff.inMinutes < 60) {
+    return '${diff.inMinutes} dk önce';
+  }
+  if (diff.inHours < 24) {
+    final hours = diff.inHours;
+    final minutes = diff.inMinutes % 60;
+    return minutes == 0 ? '$hours sa önce' : '$hours sa $minutes dk önce';
+  }
+  if (diff.inDays < 7) {
+    return '${diff.inDays} gün önce';
+  }
+
+  final weeks = diff.inDays ~/ 7;
+  if (weeks < 5) {
+    return '$weeks hf önce';
+  }
+
+  final months = diff.inDays ~/ 30;
+  if (months < 12) {
+    return '$months ay önce';
+  }
+
+  return '${diff.inDays ~/ 365} yıl önce';
 }

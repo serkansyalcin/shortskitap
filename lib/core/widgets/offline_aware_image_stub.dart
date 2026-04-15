@@ -17,7 +17,7 @@ Widget buildOfflineAwareImage({
     imageUrl: url,
     fit: fit,
     fadeInDuration: fadeInDuration,
-    placeholder: (_, __) => placeholder,
-    errorWidget: (_, __, ___) => errorWidget,
+    placeholder: (_, progress) => placeholder,
+    errorWidget: (_, error, stackTrace) => errorWidget,
   );
 }

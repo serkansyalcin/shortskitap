@@ -111,7 +111,7 @@ class AchievementBadgeGrid extends StatelessWidget {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: visibleAchievements.length,
-                  separatorBuilder: (_, __) => SizedBox(width: spacing),
+                  separatorBuilder: (_, index) => SizedBox(width: spacing),
                   itemBuilder: (context, index) {
                     return SizedBox(
                       width: compactCardWidth,
@@ -411,11 +411,11 @@ class _BadgeIcon extends StatelessWidget {
   }
 
   String _iconFor(String? key) => switch (key) {
-    'first_book' || '🎉' => '🎉',
+    'first_book' || 'ğŸ‰' => 'ğŸ‰',
     '100_paragraphs' || '📖' => '📖',
     '3_books' || '📚' => '📚',
     'night_owl' || '🌙' => '🌙',
-    'weekend_warrior' || '🗓️' => '🗓️',
+    'weekend_warrior' || 'ğŸ—“ï¸' => 'ğŸ—“ï¸',
     '10_favorites' || '❤️' => '❤️',
     '30_day_streak' || '🔥' => '🔥',
     '1000_paragraphs' || '✍️' => '✍️',

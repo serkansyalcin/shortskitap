@@ -106,7 +106,8 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
                       completed: completedProgress.length,
                       downloaded: downloadedBooks.length,
                       favorites: favorites.length,
-                      highlights: highlightsAsync.valueOrNull?.total ??
+                      highlights:
+                          highlightsAsync.valueOrNull?.total ??
                           highlights.length,
                     )
                   : null,
@@ -177,11 +178,9 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
                     try {
                       await ref.read(highlightsProvider.notifier).loadMore();
                     } catch (e) {
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(userFacingErrorMessage(e)),
-                        ),
+                        SnackBar(content: Text(userFacingErrorMessage(e))),
                       );
                     }
                   },
@@ -283,13 +282,14 @@ class _LibraryModeContent extends StatelessWidget {
                 'Henüz bitirmediğin kitapları kaldığın yerden sürdür.',
               _LibraryMode.completed =>
                 'Bitirdiğin kitapları tekrar ziyaret et veya yeniden keşfet.',
-              _ => 'Yarım bıraktığın kitapları tek yerden sürdür.',
+              _ =>
+                'Yarım bıraktığın kitapları tek yerden sürdür.',
             },
           ),
           const SizedBox(height: 10),
           progressAsync.when(
             loading: () => const _LibraryLoadingCard(height: 186),
-            error: (_, __) => _LibraryErrorCard(
+            error: (_, stackTrace) => _LibraryErrorCard(
               title: 'Okuma ilerlemesi alınamadı',
               buttonLabel: 'Tekrar dene',
               onPressed: onRetryProgress,
@@ -316,7 +316,7 @@ class _LibraryModeContent extends StatelessWidget {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: progressForMode.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 14),
+                  separatorBuilder: (_, index) => const SizedBox(width: 14),
                   itemBuilder: (context, index) => SizedBox(
                     width: 280,
                     child: _ProgressCard(progress: progressForMode[index]),
@@ -331,12 +331,13 @@ class _LibraryModeContent extends StatelessWidget {
             mode == _LibraryMode.downloaded) ...[
           const _SectionTitle(
             title: 'İndirilenler',
-            subtitle: 'Cihazına kaydettiğin kitaplara hızlıca ulaş.',
+            subtitle:
+                'Cihazına kaydettiğin kitaplara hızlıca ulaş.',
           ),
           const SizedBox(height: 10),
           downloadedAsync.when(
             loading: () => const _LibraryLoadingCard(height: 140),
-            error: (_, __) => const _InlineInfoCard(
+            error: (_, stackTrace) => const _InlineInfoCard(
               title: 'İndirilen kitaplar yüklenemedi',
               subtitle: 'Yerel kütüphane birazdan tekrar denenebilir.',
             ),
@@ -344,8 +345,7 @@ class _LibraryModeContent extends StatelessWidget {
               if (downloadedBooks.isEmpty) {
                 return const _InlineInfoCard(
                   title: 'Henüz indirilen kitap yok',
-                  subtitle:
-                      'Bir kitabı indirdiginde burada göreceksin.',
+                  subtitle: 'Bir kitabı indirdiginde burada göreceksin.',
                 );
               }
 
@@ -370,9 +370,10 @@ class _LibraryModeContent extends StatelessWidget {
           const SizedBox(height: 10),
           favoritesAsync.when(
             loading: () => const _LibraryLoadingCard(height: 140),
-            error: (_, __) => const _InlineInfoCard(
+            error: (_, stackTrace) => const _InlineInfoCard(
               title: 'Favoriler yüklenemedi',
-              subtitle: 'Bağlantını kontrol edip tekrar deneyebilirsin.',
+              subtitle:
+                  'Bağlantını kontrol edip tekrar deneyebilirsin.',
             ),
             data: (_) {
               if (favorites.isEmpty) {
@@ -399,12 +400,13 @@ class _LibraryModeContent extends StatelessWidget {
             mode == _LibraryMode.highlights) ...[
           const _SectionTitle(
             title: 'Kaydettiğin Alıntılar',
-            subtitle: 'İşaretlediğin paragraflara hızlıca geri dön.',
+            subtitle:
+                'İşaretlediğin paragraflara hızlıca geri dön.',
           ),
           const SizedBox(height: 10),
           highlightsAsync.when(
             loading: () => const _LibraryLoadingCard(height: 220),
-            error: (_, __) => _LibraryErrorCard(
+            error: (_, stackTrace) => _LibraryErrorCard(
               title: 'Kaydedilen alıntılar yüklenemedi',
               buttonLabel: 'Tekrar dene',
               onPressed: onRetryHighlights,
@@ -422,8 +424,8 @@ class _LibraryModeContent extends StatelessWidget {
               final previewCap = 6;
               final displayCount = overviewPreview
                   ? (highlights.length < previewCap
-                      ? highlights.length
-                      : previewCap)
+                        ? highlights.length
+                        : previewCap)
                   : highlights.length;
 
               return Column(
@@ -438,17 +440,14 @@ class _LibraryModeContent extends StatelessWidget {
                       child: _HighlightCard(highlight: highlights[index]),
                     ),
                   ),
-                  if (overviewPreview &&
-                      hlState.total > displayCount) ...[
+                  if (overviewPreview && hlState.total > displayCount) ...[
                     const SizedBox(height: 8),
                     Text(
                       'Toplam ${hlState.total} alıntı kayıtlı. Hepsini görmek için Alıntı sekmesine geçebilirsin.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant,
-                            height: 1.4,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.4,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Align(
@@ -515,9 +514,7 @@ class _LibraryHero extends StatelessWidget {
         filteredCounts?.started ?? progressAsync.valueOrNull?.length ?? 0;
     final progressCount =
         filteredCounts?.progress ??
-        progressAsync.valueOrNull
-            ?.where((item) => !item.isCompleted)
-            .length ??
+        progressAsync.valueOrNull?.where((item) => !item.isCompleted).length ??
         0;
     final completedCount =
         filteredCounts?.completed ??
@@ -527,7 +524,8 @@ class _LibraryHero extends StatelessWidget {
         filteredCounts?.downloaded ?? downloadedAsync.valueOrNull?.length ?? 0;
     final favoritesCount =
         filteredCounts?.favorites ?? favoritesAsync.valueOrNull?.length ?? 0;
-    final highlightsCount = filteredCounts?.highlights ??
+    final highlightsCount =
+        filteredCounts?.highlights ??
         highlightsAsync.valueOrNull?.total ??
         highlightsAsync.valueOrNull?.items.length ??
         0;
@@ -539,7 +537,9 @@ class _LibraryHero extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.75),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.24 : 0.06),
@@ -612,7 +612,10 @@ class _LibraryHero extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _StatPill(label: 'İndirilen', value: '$downloadedCount'),
+                child: _StatPill(
+                  label: 'İndirilen',
+                  value: '$downloadedCount',
+                ),
               ),
             ],
           ),
@@ -624,7 +627,10 @@ class _LibraryHero extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _StatPill(label: 'Alıntı', value: '$highlightsCount'),
+                child: _StatPill(
+                  label: 'Alıntı',
+                  value: '$highlightsCount',
+                ),
               ),
             ],
           ),
@@ -648,7 +654,9 @@ class _StatPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.7)),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.7),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -771,7 +779,7 @@ class _ProgressCard extends StatelessWidget {
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(26),
           border: Border.all(
-            color: theme.colorScheme.outline.withOpacity(0.75),
+            color: theme.colorScheme.outline.withValues(alpha: 0.75),
           ),
         ),
         child: Row(
@@ -821,8 +829,8 @@ class _ProgressCard extends StatelessWidget {
                     child: LinearProgressIndicator(
                       value: progress.completionPercentage / 100,
                       minHeight: 7,
-                      backgroundColor: theme.colorScheme.outline.withOpacity(
-                        0.45,
+                      backgroundColor: theme.colorScheme.outline.withValues(
+                        alpha: 0.45,
                       ),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         progress.isCompleted ? Colors.green : AppColors.primary,
@@ -869,7 +877,7 @@ class _FavoriteChip extends StatelessWidget {
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: theme.colorScheme.outline.withOpacity(0.75),
+            color: theme.colorScheme.outline.withValues(alpha: 0.75),
           ),
         ),
         child: Row(
@@ -940,7 +948,7 @@ class _DownloadedBookCard extends ConsumerWidget {
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: theme.colorScheme.outline.withOpacity(0.75),
+            color: theme.colorScheme.outline.withValues(alpha: 0.75),
           ),
         ),
         child: Row(
@@ -1076,9 +1084,7 @@ class _HighlightCard extends StatelessWidget {
     Color accent = AppColors.accent;
     try {
       if (highlight.color != null && highlight.color!.isNotEmpty) {
-        accent = Color(
-          int.parse(highlight.color!.replaceFirst('#', '0xFF')),
-        );
+        accent = Color(int.parse(highlight.color!.replaceFirst('#', '0xFF')));
       }
     } catch (_) {}
 
@@ -1087,7 +1093,9 @@ class _HighlightCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.75),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1101,10 +1109,7 @@ class _HighlightCard extends StatelessWidget {
                   color: accent.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(
-                  Icons.bookmark_added_rounded,
-                  color: accent,
-                ),
+                child: Icon(Icons.bookmark_added_rounded, color: accent),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1169,7 +1174,7 @@ class _BookCover extends StatelessWidget {
               width: width,
               height: height,
               fit: BoxFit.cover,
-              errorWidget: (_, __, ___) =>
+              errorWidget: (_, error, stackTrace) =>
                   _BookCoverFallback(width: width, height: height),
             )
           : _BookCoverFallback(width: width, height: height),
@@ -1224,7 +1229,9 @@ class _EmptyPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.75),
+        ),
       ),
       child: Column(
         children: [
@@ -1276,7 +1283,9 @@ class _InlineInfoCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.75),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1314,7 +1323,9 @@ class _LibraryLoadingCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.75),
+        ),
       ),
       child: const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
@@ -1342,7 +1353,9 @@ class _LibraryErrorCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.75)),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.75),
+        ),
       ),
       child: Column(
         children: [

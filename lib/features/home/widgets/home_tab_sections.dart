@@ -34,10 +34,6 @@ class HomeGreetingSection extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-    final greetingName = kidsModeEnabled
-        ? (activeProfile?.name.split(' ').first ?? 'Küçük Okuyucu')
-        : (user?.name.split(' ').first ?? 'Okuyucu');
-
     return Row(
       children: [
         Expanded(
@@ -95,8 +91,8 @@ class HomeGreetingSection extends StatelessWidget {
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: isDark
-                            ? Colors.white.withOpacity(0.08)
-                            : colorScheme.outline.withOpacity(0.35),
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : colorScheme.outline.withValues(alpha: 0.35),
                       ),
                     ),
                     child: Padding(
@@ -105,8 +101,8 @@ class HomeGreetingSection extends StatelessWidget {
                         value: 0.3,
                         strokeWidth: 4,
                         backgroundColor: isDark
-                            ? Colors.white.withOpacity(0.14)
-                            : colorScheme.outline.withOpacity(0.25),
+                            ? Colors.white.withValues(alpha: 0.14)
+                            : colorScheme.outline.withValues(alpha: 0.25),
                         color: isDark
                             ? AppColors.primaryLight
                             : AppColors.accent,
@@ -144,7 +140,10 @@ class HomeContinueReadingSection extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
+            colors: [
+              AppColors.primary,
+              AppColors.primary.withValues(alpha: 0.8),
+            ],
           ),
           borderRadius: BorderRadius.circular(20),
         ),
@@ -286,7 +285,7 @@ class HomeQuickCategoriesSection extends StatelessWidget {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: categories.length.clamp(0, 10),
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                separatorBuilder: (_, index) => const SizedBox(width: 10),
                 itemBuilder: (context, index) {
                   final category = categories[index];
                   return InkWell(
@@ -303,7 +302,7 @@ class HomeQuickCategoriesSection extends StatelessWidget {
                         ).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(
-                          color: colorScheme.outline.withOpacity(0.55),
+                          color: colorScheme.outline.withValues(alpha: 0.55),
                         ),
                       ),
                       child: Text(
@@ -400,20 +399,23 @@ class HomeFeaturedBooksSection extends StatelessWidget {
                                       imageUrl: book.coverImageUrl!,
                                       fit: BoxFit.cover,
                                       width: 120,
-                                      errorWidget: (_, __, ___) => Container(
-                                        color: AppColors.primary.withOpacity(
-                                          0.1,
-                                        ),
-                                        child: const Center(
-                                          child: Text(
-                                            '📖',
-                                            style: TextStyle(fontSize: 36),
+                                      errorWidget: (_, error, stackTrace) =>
+                                          Container(
+                                            color: AppColors.primary.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                            child: const Center(
+                                              child: Text(
+                                                '📖',
+                                                style: TextStyle(fontSize: 36),
+                                              ),
+                                            ),
                                           ),
-                                        ),
-                                      ),
                                     )
                                   : Container(
-                                      color: AppColors.primary.withOpacity(0.1),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.1,
+                                      ),
                                       child: const Center(
                                         child: Text(
                                           '📖',
@@ -487,9 +489,13 @@ class HomeHeaderIconButton extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withOpacity(0.72),
+              color: colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.72,
+              ),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: colorScheme.outline.withOpacity(0.5)),
+              border: Border.all(
+                color: colorScheme.outline.withValues(alpha: 0.5),
+              ),
             ),
             child: Icon(icon, size: 22, color: colorScheme.onSurfaceVariant),
           ),
@@ -522,7 +528,7 @@ class CompactPremiumCta extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.18 : 0.08),
+                color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.08),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -662,7 +668,7 @@ class KidsModeInfoCard extends ConsumerWidget {
             : LinearGradient(
                 colors: [
                   Colors.pink.shade50,
-                  Colors.pink.shade50.withOpacity(0.6),
+                  Colors.pink.shade50.withValues(alpha: 0.6),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -671,7 +677,7 @@ class KidsModeInfoCard extends ConsumerWidget {
         border: Border.all(
           color: isDark
               ? accent.withValues(alpha: 0.45)
-              : Colors.pink.shade200.withOpacity(0.6),
+              : Colors.pink.shade200.withValues(alpha: 0.6),
         ),
       ),
       child: Row(

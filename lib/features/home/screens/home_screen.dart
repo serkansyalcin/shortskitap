@@ -471,20 +471,23 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
                                       imageUrl: book.coverImageUrl!,
                                       fit: BoxFit.cover,
                                       width: double.infinity,
-                                      errorWidget: (_, __, ___) => Container(
-                                        color: AppColors.primary.withOpacity(
-                                          0.1,
-                                        ),
-                                        child: const Center(
-                                          child: Text(
-                                            '📖',
-                                            style: TextStyle(fontSize: 36),
+                                      errorWidget: (_, error, stackTrace) =>
+                                          Container(
+                                            color: AppColors.primary.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                            child: const Center(
+                                              child: Text(
+                                                '📖',
+                                                style: TextStyle(fontSize: 36),
+                                              ),
+                                            ),
                                           ),
-                                        ),
-                                      ),
                                     )
                                   : Container(
-                                      color: AppColors.primary.withOpacity(0.1),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.1,
+                                      ),
                                       child: const Center(
                                         child: Text(
                                           '📖',
@@ -658,7 +661,9 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
       case NotificationPermissionState.unsupported:
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Bu platformda bildirim desteği kullanılamıyor.'),
+            content: Text(
+              'Bu platformda bildirim desteği kullanılamıyor.',
+            ),
           ),
         );
         break;
@@ -799,7 +804,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
       final switched = await ref
           .read(authProvider.notifier)
           .activateReaderProfile(parentProfile.id as int);
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -813,9 +818,9 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
       return;
     }
 
-    if (!context.mounted) return;
+    if (!mounted) return;
     final ok = await KidsModeExitDialog.show(context, verifyPin: svc.verifyPin);
-    if (ok == true && context.mounted) {
+    if (ok == true && mounted) {
       await ref
           .read(authProvider.notifier)
           .activateReaderProfile(parentProfile.id as int);
@@ -826,9 +831,9 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
     final uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Sayfa açılamadı.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sayfa açılamadı.')),
+        );
       }
     }
   }
@@ -928,7 +933,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                     width: 64,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: colorScheme.outline.withOpacity(0.35),
+                      color: colorScheme.outline.withValues(alpha: 0.35),
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
@@ -940,7 +945,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                     vertical: 7,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.12),
+                    color: AppColors.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: const Text(
@@ -984,7 +989,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                       end: Alignment.bottomRight,
                     ),
                     border: Border.all(
-                      color: AppColors.primary.withOpacity(0.16),
+                      color: AppColors.primary.withValues(alpha: 0.16),
                     ),
                   ),
                   child: Column(
@@ -1016,7 +1021,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.08),
+                    color: AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -1195,7 +1200,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                     ),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: theme.colorScheme.outline.withOpacity(0.7),
+                      color: theme.colorScheme.outline.withValues(alpha: 0.7),
                     ),
                   ),
                   child: Row(
@@ -1204,7 +1209,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                         width: 42,
                         height: 42,
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.14),
+                          color: AppColors.primary.withValues(alpha: 0.14),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: const Icon(
@@ -1287,7 +1292,11 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                         icon: '🎯',
                       ),
                       const SizedBox(width: 12),
-                      const _StatCard(label: 'Seri', value: '—', icon: '🔥'),
+                      const _StatCard(
+                        label: 'Seri',
+                        value: '—',
+                        icon: '🔥',
+                      ),
                       const SizedBox(width: 12),
                       const _StatCard(
                         label: 'Rozetler',
@@ -1314,18 +1323,20 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                     _MenuItem(
                       icon: Icons.settings_outlined,
                       title: 'Ayarlar',
-                      subtitle: 'Tema, okuma tercihleri ve uygulama ayarları',
+                      subtitle:
+                          'Tema, okuma tercihleri ve uygulama ayarları',
                       onTap: () => context.push('/home/settings'),
                     ),
                     _MenuDivider(),
                     _MenuItem(
                       icon: Icons.child_care_rounded,
                       title: 'Çocuk Modu',
-                      subtitle: 'Çocuklara özel güvenli okuma alanı',
+                      subtitle:
+                          'Çocuklara özel güvenli okuma alanı',
                       color: Colors.pink.shade600,
                       trailing: Switch(
                         value: ref.watch(kidsModeProvider),
-                        activeColor: Colors.pink.shade500,
+                        activeThumbColor: Colors.pink.shade500,
                         onChanged: (val) async {
                           if (val) {
                             await _switchIntoChildProfile();
@@ -1387,9 +1398,10 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                             );
                           },
                         );
-                        if (ok == true && mounted) {
+                        if (ok == true) {
                           await ref.read(authProvider.notifier).logout();
-                          if (mounted) context.go('/login');
+                          if (!context.mounted) return;
+                          context.go('/login');
                         }
                       },
                     ),
@@ -1412,7 +1424,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
+                              color: AppColors.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(
@@ -1444,7 +1456,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                           ),
                           Switch(
                             value: notificationEnabled,
-                            activeColor: AppColors.primary,
+                            activeThumbColor: AppColors.primary,
                             onChanged: _toggleNotifications,
                           ),
                         ],
@@ -1493,7 +1505,9 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                   decoration: BoxDecoration(
                     color: cardColor,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.red.withOpacity(0.3)),
+                    border: Border.all(
+                      color: Colors.red.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: _MenuItem(
                     icon: Icons.delete_forever_outlined,
@@ -1529,7 +1543,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                 );
               },
               loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
+              error: (_, stackTrace) => const SizedBox.shrink(),
             ),
         ],
       ),
@@ -1570,11 +1584,11 @@ class _MenuCard extends StatelessWidget {
         color: color,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.7),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.7),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -1592,7 +1606,7 @@ class _MenuDivider extends StatelessWidget {
       height: 1,
       indent: 72,
       endIndent: 18,
-      color: Theme.of(context).colorScheme.outline.withOpacity(0.7),
+      color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.7),
     );
   }
 }
@@ -1641,7 +1655,7 @@ class _ProfileHeroCard extends StatelessWidget {
           colors: [
             if (isDark) const Color(0xFF181914) else const Color(0xFFF7FAF6),
             if (isDark) const Color(0xFF22261F) else const Color(0xFFF0F7F0),
-            AppColors.primary.withOpacity(0.18),
+            AppColors.primary.withValues(alpha: 0.18),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -1649,12 +1663,12 @@ class _ProfileHeroCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.06)
-              : theme.colorScheme.outline.withOpacity(0.7),
+              ? Colors.white.withValues(alpha: 0.06)
+              : theme.colorScheme.outline.withValues(alpha: 0.7),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(isDark ? 0.14 : 0.08),
+            color: AppColors.primary.withValues(alpha: isDark ? 0.14 : 0.08),
             blurRadius: 24,
             offset: const Offset(0, 14),
           ),
@@ -1669,12 +1683,12 @@ class _ProfileHeroCard extends StatelessWidget {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.18),
+                  color: AppColors.primary.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isDark
-                        ? Colors.white.withOpacity(0.08)
-                        : theme.colorScheme.outline.withOpacity(0.55),
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : theme.colorScheme.outline.withValues(alpha: 0.55),
                   ),
                 ),
                 child: Center(
@@ -1766,10 +1780,10 @@ class _ProfileHeroCard extends StatelessWidget {
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.14),
+                  color: AppColors.primary.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(
-                    color: AppColors.primary.withOpacity(0.18),
+                    color: AppColors.primary.withValues(alpha: 0.18),
                   ),
                 ),
                 child: Row(
@@ -1819,11 +1833,13 @@ class _HeroInfoChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.white.withOpacity(0.06)
-            : theme.colorScheme.surfaceContainerHighest.withOpacity(0.7),
+            ? Colors.white.withValues(alpha: 0.06)
+            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(isDark ? 0.18 : 0.5),
+          color: theme.colorScheme.outline.withValues(
+            alpha: isDark ? 0.18 : 0.5,
+          ),
         ),
       ),
       child: Row(
@@ -1867,7 +1883,7 @@ class _PremiumDetailRow extends StatelessWidget {
           width: 42,
           height: 42,
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.12),
+            color: AppColors.primary.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Icon(icon, color: AppColors.primary, size: 20),
@@ -1926,10 +1942,12 @@ class _ProfileQuickStat extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.7)),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.7),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -1944,7 +1962,7 @@ class _ProfileQuickStat extends StatelessWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.14),
+                  color: iconColor.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: iconColor, size: 18),
@@ -1997,7 +2015,7 @@ class _StatCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 12,
               offset: const Offset(0, 2),
             ),
@@ -2139,7 +2157,7 @@ class _MenuItem extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: (color ?? AppColors.primary).withOpacity(0.1),
+          color: (color ?? AppColors.primary).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: color ?? AppColors.primary, size: 20),

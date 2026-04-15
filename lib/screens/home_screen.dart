@@ -70,16 +70,13 @@ class _HomeScreenState extends State<HomeScreen> {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final book = books[index];
-                  return _BookCard(
-                    book: book,
-                    onTap: () => _openBookDetail(context, book),
-                  );
-                },
-                childCount: books.length,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final book = books[index];
+                return _BookCard(
+                  book: book,
+                  onTap: () => _openBookDetail(context, book),
+                );
+              }, childCount: books.length),
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
@@ -89,11 +86,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openBookDetail(BuildContext context, Book book) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => BookDetailScreen(book: book),
-      ),
-    ).then((_) => _loadStreak());
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (context) => BookDetailScreen(book: book),
+          ),
+        )
+        .then((_) => _loadStreak());
   }
 }
 
@@ -117,15 +116,10 @@ class _StreakBanner extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            '🔥',
-            style: GoogleFonts.inter(fontSize: 18),
-          ),
+          Text('🔥', style: GoogleFonts.inter(fontSize: 18)),
           const SizedBox(width: 8),
           Text(
-            streak == 1
-                ? 'Bugün okudun'
-                : '$streak gün üst üste okuyorsun',
+            streak == 1 ? 'Bugün okudun' : '$streak gün üst üste okuyorsun',
             style: GoogleFonts.inter(
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -218,7 +212,7 @@ class _BookCard extends StatelessWidget {
                       ],
                       const SizedBox(height: 8),
                       Text(
-                        '${book.totalParagraphs} paragraf',
+                        '${book.paragraphs.length} paragraf${(book.interactiveElements?.isNotEmpty ?? false) ? ' + Oyunlar' : ''}',
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: AppColors.textMuted,

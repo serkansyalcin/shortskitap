@@ -13,8 +13,11 @@ class DuelModel {
   final int? winnerReaderProfileId;
   final DateTime? startsAt;
   final DateTime? expiresAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
   final DuelUserModel? challenger;
   final DuelUserModel? opponent;
+  final DuelUserModel? winner;
 
   const DuelModel({
     required this.id,
@@ -31,8 +34,11 @@ class DuelModel {
     this.winnerReaderProfileId,
     this.startsAt,
     this.expiresAt,
+    this.createdAt,
+    this.updatedAt,
     this.challenger,
     this.opponent,
+    this.winner,
   });
 
   factory DuelModel.fromJson(Map<String, dynamic> json) {
@@ -64,11 +70,20 @@ class DuelModel {
       expiresAt: json['expires_at'] != null
           ? DateTime.parse(json['expires_at'] as String)
           : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : null,
       challenger: json['challenger'] != null
           ? DuelUserModel.fromJson(json['challenger'] as Map<String, dynamic>)
           : null,
       opponent: json['opponent'] != null
           ? DuelUserModel.fromJson(json['opponent'] as Map<String, dynamic>)
+          : null,
+      winner: json['winner'] != null
+          ? DuelUserModel.fromJson(json['winner'] as Map<String, dynamic>)
           : null,
     );
   }
@@ -81,6 +96,18 @@ class DuelModel {
   bool get isOpen => isPending || isActive;
   bool get hasReaderProfileScope =>
       challengerReaderProfileId != null || opponentReaderProfileId != null;
+  bool get isTie => challengerScore == opponentScore;
+  bool get challengerWon => challengerScore > opponentScore;
+  bool get opponentWon => opponentScore > challengerScore;
+  int get scoreGap => (challengerScore - opponentScore).abs();
+  DuelUserModel? get leadingUser => challengerWon
+      ? challenger
+      : opponentWon
+      ? opponent
+      : null;
+  DateTime? get resolvedEndedAt => isCompleted || isDeclined || isExpired
+      ? (updatedAt ?? expiresAt ?? startsAt ?? createdAt)
+      : null;
 
   bool involvesUser(int userId) {
     return challengerId == userId || opponentId == userId;
@@ -159,6 +186,55 @@ class DuelModel {
     }
 
     return userId == null ? null : otherUserFor(userId);
+  }
+
+  bool isActorChallenger({int? userId, int? readerProfileId}) {
+    if (hasReaderProfileScope && readerProfileId != null) {
+      return challengerReaderProfileId == readerProfileId;
+    }
+
+    return userId != null && challengerId == userId;
+  }
+
+  bool isActorOpponent({int? userId, int? readerProfileId}) {
+    if (hasReaderProfileScope && readerProfileId != null) {
+      return opponentReaderProfileId == readerProfileId;
+    }
+
+    return userId != null && opponentId == userId;
+  }
+
+  bool didActorWin({int? userId, int? readerProfileId}) {
+    if (isTie) {
+      return false;
+    }
+
+    if (winnerId != null || winnerReaderProfileId != null) {
+      if (hasReaderProfileScope && readerProfileId != null) {
+        return winnerReaderProfileId == readerProfileId;
+      }
+
+      return userId != null && winnerId == userId;
+    }
+
+    return isActorChallenger(userId: userId, readerProfileId: readerProfileId)
+        ? challengerWon
+        : isActorOpponent(userId: userId, readerProfileId: readerProfileId)
+        ? opponentWon
+        : false;
+  }
+
+  bool didActorLose({int? userId, int? readerProfileId}) {
+    if (isTie) {
+      return false;
+    }
+
+    if (!isActorChallenger(userId: userId, readerProfileId: readerProfileId) &&
+        !isActorOpponent(userId: userId, readerProfileId: readerProfileId)) {
+      return false;
+    }
+
+    return !didActorWin(userId: userId, readerProfileId: readerProfileId);
   }
 
   Duration? get timeRemaining {

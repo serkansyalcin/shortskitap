@@ -36,19 +36,15 @@ class AuthState {
   const AuthState.unknown() : this(status: AuthStatus.unknown);
 
   AuthState.authenticated(
-    UserModel user, {
-    List<ReaderProfileModel> profiles = const <ReaderProfileModel>[],
-    ReaderProfileModel? activeProfile,
+    this.user, {
+    this.profiles = const <ReaderProfileModel>[],
+    this.activeProfile,
     bool offlineSession = false,
   }) : status = AuthStatus.authenticated,
-       user = user,
-       profiles = profiles,
-       activeProfile = activeProfile,
        error = null,
        isOfflineSession = offlineSession;
 
-  const AuthState.unauthenticated()
-    : this(status: AuthStatus.unauthenticated);
+  const AuthState.unauthenticated() : this(status: AuthStatus.unauthenticated);
 
   bool get isAuthenticated => status == AuthStatus.authenticated;
 }
@@ -265,10 +261,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> activateReaderProfile(
-    int profileId, {
-    String? parentPin,
-  }) async {
+  Future<bool> activateReaderProfile(int profileId, {String? parentPin}) async {
     try {
       final session = await _service.activateReaderProfile(
         profileId,

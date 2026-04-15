@@ -140,8 +140,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
               itemCount: state.items.length + (state.isLoadingMore ? 1 : 0),
-              separatorBuilder: (context, index) =>
-                  const SizedBox(height: 12),
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 if (index >= state.items.length) {
                   return const Padding(

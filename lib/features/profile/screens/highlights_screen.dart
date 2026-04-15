@@ -43,9 +43,9 @@ class _HighlightsScreenState extends ConsumerState<HighlightsScreen> {
 
     ref.read(highlightsProvider.notifier).loadMore().catchError((Object e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(userFacingErrorMessage(e))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(userFacingErrorMessage(e))));
     });
   }
 
@@ -73,14 +73,14 @@ class _HighlightsScreenState extends ConsumerState<HighlightsScreen> {
     try {
       await ref.read(highlightsProvider.notifier).removeHighlight(h.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vurgu silindi.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Vurgu silindi.')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(userFacingErrorMessage(e))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(userFacingErrorMessage(e))));
     }
   }
 
@@ -129,8 +129,7 @@ class _HighlightsScreenState extends ConsumerState<HighlightsScreen> {
                 Text(
                   userFacingErrorMessage(
                     err,
-                    fallback:
-                        'Bağlantını kontrol edip tekrar dene.',
+                    fallback: 'Bağlantını kontrol edip tekrar dene.',
                   ),
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -141,8 +140,7 @@ class _HighlightsScreenState extends ConsumerState<HighlightsScreen> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () =>
-                      ref.invalidate(highlightsProvider),
+                  onPressed: () => ref.invalidate(highlightsProvider),
                   child: const Text('Tekrar Dene'),
                 ),
               ],
@@ -183,8 +181,9 @@ class _HighlightsScreenState extends ConsumerState<HighlightsScreen> {
               controller: _scroll,
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(20),
-              itemCount: st.items.length + (st.hasMore || st.isLoadingMore ? 1 : 0),
-              separatorBuilder: (_, __) => const SizedBox(height: 16),
+              itemCount:
+                  st.items.length + (st.hasMore || st.isLoadingMore ? 1 : 0),
+              separatorBuilder: (_, index) => const SizedBox(height: 16),
               itemBuilder: (ctx, index) {
                 if (index >= st.items.length) {
                   if (st.isLoadingMore) {
@@ -199,16 +198,17 @@ class _HighlightsScreenState extends ConsumerState<HighlightsScreen> {
                   }
                   return TextButton.icon(
                     onPressed: () {
-                      ref.read(highlightsProvider.notifier).loadMore().catchError(
-                        (Object e) {
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(userFacingErrorMessage(e)),
-                            ),
-                          );
-                        },
-                      );
+                      ref
+                          .read(highlightsProvider.notifier)
+                          .loadMore()
+                          .catchError((Object e) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(userFacingErrorMessage(e)),
+                              ),
+                            );
+                          });
                     },
                     icon: const Icon(Icons.expand_more_rounded),
                     label: const Text('Daha fazla yükle'),
@@ -247,17 +247,15 @@ class _HighlightListTile extends StatelessWidget {
     Color color = const Color(0xFFFFEB3B);
     try {
       if (highlight.color != null && highlight.color!.isNotEmpty) {
-        color = Color(
-          int.parse(highlight.color!.replaceFirst('#', '0xFF')),
-        );
+        color = Color(int.parse(highlight.color!.replaceFirst('#', '0xFF')));
       }
     } catch (_) {}
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -300,7 +298,10 @@ class _HighlightListTile extends StatelessWidget {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                        ),
                         onPressed: onDelete,
                       ),
                     ],
@@ -317,8 +318,8 @@ class _HighlightListTile extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    border: Border.all(color: color.withOpacity(0.15)),
+                    color: color.withValues(alpha: 0.1),
+                    border: Border.all(color: color.withValues(alpha: 0.15)),
                   ),
                   child: Text(
                     highlight.text,

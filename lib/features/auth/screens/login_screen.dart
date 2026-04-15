@@ -139,7 +139,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           color: theme.cardColor,
                           borderRadius: BorderRadius.circular(30),
                           border: Border.all(
-                            color: colorScheme.outline.withOpacity(0.7),
+                            color: colorScheme.outline.withValues(alpha: 0.7),
                           ),
                           boxShadow: [
                             BoxShadow(
@@ -435,9 +435,11 @@ class _AuthHero extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: theme.cardColor.withOpacity(isDark ? 0.92 : 0.98),
+            color: theme.cardColor.withValues(alpha: isDark ? 0.92 : 0.98),
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: colorScheme.outline.withOpacity(0.7)),
+            border: Border.all(
+              color: colorScheme.outline.withValues(alpha: 0.7),
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

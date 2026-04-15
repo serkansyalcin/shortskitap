@@ -22,16 +22,16 @@ class CharacterModel {
   });
 
   factory CharacterModel.fromJson(Map<String, dynamic> json) => CharacterModel(
-        id: json['id'] as int,
-        bookId: json['book_id'] as int,
-        name: json['name'] as String,
-        description: json['description'] as String?,
-        role: CharacterRole.fromString(json['role'] as String? ?? 'supporting'),
-        avatarUrl: json['avatar_url'] as String?,
-        traits: (json['traits'] as List<dynamic>?)?.cast<String>() ?? [],
-        isAiGenerated: json['is_ai_generated'] == true,
-        sortOrder: json['sort_order'] as int? ?? 0,
-      );
+    id: json['id'] as int,
+    bookId: json['book_id'] as int,
+    name: json['name'] as String,
+    description: json['description'] as String?,
+    role: CharacterRole.fromString(json['role'] as String? ?? 'supporting'),
+    avatarUrl: json['avatar_url'] as String?,
+    traits: (json['traits'] as List<dynamic>?)?.cast<String>() ?? [],
+    isAiGenerated: json['is_ai_generated'] == true,
+    sortOrder: json['sort_order'] as int? ?? 0,
+  );
 }
 
 enum CharacterRole {
@@ -41,23 +41,23 @@ enum CharacterRole {
   narrator;
 
   static CharacterRole fromString(String value) => switch (value) {
-        'protagonist' => CharacterRole.protagonist,
-        'antagonist' => CharacterRole.antagonist,
-        'narrator' => CharacterRole.narrator,
-        _ => CharacterRole.supporting,
-      };
+    'protagonist' => CharacterRole.protagonist,
+    'antagonist' => CharacterRole.antagonist,
+    'narrator' => CharacterRole.narrator,
+    _ => CharacterRole.supporting,
+  };
 
   String get label => switch (this) {
-        CharacterRole.protagonist => 'Başkahraman',
-        CharacterRole.antagonist => 'Antagonist',
-        CharacterRole.narrator => 'Anlatıcı',
-        CharacterRole.supporting => 'Yan Karakter',
-      };
+    CharacterRole.protagonist => 'Başkahraman',
+    CharacterRole.antagonist => 'Antagonist',
+    CharacterRole.narrator => 'Anlatıcı',
+    CharacterRole.supporting => 'Yan Karakter',
+  };
 
   String get emoji => switch (this) {
-        CharacterRole.protagonist => '⭐',
-        CharacterRole.antagonist => '⚔️',
-        CharacterRole.narrator => '📢',
-        CharacterRole.supporting => '👤',
-      };
+    CharacterRole.protagonist => '⭐',
+    CharacterRole.antagonist => '⚔️',
+    CharacterRole.narrator => '📢',
+    CharacterRole.supporting => '👤',
+  };
 }

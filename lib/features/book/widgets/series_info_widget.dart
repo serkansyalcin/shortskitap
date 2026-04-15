@@ -173,7 +173,7 @@ class SeriesBookListWidget extends StatelessWidget {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: books.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            separatorBuilder: (_, index) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
               final book = books[index];
               final isCurrent = book.id == currentBookId;
@@ -194,13 +194,15 @@ class SeriesBookListWidget extends StatelessWidget {
                     children: [
                       Expanded(
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(isCurrent ? 12 : 14),
+                          borderRadius: BorderRadius.circular(
+                            isCurrent ? 12 : 14,
+                          ),
                           child: book.coverImageUrl != null
                               ? Image.network(
                                   book.coverImageUrl!,
                                   fit: BoxFit.cover,
                                   width: 76,
-                                  errorBuilder: (_, __, ___) =>
+                                  errorBuilder: (_, error, stackTrace) =>
                                       _FallbackMini(accentColor: accentColor),
                                 )
                               : _FallbackMini(accentColor: accentColor),

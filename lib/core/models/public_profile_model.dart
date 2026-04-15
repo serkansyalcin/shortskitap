@@ -83,10 +83,7 @@ class ProfileCountsModel {
   final int followers;
   final int following;
 
-  const ProfileCountsModel({
-    required this.followers,
-    required this.following,
-  });
+  const ProfileCountsModel({required this.followers, required this.following});
 
   factory ProfileCountsModel.fromJson(Map<String, dynamic> json) {
     return ProfileCountsModel(
@@ -130,7 +127,8 @@ class ProfileStatsModel {
 
   factory ProfileStatsModel.fromJson(Map<String, dynamic> json) {
     return ProfileStatsModel(
-      totalParagraphsRead: (json['total_paragraphs_read'] as num?)?.toInt() ?? 0,
+      totalParagraphsRead:
+          (json['total_paragraphs_read'] as num?)?.toInt() ?? 0,
       completedBooks: (json['completed_books'] as num?)?.toInt() ?? 0,
       startedBooks: (json['started_books'] as num?)?.toInt() ?? 0,
       currentStreak: (json['current_streak'] as num?)?.toInt() ?? 0,

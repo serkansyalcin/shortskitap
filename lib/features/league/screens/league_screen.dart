@@ -630,6 +630,8 @@ class _DuelListTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final statusColor = _duelStatusColor(theme, duel.status);
+    final isArchived = duel.isCompleted || duel.isExpired || duel.isDeclined;
     final counterpart =
         duel.otherUserForActor(
           userId: currentUserId,
@@ -649,6 +651,14 @@ class _DuelListTile extends ConsumerWidget {
     final scoreText = duel.isActive || duel.isCompleted
         ? 'Skor: ${duel.challengerScore} - ${duel.opponentScore}'
         : '${duel.pointsAtStake} LP riskte';
+    final tileColor = isArchived
+        ? statusColor.withValues(alpha: isDark ? 0.12 : 0.08)
+        : (isDark
+              ? Colors.white.withValues(alpha: 0.03)
+              : AppColors.accent.withValues(alpha: 0.03));
+    final borderColor = isArchived
+        ? statusColor.withValues(alpha: isDark ? 0.34 : 0.26)
+        : theme.colorScheme.outline.withValues(alpha: 0.2);
 
     Future<void> handleAccept() async {
       final result = await ref.read(duelStateProvider.notifier).accept(duel.id);
@@ -680,17 +690,33 @@ class _DuelListTile extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.03)
-              : AppColors.accent.withValues(alpha: 0.03),
+          color: tileColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: theme.colorScheme.outline.withValues(alpha: 0.2),
-          ),
+          border: Border.all(color: borderColor),
+          boxShadow: isArchived
+              ? [
+                  BoxShadow(
+                    color: statusColor.withValues(alpha: isDark ? 0.14 : 0.10),
+                    blurRadius: 16,
+                    offset: const Offset(0, 10),
+                  ),
+                ]
+              : null,
         ),
         child: Column(
           children: [
+            if (isArchived) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: _DuelStateBadge(
+                  label: _listStatusLabel(duel),
+                  color: statusColor,
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _DuelStatusIcon(status: duel.status),
                 const SizedBox(width: 16),
@@ -710,17 +736,19 @@ class _DuelListTile extends ConsumerWidget {
                         statusText,
                         style: TextStyle(
                           fontSize: 13,
+                          height: 1.35,
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      duel.isActive ? 'Canlı Durum' : 'Düello',
+                      duel.isActive ? 'Canlı Durum' : 'Skor',
                       style: TextStyle(
                         fontSize: 11,
                         color: theme.colorScheme.onSurfaceVariant,
@@ -805,16 +833,42 @@ class _DuelListTile extends ConsumerWidget {
           : 'Düello sürüyor. Süre bitmeden daha fazla paragraf oku.';
     }
 
+    final finishedAgo = duel.resolvedEndedAt != null
+        ? _formatRelativeTime(duel.resolvedEndedAt!)
+        : 'az önce';
+
     if (duel.isCompleted) {
-      return 'Düello tamamlandı. Detayları görmek için dokun.';
+      if (duel.isTie) {
+        return 'Düello $finishedAgo berabere tamamlandı.';
+      }
+
+      if (duel.didActorWin(
+        userId: currentUserId,
+        readerProfileId: currentProfileId,
+      )) {
+        return 'Düelloyu $finishedAgo ${duel.scoreGap} paragraf farkla tamamladın.';
+      }
+
+      if (duel.didActorLose(
+        userId: currentUserId,
+        readerProfileId: currentProfileId,
+      )) {
+        return 'Düelloyu $finishedAgo rakibinin ${duel.scoreGap} paragraf gerisinde tamamladın.';
+      }
+
+      final winnerName =
+          duel.winner?.name ?? duel.leadingUser?.name ?? 'Kazanan taraf';
+      return '$winnerName düelloyu $finishedAgo ${duel.scoreGap} paragraf farkla tamamladı.';
     }
 
     if (duel.isDeclined) {
-      return 'Bu düello teklifi kapandı. Detayları görmek için dokun.';
+      return 'Teklif $finishedAgo reddedildi.';
     }
 
     if (duel.isExpired) {
-      return 'Süresi dolan düelloyu incelemek için dokun.';
+      return duel.isTie
+          ? 'Süre $finishedAgo doldu ve skor eşit kaldı.'
+          : 'Süre $finishedAgo doldu. Son fark ${duel.scoreGap} paragraftı.';
     }
 
     return 'Düello detayı için dokun.';
@@ -823,15 +877,18 @@ class _DuelListTile extends ConsumerWidget {
 
 class _DuelStatusIcon extends StatelessWidget {
   final String status;
+
   const _DuelStatusIcon({required this.status});
 
   @override
   Widget build(BuildContext context) {
-    final color = switch (status) {
-      'active' => AppColors.accent,
-      'pending' => AppColors.lpDGreen300,
-      'completed' => AppColors.primary,
-      _ => Colors.grey,
+    final color = _duelStatusColor(Theme.of(context), status);
+    final icon = switch (status) {
+      'pending' => Icons.hourglass_top_rounded,
+      'completed' => Icons.verified_rounded,
+      'expired' => Icons.schedule_rounded,
+      'declined' => Icons.close_rounded,
+      _ => Icons.bolt_rounded,
     };
 
     return Container(
@@ -841,11 +898,93 @@ class _DuelStatusIcon extends StatelessWidget {
         color: color.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
-      child: Icon(
-        status == 'pending' ? Icons.hourglass_top_rounded : Icons.bolt_rounded,
-        color: color,
-        size: 20,
+      child: Icon(icon, color: color, size: 20),
+    );
+  }
+}
+
+class _DuelStateBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _DuelStateBadge({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          color: color,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
+}
+
+String _listStatusLabel(DuelModel duel) {
+  if (duel.isCompleted) {
+    return 'Tamamlandı';
+  }
+  if (duel.isExpired) {
+    return 'Süre Doldu';
+  }
+  if (duel.isDeclined) {
+    return 'Reddedildi';
+  }
+  if (duel.isActive) {
+    return 'Canlı Durum';
+  }
+
+  return 'Bekliyor';
+}
+
+Color _duelStatusColor(ThemeData theme, String status) {
+  return switch (status) {
+    'active' => AppColors.accent,
+    'pending' => AppColors.lpDGreen300,
+    'completed' => AppColors.primary,
+    'expired' => theme.colorScheme.onSurfaceVariant,
+    'declined' => theme.colorScheme.error,
+    _ => theme.colorScheme.onSurfaceVariant,
+  };
+}
+
+String _formatRelativeTime(DateTime timestamp) {
+  final diff = DateTime.now().difference(timestamp);
+
+  if (diff.inSeconds < 60) {
+    return 'az önce';
+  }
+  if (diff.inMinutes < 60) {
+    return '${diff.inMinutes} dk önce';
+  }
+  if (diff.inHours < 24) {
+    final hours = diff.inHours;
+    final minutes = diff.inMinutes % 60;
+    return minutes == 0 ? '$hours sa önce' : '$hours sa $minutes dk önce';
+  }
+  if (diff.inDays < 7) {
+    return '${diff.inDays} gün önce';
+  }
+
+  final weeks = diff.inDays ~/ 7;
+  if (weeks < 5) {
+    return '$weeks hf önce';
+  }
+
+  final months = diff.inDays ~/ 30;
+  if (months < 12) {
+    return '$months ay önce';
+  }
+
+  return '${diff.inDays ~/ 365} yıl önce';
 }

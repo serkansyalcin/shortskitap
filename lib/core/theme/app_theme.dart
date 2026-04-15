@@ -91,10 +91,7 @@ class AppTheme {
         height: 1.6,
         color: AppColors.textSecondary,
       ),
-      bodySmall: GoogleFonts.inter(
-        fontSize: 14,
-        color: AppColors.textMuted,
-      ),
+      bodySmall: GoogleFonts.inter(fontSize: 14, color: AppColors.textMuted),
     );
   }
 }

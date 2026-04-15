@@ -171,7 +171,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           color: theme.cardColor,
                           borderRadius: BorderRadius.circular(30),
                           border: Border.all(
-                            color: colorScheme.outline.withOpacity(0.7),
+                            color: colorScheme.outline.withValues(alpha: 0.7),
                           ),
                           boxShadow: [
                             BoxShadow(
@@ -302,11 +302,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                       color: theme
                                           .colorScheme
                                           .surfaceContainerHighest
-                                          .withOpacity(0.45),
+                                          .withValues(alpha: 0.45),
                                       borderRadius: BorderRadius.circular(18),
                                       border: Border.all(
-                                        color: colorScheme.outline.withOpacity(
-                                          0.55,
+                                        color: colorScheme.outline.withValues(
+                                          alpha: 0.55,
                                         ),
                                       ),
                                     ),
@@ -547,9 +547,11 @@ class _RegisterHero extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: theme.cardColor.withOpacity(isDark ? 0.92 : 0.98),
+            color: theme.cardColor.withValues(alpha: isDark ? 0.92 : 0.98),
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: colorScheme.outline.withOpacity(0.7)),
+            border: Border.all(
+              color: colorScheme.outline.withValues(alpha: 0.7),
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

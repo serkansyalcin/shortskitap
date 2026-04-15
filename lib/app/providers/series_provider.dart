@@ -9,7 +9,6 @@ final seriesListProvider = FutureProvider<List<SeriesModel>>((ref) {
   return ref.read(seriesServiceProvider).getSeries();
 });
 
-final seriesDetailProvider =
-    FutureProvider.family<SeriesModel, int>((ref, id) {
+final seriesDetailProvider = FutureProvider.family<SeriesModel, int>((ref, id) {
   return ref.read(seriesServiceProvider).getSeriesDetail(id);
 });

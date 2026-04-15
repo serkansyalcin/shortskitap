@@ -5,7 +5,6 @@ import 'package:dio/dio.dart';
 import '../api/api_client.dart';
 import '../models/auth_session_model.dart';
 import '../models/reader_profile_model.dart';
-import '../models/user_model.dart';
 
 /// Result of validating the stored session against `/me`.
 enum SessionFetchResult { success, unauthorized, offline }
@@ -170,7 +169,9 @@ class AuthService {
     }
 
     if (updatedSession != null) {
-      await ApiClient.saveActiveReaderProfileId(updatedSession.activeProfile?.id);
+      await ApiClient.saveActiveReaderProfileId(
+        updatedSession.activeProfile?.id,
+      );
       return updatedSession;
     }
 
@@ -229,13 +230,13 @@ class AuthService {
       '/auth/social',
       data: {
         'provider': provider,
-        if (idToken != null) 'id_token': idToken,
-        if (accessToken != null) 'access_token': accessToken,
-        if (identityToken != null) 'identity_token': identityToken,
-        if (authorizationCode != null) 'authorization_code': authorizationCode,
-        if (name != null) 'name': name,
-        if (email != null) 'email': email,
-        if (avatarUrl != null) 'avatar_url': avatarUrl,
+        ...?_optionalField('id_token', idToken),
+        ...?_optionalField('access_token', accessToken),
+        ...?_optionalField('identity_token', identityToken),
+        ...?_optionalField('authorization_code', authorizationCode),
+        ...?_optionalField('name', name),
+        ...?_optionalField('email', email),
+        ...?_optionalField('avatar_url', avatarUrl),
       },
     );
     final data = res.data['data'] as Map<String, dynamic>;
@@ -265,8 +266,8 @@ class AuthService {
       '/me/profiles',
       data: {
         'name': name,
-        if (birthYear != null) 'birth_year': birthYear,
-        if (avatarUrl != null) 'avatar_url': avatarUrl,
+        ...?_optionalField('birth_year', birthYear),
+        ...?_optionalField('avatar_url', avatarUrl),
       },
     );
   }
@@ -279,11 +280,7 @@ class AuthService {
   }) async {
     await _client.put(
       '/me/profiles/$profileId',
-      data: {
-        'name': name,
-        'birth_year': birthYear,
-        'avatar_url': avatarUrl,
-      },
+      data: {'name': name, 'birth_year': birthYear, 'avatar_url': avatarUrl},
     );
   }
 
@@ -294,7 +291,10 @@ class AuthService {
     final res = await _client.post(
       '/me/profiles/$profileId/activate',
       data: {
-        if (parentPin != null && parentPin.isNotEmpty) 'parent_pin': parentPin,
+        ...?_optionalField(
+          'parent_pin',
+          parentPin?.isNotEmpty == true ? parentPin : null,
+        ),
       },
     );
     final session = AuthSessionModel.fromJson(
@@ -322,5 +322,13 @@ class AuthService {
     final res = await _client.post('/me/parent-pin/verify', data: {'pin': pin});
     final data = res.data['data'] as Map<String, dynamic>? ?? {};
     return data['valid'] == true;
+  }
+
+  Map<String, dynamic>? _optionalField(String key, Object? value) {
+    if (value == null) {
+      return null;
+    }
+
+    return <String, dynamic>{key: value};
   }
 }

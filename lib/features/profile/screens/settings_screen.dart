@@ -98,13 +98,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
 
     setState(() => _profileSaving = true);
-    final ok = await ref.read(authProvider.notifier).updateProfile(
-      name: _nameController.text.trim(),
-      username: username,
-      email: _emailController.text.trim(),
-      avatarBytes: _avatarBytes,
-      avatarFileName: _avatarFileName,
-    );
+    final ok = await ref
+        .read(authProvider.notifier)
+        .updateProfile(
+          name: _nameController.text.trim(),
+          username: username,
+          email: _emailController.text.trim(),
+          avatarBytes: _avatarBytes,
+          avatarFileName: _avatarFileName,
+        );
     if (!mounted) return;
     setState(() {
       _profileSaving = false;
@@ -139,9 +141,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _pickAvatarFromCamera() =>
       _pickAvatar(() => _avatarPicker.pickFromCamera());
 
-  Future<void> _pickAvatar(
-    Future<PickedAvatar?> Function() picker,
-  ) async {
+  Future<void> _pickAvatar(Future<PickedAvatar?> Function() picker) async {
     try {
       final picked = await picker();
       if (picked == null || !mounted) return;
@@ -207,7 +207,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _notificationStatus = enabled
           ? await _permissionService.requestPermission()
           : await _permissionService.getStatus();
-      if (!enabled || _notificationStatus == NotificationPermissionState.permanentlyDenied) {
+      if (!enabled ||
+          _notificationStatus ==
+              NotificationPermissionState.permanentlyDenied) {
         await _permissionService.openSettings();
         _notificationStatus = await _permissionService.getStatus();
       }
@@ -332,7 +334,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 TextField(
                   controller: _usernameController,
                   autocorrect: false,
-                  decoration: const InputDecoration(labelText: 'Kullanıcı Adı'),
+                  decoration: const InputDecoration(
+                    labelText: 'Kullanıcı Adı',
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -382,18 +386,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: [
-                    ('system', 'Sistem'),
-                    ('light', 'Açık'),
-                    ('dark', 'Koyu'),
-                  ].map((item) {
-                    final selected = settings.theme == item.$1;
-                    return ChoiceChip(
-                      label: Text(item.$2),
-                      selected: selected,
-                      onSelected: (_) => settingsNotifier.setTheme(item.$1),
-                    );
-                  }).toList(),
+                  children:
+                      [
+                        ('system', 'Sistem'),
+                        ('light', 'Açık'),
+                        ('dark', 'Koyu'),
+                      ].map((item) {
+                        final selected = settings.theme == item.$1;
+                        return ChoiceChip(
+                          label: Text(item.$2),
+                          selected: selected,
+                          onSelected: (_) => settingsNotifier.setTheme(item.$1),
+                        );
+                      }).toList(),
                 ),
                 const SizedBox(height: 20),
                 Text(
@@ -463,7 +468,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 else
                   Switch(
                     value: notificationEnabled,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     onChanged: _toggleNotifications,
                   ),
               ],
@@ -520,7 +525,7 @@ class _Card extends StatelessWidget {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.7),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.7),
         ),
       ),
       child: child,
@@ -564,10 +569,10 @@ class _AvatarPreview extends StatelessWidget {
       width: 84,
       height: 84,
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.12),
+        color: AppColors.primary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
         ),
       ),
       clipBehavior: Clip.antiAlias,

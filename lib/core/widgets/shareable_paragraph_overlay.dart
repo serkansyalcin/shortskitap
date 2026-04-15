@@ -11,12 +11,12 @@ class ShareableParagraphOverlay extends StatelessWidget {
   final int themeIndex;
 
   const ShareableParagraphOverlay({
-    Key? key,
+    super.key,
     required this.content,
     required this.bookTitle,
     this.authorName,
     this.themeIndex = 0,
-  }) : super(key: key);
+  });
 
   static const List<List<Color>> _gradients = [
     [Color(0xFF1A1A2E), Color(0xFF16213E), Color(0xFF0F3460)],
@@ -51,7 +51,7 @@ class ShareableParagraphOverlay extends StatelessWidget {
               '\u201c',
               style: TextStyle(
                 fontSize: 260,
-                color: Colors.white.withOpacity(0.04),
+                color: Colors.white.withValues(alpha: 0.04),
                 fontWeight: FontWeight.w900,
                 height: 1,
               ),
@@ -64,7 +64,7 @@ class ShareableParagraphOverlay extends StatelessWidget {
               '\u201d',
               style: TextStyle(
                 fontSize: 180,
-                color: Colors.white.withOpacity(0.04),
+                color: Colors.white.withValues(alpha: 0.04),
                 fontWeight: FontWeight.w900,
                 height: 1,
               ),
@@ -80,7 +80,7 @@ class ShareableParagraphOverlay extends StatelessWidget {
               height: 160,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.primary.withOpacity(0.12),
+                color: AppColors.primary.withValues(alpha: 0.12),
               ),
             ),
           ),
@@ -101,7 +101,7 @@ class ShareableParagraphOverlay extends StatelessWidget {
                   '\u201c',
                   style: TextStyle(
                     fontSize: 64,
-                    color: AppColors.primary.withOpacity(0.8),
+                    color: AppColors.primary.withValues(alpha: 0.8),
                     fontWeight: FontWeight.w900,
                     height: 0.8,
                   ),
@@ -129,7 +129,7 @@ class ShareableParagraphOverlay extends StatelessWidget {
                     gradient: LinearGradient(
                       colors: [
                         Colors.transparent,
-                        Colors.white.withOpacity(0.3),
+                        Colors.white.withValues(alpha: 0.3),
                         Colors.transparent,
                       ],
                     ),
@@ -159,7 +159,7 @@ class ShareableParagraphOverlay extends StatelessWidget {
                               authorName!,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.white.withOpacity(0.6),
+                                color: Colors.white.withValues(alpha: 0.6),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -178,7 +178,7 @@ class ShareableParagraphOverlay extends StatelessWidget {
                     'kitaplig.com',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withOpacity(0.4),
+                      color: Colors.white.withValues(alpha: 0.4),
                       fontWeight: FontWeight.w500,
                       letterSpacing: 0.5,
                     ),
@@ -199,9 +199,9 @@ class _BrandChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -213,7 +213,11 @@ class _BrandChip extends StatelessWidget {
               color: AppColors.primary,
               borderRadius: BorderRadius.circular(4),
             ),
-            child: const Icon(Icons.menu_book_rounded, size: 8, color: Colors.white),
+            child: const Icon(
+              Icons.menu_book_rounded,
+              size: 8,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(width: 6),
           Text(
@@ -221,7 +225,7 @@ class _BrandChip extends StatelessWidget {
             style: TextStyle(
               fontSize: 9,
               fontWeight: FontWeight.w800,
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               letterSpacing: 1.5,
             ),
           ),

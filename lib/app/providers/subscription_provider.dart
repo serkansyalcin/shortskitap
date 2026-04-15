@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../core/services/subscription_service.dart';
 import 'auth_provider.dart';
 
@@ -72,9 +73,9 @@ class SubscriptionStatusNotifier extends AsyncNotifier<SubscriptionStatus> {
   }
 
   /// Purchase a RevenueCat package, then refresh.
-  Future<bool> purchase(package) async {
+  Future<bool> purchase(Package package) async {
     try {
-      final success = await _subscriptionService.purchasePackage(package);
+      final success = await _subscriptionService.purchase(package);
       if (success) await refresh();
       return success;
     } catch (_) {
@@ -92,8 +93,8 @@ class SubscriptionStatusNotifier extends AsyncNotifier<SubscriptionStatus> {
 
 final subscriptionProvider =
     AsyncNotifierProvider<SubscriptionStatusNotifier, SubscriptionStatus>(
-  SubscriptionStatusNotifier.new,
-);
+      SubscriptionStatusNotifier.new,
+    );
 
 /// Convenience provider - just the bool isPremium.
 final isPremiumProvider = Provider<bool>((ref) {

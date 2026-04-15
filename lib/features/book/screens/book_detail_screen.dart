@@ -16,6 +16,8 @@ import '../../../core/models/book_model.dart';
 import '../../../core/utils/user_friendly_error.dart';
 import '../../../core/models/progress_model.dart';
 import '../../../features/subscription/widgets/premium_badge.dart';
+import '../../interactive_elements/theme/interaction_palette.dart';
+import '../../interactive_elements/widgets/interactive_elements_section.dart';
 import '../widgets/book_review_tile.dart';
 import '../widgets/character_card_widget.dart';
 import '../widgets/podcast_player_widget.dart';
@@ -39,7 +41,10 @@ class BookDetailScreen extends ConsumerWidget {
         data: (book) {
           final podcastsAsync = ref.watch(podcastsProvider(book.id));
           final progressAsync = ref.watch(bookProgressProvider(book.id));
-          final accentColor = _resolveAccentColor(book.category?.color);
+          final accentColor = resolveInteractionAccentColor(
+            context,
+            book.category?.color,
+          );
 
           return CustomScrollView(
             slivers: [
@@ -144,6 +149,20 @@ class BookDetailScreen extends ConsumerWidget {
                         error: (_, error) => const SizedBox.shrink(),
                       ),
 
+                      if (book.interactiveElements.isNotEmpty) ...[
+                        InteractiveElementsSection(
+                          elements: book.interactiveElements,
+                          accentColor: accentColor,
+                          titleStyle: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: colorScheme.onSurface,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
                       // Series info
                       if (book.seriesId != null)
                         ref
@@ -168,7 +187,8 @@ class BookDetailScreen extends ConsumerWidget {
                                 ],
                               ),
                               loading: () => const SizedBox.shrink(),
-                              error: (_, __) => const SizedBox.shrink(),
+                              error: (error, stackTrace) =>
+                                  const SizedBox.shrink(),
                             ),
 
                       // Characters section
@@ -196,7 +216,7 @@ class BookDetailScreen extends ConsumerWidget {
                                         child: ListView.separated(
                                           scrollDirection: Axis.horizontal,
                                           itemCount: characters.length,
-                                          separatorBuilder: (_, __) =>
+                                          separatorBuilder: (context, index) =>
                                               const SizedBox(width: 10),
                                           itemBuilder: (context, index) =>
                                               CharacterCardWidget(
@@ -209,7 +229,8 @@ class BookDetailScreen extends ConsumerWidget {
                                     ],
                                   ),
                             loading: () => const SizedBox.shrink(),
-                            error: (_, __) => const SizedBox.shrink(),
+                            error: (error, stackTrace) =>
+                                const SizedBox.shrink(),
                           ),
 
                       // Reviews (ilk 6; tam liste ayrı ekran)
@@ -238,8 +259,7 @@ class BookDetailScreen extends ConsumerWidget {
                                           ),
                                         ),
                                       ),
-                                      if (preview.total >
-                                          preview.items.length)
+                                      if (preview.total > preview.items.length)
                                         TextButton(
                                           onPressed: () => context.push(
                                             '/books/${book.slug}/reviews',
@@ -265,8 +285,7 @@ class BookDetailScreen extends ConsumerWidget {
                                       ),
                                     ),
                                   ),
-                                  if (preview.total >
-                                      preview.items.length) ...[
+                                  if (preview.total > preview.items.length) ...[
                                     const SizedBox(height: 4),
                                     Center(
                                       child: TextButton(
@@ -385,16 +404,6 @@ class BookDetailScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
-}
-
-Color _resolveAccentColor(String? rawColor) {
-  if (rawColor == null || rawColor.isEmpty) return AppColors.primary;
-
-  try {
-    return Color(int.parse(rawColor.replaceFirst('#', '0xFF')));
-  } catch (_) {
-    return AppColors.primary;
   }
 }
 
@@ -1163,7 +1172,7 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
                 height: 64,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -1334,7 +1343,9 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
       if (!mounted) return;
       setState(() => _optimisticFavorite = currentFavorite);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Favori işlemi şu anda tamamlanamadı.')),
+        const SnackBar(
+          content: Text('Favori işlemi şu anda tamamlanamadı.'),
+        ),
       );
     } finally {
       if (mounted) {
@@ -1348,7 +1359,9 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
     final shareText = StringBuffer()
       ..writeln('${widget.book.title}${author != null ? ' - $author' : ''}')
       ..writeln()
-      ..write('Kitaplig uygulamasında bu kitaba göz at: ${widget.book.title}');
+      ..write(
+        'Kitaplig uygulamasında bu kitaba göz at: ${widget.book.title}',
+      );
 
     Share.share(shareText.toString(), subject: widget.book.title);
   }

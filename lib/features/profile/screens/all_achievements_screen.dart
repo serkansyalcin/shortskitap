@@ -41,7 +41,10 @@ class AllAchievementsScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _SummaryCard(earnedCount: earnedCount, totalCount: achievements.length),
+            _SummaryCard(
+              earnedCount: earnedCount,
+              totalCount: achievements.length,
+            ),
             const SizedBox(height: 24),
             AchievementBadgeGrid(
               achievements: [...earned, ...inProgress, ...locked],
@@ -70,10 +73,7 @@ class _SummaryCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            AppColors.primary,
-            AppColors.primary.withValues(alpha: 0.8),
-          ],
+          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -115,7 +115,9 @@ class _SummaryCard extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: progress,
                     backgroundColor: Colors.white24,
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Colors.white,
+                    ),
                     minHeight: 8,
                   ),
                 ),

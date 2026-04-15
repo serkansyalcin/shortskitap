@@ -6,7 +6,6 @@ import '../../../app/providers/books_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/book_model.dart';
 import '../../../core/models/review_model.dart';
-import '../../../core/services/review_service.dart';
 import '../../../core/utils/user_friendly_error.dart';
 import '../widgets/book_review_tile.dart';
 
@@ -76,11 +75,9 @@ class _BookReviewsScreenState extends ConsumerState<BookReviewsScreen> {
     }
 
     try {
-      final result = await ref.read(reviewServiceProvider).fetchReviewsPage(
-            bookId: book.id,
-            page: page,
-            perPage: 20,
-          );
+      final result = await ref
+          .read(reviewServiceProvider)
+          .fetchReviewsPage(bookId: book.id, page: page, perPage: 20);
       if (!mounted) return;
       setState(() {
         if (append) {
@@ -193,60 +190,60 @@ class _BookReviewsScreenState extends ConsumerState<BookReviewsScreen> {
               child: CircularProgressIndicator(color: AppColors.primary),
             )
           : _error != null && _items.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          userFacingErrorMessage(_error!),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: colorScheme.onSurfaceVariant),
-                        ),
-                        const SizedBox(height: 16),
-                        FilledButton.tonal(
-                          onPressed: () => _loadPage(1, append: false),
-                          child: const Text('Tekrar dene'),
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      userFacingErrorMessage(_error!),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: colorScheme.onSurfaceVariant),
                     ),
-                  ),
-                )
-              : _items.isEmpty
-                  ? Center(
-                      child: Text(
-                        'Henüz değerlendirme yok.',
-                        style: TextStyle(color: colorScheme.onSurfaceVariant),
-                      ),
-                    )
-                  : RefreshIndicator(
-                      color: AppColors.primary,
-                      onRefresh: _onRefresh,
-                      child: ListView.separated(
-                        controller: _scroll,
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                        itemCount: _items.length + (_page < _lastPage ? 1 : 0),
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          if (index >= _items.length) {
-                            return const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            );
-                          }
-                          return BookReviewTile(
-                            review: _items[index],
-                            accentColor: accent,
-                          );
-                        },
-                      ),
+                    const SizedBox(height: 16),
+                    FilledButton.tonal(
+                      onPressed: () => _loadPage(1, append: false),
+                      child: const Text('Tekrar dene'),
                     ),
+                  ],
+                ),
+              ),
+            )
+          : _items.isEmpty
+          ? Center(
+              child: Text(
+                'Henüz değerlendirme yok.',
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
+              ),
+            )
+          : RefreshIndicator(
+              color: AppColors.primary,
+              onRefresh: _onRefresh,
+              child: ListView.separated(
+                controller: _scroll,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                itemCount: _items.length + (_page < _lastPage ? 1 : 0),
+                separatorBuilder: (_, index) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  if (index >= _items.length) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    );
+                  }
+                  return BookReviewTile(
+                    review: _items[index],
+                    accentColor: accent,
+                  );
+                },
+              ),
+            ),
     );
   }
 }

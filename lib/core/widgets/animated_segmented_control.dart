@@ -36,12 +36,10 @@ class AnimatedSegmentedControl<T> extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurface : theme.cardColor,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: palette.containerBorder,
-        ),
+        border: Border.all(color: palette.containerBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.13 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.13 : 0.05),
             blurRadius: 20,
             offset: Offset(0, 10),
           ),
@@ -160,7 +158,9 @@ class _ScrollableSegments<T> extends StatelessWidget {
               curve: Curves.easeOutCubic,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(999),
-                color: isSelected ? palette.selectedBackground : Colors.transparent,
+                color: isSelected
+                    ? palette.selectedBackground
+                    : Colors.transparent,
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
@@ -297,8 +297,9 @@ class _SegmentPalette {
           ? AppColors.accent.withValues(alpha: 0.38)
           : AppColors.accentSoft,
       selectedForeground: isDark ? AppColors.primaryLight : AppColors.accent,
-      unselectedForeground:
-          isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+      unselectedForeground: isDark
+          ? AppColors.darkTextSecondary
+          : AppColors.lightTextSecondary,
       selectedGlow: isDark
           ? AppColors.primary.withValues(alpha: 0.16)
           : AppColors.primary.withValues(alpha: 0.18),

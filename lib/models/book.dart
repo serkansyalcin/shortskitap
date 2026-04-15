@@ -1,3 +1,5 @@
+import '../core/models/interactive_element_model.dart';
+
 /// Kitap modeli - dikey shorts formatında paragraflarla
 class Book {
   const Book({
@@ -8,6 +10,7 @@ class Book {
     this.coverImageUrl,
     this.description,
     this.genre,
+    this.interactiveElements,
   });
 
   final String id;
@@ -17,6 +20,9 @@ class Book {
   final String? coverImageUrl;
   final String? description;
   final String? genre;
+  final List<InteractiveElementModel>? interactiveElements;
 
   int get totalParagraphs => paragraphs.length;
+
+  int get totalItems => paragraphs.length + (interactiveElements?.length ?? 0);
 }

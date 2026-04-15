@@ -33,10 +33,7 @@ class HighlightService {
     int perPage = 30,
     bool kidsOnly = false,
   }) async {
-    final params = <String, dynamic>{
-      'page': page,
-      'per_page': perPage,
-    };
+    final params = <String, dynamic>{'page': page, 'per_page': perPage};
     if (bookId != null) {
       params['book_id'] = bookId;
     }
@@ -95,10 +92,7 @@ class HighlightService {
   }) async {
     final res = await _client.put(
       '/highlights/$highlightId',
-      data: {
-        'note': note,
-        'color': color,
-      },
+      data: {'note': note, 'color': color},
     );
     return res.data;
   }

@@ -105,7 +105,9 @@ class _KidsModePinSetDialogState extends State<KidsModePinSetDialog> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isDark ? accent.withOpacity(0.22) : Colors.pink.shade100,
+              color: isDark
+                  ? accent.withValues(alpha: 0.22)
+                  : Colors.pink.shade100,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(

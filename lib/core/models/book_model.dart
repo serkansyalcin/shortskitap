@@ -1,5 +1,6 @@
 import 'author_model.dart';
 import 'category_model.dart';
+import 'package:kitaplig/core/models/interactive_element_model.dart';
 
 class BookModel {
   final int id;
@@ -25,6 +26,7 @@ class BookModel {
   final int reviewsCount;
   final bool hasPreGeneratedAudio;
   final String? activeAudioProvider;
+  final List<InteractiveElementModel> interactiveElements;
 
   const BookModel({
     required this.id,
@@ -50,6 +52,7 @@ class BookModel {
     this.reviewsCount = 0,
     this.hasPreGeneratedAudio = false,
     this.activeAudioProvider,
+    this.interactiveElements = const [],
   });
 
   factory BookModel.fromJson(Map<String, dynamic> json) => BookModel(
@@ -80,6 +83,14 @@ class BookModel {
     reviewsCount: _asInt(json['reviews_count']),
     hasPreGeneratedAudio: _asBool(json['has_pre_generated_audio']),
     activeAudioProvider: json['active_audio_provider'] as String?,
+    interactiveElements: json['interactive_elements'] != null
+        ? (json['interactive_elements'] as List)
+              .map(
+                (e) =>
+                    InteractiveElementModel.fromJson(e as Map<String, dynamic>),
+              )
+              .toList()
+        : [],
   );
 
   Map<String, dynamic> toJson() => {

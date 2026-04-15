@@ -186,7 +186,7 @@ class _SearchResults extends StatelessWidget {
             const Icon(Icons.search_off_rounded, size: 52),
             const SizedBox(height: 16),
             Text(
-              '“$query” için sonuç bulunamadı',
+              '"$query" için sonuç bulunamadı',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -410,7 +410,7 @@ class _Avatar extends StatelessWidget {
             ? CachedNetworkImage(
                 imageUrl: user.avatarUrl!,
                 fit: BoxFit.cover,
-                errorWidget: (_, __, ___) =>
+                errorWidget: (_, error, stackTrace) =>
                     _AvatarFallback(initials: initials),
               )
             : _AvatarFallback(initials: initials),
@@ -477,7 +477,8 @@ class _BookTile extends StatelessWidget {
                             width: 52,
                             height: 68,
                             fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) => _BookCoverFallback(),
+                            errorWidget: (_, error, stackTrace) =>
+                                _BookCoverFallback(),
                           )
                         : _BookCoverFallback(),
                   ),

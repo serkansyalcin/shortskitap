@@ -14,8 +14,8 @@ class ReviewModal extends ConsumerStatefulWidget {
   @override
   ConsumerState<ReviewModal> createState() => _ReviewModalState();
 
-  static void show(BuildContext context, int bookId) {
-    showModalBottomSheet<void>(
+  static Future<void> show(BuildContext context, int bookId) {
+    return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -37,9 +37,9 @@ class _ReviewModalState extends ConsumerState<ReviewModal> {
 
   Future<void> _submit() async {
     if (_rating == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen bir yıldız seçin.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Lütfen bir yıldız seçin.')));
       return;
     }
 
@@ -81,7 +81,9 @@ class _ReviewModalState extends ConsumerState<ReviewModal> {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         decoration: BoxDecoration(
           color: theme.scaffoldBackgroundColor,
@@ -97,7 +99,9 @@ class _ReviewModalState extends ConsumerState<ReviewModal> {
                 width: 42,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.35),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.35,
+                  ),
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -148,8 +152,9 @@ class _ReviewModalState extends ConsumerState<ReviewModal> {
               decoration: InputDecoration(
                 hintText: 'Kitap hakkında düşünceleriniz... (İsteğe bağlı)',
                 filled: true,
-                fillColor:
-                    theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.4,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
@@ -179,8 +184,10 @@ class _ReviewModalState extends ConsumerState<ReviewModal> {
                     )
                   : const Text(
                       'Değerlendirmeyi Gönder',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
             ),
           ],

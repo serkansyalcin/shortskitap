@@ -15,6 +15,7 @@ import '../../../app/providers/subscription_provider.dart';
 import '../../../app/providers/voiceover_provider.dart';
 import '../../../core/services/auto_voiceover_service.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/models/interactive_element_model.dart';
 import '../../../core/models/paragraph_model.dart';
 import '../../../core/utils/user_friendly_error.dart';
 import '../../../core/platform/platform_support.dart';
@@ -22,6 +23,8 @@ import '../../../features/subscription/widgets/ad_banner.dart';
 import '../widgets/paragraph_card.dart';
 import '../widgets/review_modal.dart';
 import '../widgets/highlight_modal.dart';
+import '../../interactive_elements/theme/interaction_palette.dart';
+import '../../interactive_elements/utils/interaction_launcher.dart';
 
 const _adEveryN = 5;
 
@@ -67,8 +70,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   late final AutoVoiceoverService _voiceoverService;
   StreamSubscription<int>? _voiceoverCompletionSubscription;
   final Map<int, String> _localHighlights = {};
-  /// Önceki sayfa (değerlendirme modalı: son sayfaya kaydırarak gelince tetiklemek için).
-  int? _readerPreviousPageIndex;
+
+  bool _isEndFlowVisible = false;
 
   @override
   void initState() {
@@ -103,8 +106,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       return;
     }
 
-    final fallbackLocation =
-        widget.backTo != null && widget.backTo!.isNotEmpty
+    final fallbackLocation = widget.backTo != null && widget.backTo!.isNotEmpty
         ? widget.backTo!
         : '/home';
     context.go(fallbackLocation);
@@ -166,8 +168,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   void _onPageChanged(int index) {
     final items = _lastBuiltItems;
-    final previousPageIndex = _readerPreviousPageIndex;
-    _readerPreviousPageIndex = index;
 
     final paragraphOrder = _paragraphOrderForIndex(items, index);
     final paragraph = _paragraphForIndex(items, index);
@@ -204,30 +204,64 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       _voiceoverService.stop();
       setState(() => _voiceoverLoading = false);
     }
-
-    _maybeShowReviewWhenEnteringLastPage(
-      index,
-      previousPageIndex,
-      items,
-    );
   }
 
-  /// Son paragrafa aşağı kaydırarak gelindiğinde de (ok ile aynı) değerlendirme açılır.
-  void _maybeShowReviewWhenEnteringLastPage(
-    int index,
-    int? previousPageIndex,
-    List<dynamic> items,
-  ) {
-    if (items.isEmpty) return;
-    final lastIndex = items.length - 1;
-    if (lastIndex < 0 || index != lastIndex) return;
-    if (previousPageIndex == null || previousPageIndex >= lastIndex) {
+  Future<void> _triggerInteractionOrReview() async {
+    if (!mounted || _isEndFlowVisible) {
       return;
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      ReviewModal.show(context, widget.bookId);
-    });
+
+    _isEndFlowVisible = true;
+    try {
+      final book = ref.read(bookByIdProvider(widget.bookId)).valueOrNull;
+      if (book != null && book.interactiveElements.isNotEmpty) {
+        await _showInteractionSequence(
+          book.interactiveElements,
+          resolveInteractionAccentColor(context, book.category?.color),
+        );
+      } else {
+        await ReviewModal.show(context, widget.bookId);
+      }
+    } finally {
+      _isEndFlowVisible = false;
+    }
+  }
+
+  Future<void> _showInteractionSequence(
+    List<InteractiveElementModel> elements,
+    Color accentColor, [
+    int index = 0,
+  ]) async {
+    if (!mounted) return;
+
+    if (index >= elements.length) {
+      await ReviewModal.show(context, widget.bookId);
+      return;
+    }
+
+    var completed = false;
+    await InteractionLauncher.show(
+      context: context,
+      element: elements[index],
+      accentColor: accentColor,
+      onCompleted: (_) {
+        if (!mounted) return;
+
+        completed = true;
+        Navigator.of(context).pop();
+      },
+    );
+
+    if (!mounted || !completed) {
+      return;
+    }
+
+    await Future.delayed(const Duration(milliseconds: 250));
+    if (!mounted) {
+      return;
+    }
+
+    await _showInteractionSequence(elements, accentColor, index + 1);
   }
 
   Future<void> _syncVoiceoverForPage(
@@ -267,7 +301,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         _continuousVoiceoverEnabled = false;
       });
     } else {
-      final currentParagraph = _paragraphForIndex(_lastBuiltItems, _currentIndex);
+      final currentParagraph = _paragraphForIndex(
+        _lastBuiltItems,
+        _currentIndex,
+      );
       if (currentParagraph == null || !currentParagraph.hasAudio) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -397,11 +434,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  icon,
-                  color: AppColors.primary,
-                  size: 32,
-                ),
+                child: Icon(icon, color: AppColors.primary, size: 32),
               ),
               Text(
                 title,
@@ -487,10 +520,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     try {
       final count = await ref
           .read(bookDownloadControllerProvider.notifier)
-          .downloadBook(
-            widget.bookId,
-            fallbackTitle: widget.bookTitle,
-          );
+          .downloadBook(widget.bookId, fallbackTitle: widget.bookTitle);
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(
@@ -520,9 +550,30 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         curve: Curves.easeInOutCubic,
       );
     } else {
-      // Reached the end. Let's show the review modal!
-      ReviewModal.show(context, widget.bookId);
+      unawaited(_triggerInteractionOrReview());
     }
+  }
+
+  bool _handleReaderOverscroll(
+    ScrollNotification notification,
+    List<dynamic> items,
+  ) {
+    if (notification.metrics.axis != Axis.vertical || items.isEmpty) {
+      return false;
+    }
+
+    final lastIndex = items.length - 1;
+    final isAtLastPage = _currentIndex == lastIndex;
+    final isTryingToGoBeyondLast =
+        notification is OverscrollNotification &&
+        notification.metrics.pixels >= notification.metrics.maxScrollExtent &&
+        notification.overscroll > 0;
+
+    if (isAtLastPage && isTryingToGoBeyondLast) {
+      unawaited(_triggerInteractionOrReview());
+    }
+
+    return false;
   }
 
   void _goPrev() {
@@ -561,7 +612,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (nextIndex == null) {
       _disableContinuousVoiceover(disableVoiceover: true);
       if (mounted) {
-        ReviewModal.show(context, widget.bookId);
+        unawaited(_triggerInteractionOrReview());
       }
       return;
     }
@@ -825,59 +876,65 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       ],
                     ),
                   ),
-                  child: PageView.builder(
-                    controller: _pageController,
-                    scrollDirection: Axis.vertical,
-                    physics: const PageScrollPhysics(),
-                    itemCount: items.length,
-                    onPageChanged: _onPageChanged,
-                    itemBuilder: (ctx, index) {
-                      final item = items[index];
-                      if (item is _AdItem) return _AdPage(palette: palette);
-                      final paragraph = (item as _ParagraphItem).paragraph;
-                      final highlightHex =
-                          _localHighlights[paragraph.id] ??
-                          paragraph.highlightColor;
-                      Color? highlightColor;
-                      if (highlightHex != null) {
-                        try {
-                          highlightColor = Color(
-                            int.parse(highlightHex.replaceFirst('#', '0xFF')),
-                          );
-                        } catch (_) {}
-                      }
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: (notification) =>
+                        _handleReaderOverscroll(notification, items),
+                    child: PageView.builder(
+                      controller: _pageController,
+                      scrollDirection: Axis.vertical,
+                      physics: const PageScrollPhysics(),
+                      itemCount: items.length,
+                      onPageChanged: _onPageChanged,
+                      itemBuilder: (ctx, index) {
+                        final item = items[index];
+                        if (item is _AdItem) return _AdPage(palette: palette);
+                        final paragraph = (item as _ParagraphItem).paragraph;
+                        final highlightHex =
+                            _localHighlights[paragraph.id] ??
+                            paragraph.highlightColor;
+                        Color? highlightColor;
+                        if (highlightHex != null) {
+                          try {
+                            highlightColor = Color(
+                              int.parse(highlightHex.replaceFirst('#', '0xFF')),
+                            );
+                          } catch (_) {}
+                        }
 
-                      return ParagraphCard(
-                        paragraph: paragraph,
-                        isCurrent: index == _currentIndex,
-                        total: paragraphs.length,
-                        fontSize: readerFontSize,
-                        fontFamily: readerFontFamily,
-                        lineHeight: readerLineHeight,
-                        textColor: palette.text,
-                        dividerColor: palette.divider,
-                        accentColor: palette.accent,
-                        mutedColor: palette.muted,
-                        highlightColor: highlightColor,
-                        bookTitle: widget.bookTitle,
-                        authorName: widget.authorName,
-                        onHighlight: () {
-                          HighlightModal.show(
-                            context,
-                            widget.bookId,
-                            paragraph,
-                            onSaved: (id, color) {
-                              setState(() {
-                                _localHighlights[id] = color;
-                              });
-                              // Refresh highlight-backed surfaces after a new save.
-                              ref.invalidate(paragraphsProvider(widget.bookId));
-                              ref.invalidate(highlightsProvider);
-                            },
-                          );
-                        },
-                      );
-                    },
+                        return ParagraphCard(
+                          paragraph: paragraph,
+                          isCurrent: index == _currentIndex,
+                          total: paragraphs.length,
+                          fontSize: readerFontSize,
+                          fontFamily: readerFontFamily,
+                          lineHeight: readerLineHeight,
+                          textColor: palette.text,
+                          dividerColor: palette.divider,
+                          accentColor: palette.accent,
+                          mutedColor: palette.muted,
+                          highlightColor: highlightColor,
+                          bookTitle: widget.bookTitle,
+                          authorName: widget.authorName,
+                          onHighlight: () {
+                            HighlightModal.show(
+                              context,
+                              widget.bookId,
+                              paragraph,
+                              onSaved: (id, color) {
+                                setState(() {
+                                  _localHighlights[id] = color;
+                                });
+                                // Refresh highlight-backed surfaces after a new save.
+                                ref.invalidate(
+                                  paragraphsProvider(widget.bookId),
+                                );
+                                ref.invalidate(highlightsProvider);
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ),
                 ),
                 Positioned(
@@ -949,10 +1006,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                   isDownloaded: isDownloaded,
                   isDownloading: isDownloading,
                   onBack: () => _handleBack(context),
-                  onDownload:
-                      isDownloaded || isDownloading ? null : _downloadBook,
-                  onSettings: () =>
-                      _showReaderSettings(context, readerTheme),
+                  onDownload: isDownloaded || isDownloading
+                      ? null
+                      : _downloadBook,
+                  onSettings: () => _showReaderSettings(context, readerTheme),
                 ),
               ),
             ],
@@ -1018,10 +1075,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     isDownloaded: isDownloaded,
                     isDownloading: isDownloading,
                     onBack: () => _handleBack(context),
-                    onDownload:
-                        isDownloaded || isDownloading ? null : _downloadBook,
-                    onSettings: () =>
-                        _showReaderSettings(context, readerTheme),
+                    onDownload: isDownloaded || isDownloading
+                        ? null
+                        : _downloadBook,
+                    onSettings: () => _showReaderSettings(context, readerTheme),
                   ),
                 ),
               ],
@@ -1120,17 +1177,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       title: 'Tema',
                       child: Row(
                         children: ['light', 'dark'].map((t) {
-                          final labels = {
-                            'light': 'Açık',
-                            'dark': 'Koyu',
-                          };
+                          final labels = {'light': 'Açık', 'dark': 'Koyu'};
                           final icons = {
                             'light': Icons.light_mode_rounded,
                             'dark': Icons.dark_mode_rounded,
                           };
                           return Expanded(
                             child: Padding(
-                              padding: EdgeInsets.only(right: t == 'dark' ? 0 : 8),
+                              padding: EdgeInsets.only(
+                                right: t == 'dark' ? 0 : 8,
+                              ),
                               child: _ReaderOptionChip(
                                 label: labels[t]!,
                                 icon: icons[t]!,

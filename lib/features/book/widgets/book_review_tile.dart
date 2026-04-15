@@ -22,9 +22,9 @@ class BookReviewTile extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -33,7 +33,7 @@ class BookReviewTile extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 12,
-                backgroundColor: accentColor.withOpacity(0.2),
+                backgroundColor: accentColor.withValues(alpha: 0.2),
                 backgroundImage: review.userAvatarUrl != null
                     ? CachedNetworkImageProvider(review.userAvatarUrl!)
                     : null,

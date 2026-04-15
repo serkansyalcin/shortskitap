@@ -7,10 +7,10 @@ class ShareableQuoteOverlay extends StatelessWidget {
   final bool isDark;
 
   const ShareableQuoteOverlay({
-    Key? key,
+    super.key,
     required this.quote,
     this.isDark = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +22,7 @@ class ShareableQuoteOverlay extends StatelessWidget {
         color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+          color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
       ),
@@ -38,7 +38,7 @@ class ShareableQuoteOverlay extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Text(
@@ -55,7 +55,7 @@ class ShareableQuoteOverlay extends StatelessWidget {
               Icon(
                 Icons.format_quote_rounded,
                 size: 40,
-                color: AppColors.primary.withOpacity(0.2),
+                color: AppColors.primary.withValues(alpha: 0.2),
               ),
             ],
           ),

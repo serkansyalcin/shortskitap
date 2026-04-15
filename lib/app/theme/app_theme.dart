@@ -238,9 +238,7 @@ class AppTheme {
                 : const Color(0xFFF4F7F1);
           }
 
-          return isDark
-              ? const Color(0xFFD7E2D6)
-              : const Color(0xFFFFFFFF);
+          return isDark ? const Color(0xFFD7E2D6) : const Color(0xFFFFFFFF);
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
@@ -258,9 +256,7 @@ class AppTheme {
                 : const Color(0xFFE8EEE7);
           }
 
-          return isDark
-              ? const Color(0xFF2A332D)
-              : const Color(0xFFDDE6DB);
+          return isDark ? const Color(0xFF2A332D) : const Color(0xFFDDE6DB);
         }),
         trackOutlineColor: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);

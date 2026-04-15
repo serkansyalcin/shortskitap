@@ -20,24 +20,26 @@ class CategoryModel {
   });
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) => CategoryModel(
-        id: json['id'] as int,
-        name: json['name'] as String,
-        slug: json['slug'] as String? ?? (json['name'] as String).toLowerCase().replaceAll(' ', '-'),
-        icon: json['icon'] as String?,
-        color: json['color'] as String?,
-        isActive: json['is_active'] == true,
-        isKids: json['is_kids'] == true,
-        sortOrder: json['sort_order'] as int? ?? 0,
-      );
+    id: json['id'] as int,
+    name: json['name'] as String,
+    slug:
+        json['slug'] as String? ??
+        (json['name'] as String).toLowerCase().replaceAll(' ', '-'),
+    icon: json['icon'] as String?,
+    color: json['color'] as String?,
+    isActive: json['is_active'] == true,
+    isKids: json['is_kids'] == true,
+    sortOrder: json['sort_order'] as int? ?? 0,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'slug': slug,
-        'icon': icon,
-        'color': color,
-        'is_active': isActive,
-        'is_kids': isKids,
-        'sort_order': sortOrder,
-      };
+    'id': id,
+    'name': name,
+    'slug': slug,
+    'icon': icon,
+    'color': color,
+    'is_active': isActive,
+    'is_kids': isKids,
+    'sort_order': sortOrder,
+  };
 }

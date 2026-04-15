@@ -176,10 +176,7 @@ class _ParagraphCardState extends State<ParagraphCard>
 
     return _scrollableCenteredColumn(
       children: [
-        if (illustration != null) ...[
-          illustration,
-          const SizedBox(height: 22),
-        ],
+        if (illustration != null) ...[illustration, const SizedBox(height: 22)],
         ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: Stack(
@@ -674,9 +671,7 @@ class _ParagraphCardState extends State<ParagraphCard>
     } catch (e) {
       debugPrint('Capture error: $e');
       if (parentCtx.mounted) {
-        ScaffoldMessenger.of(
-          parentCtx,
-        ).showSnackBar(
+        ScaffoldMessenger.of(parentCtx).showSnackBar(
           SnackBar(
             content: Text(
               userFacingErrorMessage(
@@ -698,8 +693,8 @@ class _ParagraphCardState extends State<ParagraphCard>
     if (text.isEmpty) return;
     await Clipboard.setData(ClipboardData(text: text));
     if (!messengerCtx.mounted) return;
-    ScaffoldMessenger.of(messengerCtx).showSnackBar(
-      const SnackBar(content: Text('Paragraf panoya kopyalandı')),
-    );
+    ScaffoldMessenger.of(
+      messengerCtx,
+    ).showSnackBar(const SnackBar(content: Text('Paragraf panoya kopyalandı')));
   }
 }
