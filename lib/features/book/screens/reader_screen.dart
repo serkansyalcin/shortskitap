@@ -78,7 +78,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
+    _pageController = PageController(keepPage: false);
     _voiceoverService = ref.read(autoVoiceoverServiceProvider);
     _voiceoverCompletionSubscription = _voiceoverService
         .paragraphCompletedStream

@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import '../api/api_client.dart';
 import '../models/auth_session_model.dart';
+import '../models/family_reading_summary_model.dart';
 import '../models/reader_profile_model.dart';
 
 /// Result of validating the stored session against `/me`.
@@ -255,6 +256,13 @@ class AuthService {
         .whereType<Map<String, dynamic>>()
         .map(ReaderProfileModel.fromJson)
         .toList(growable: false);
+  }
+
+  Future<FamilyReadingSummaryModel> getFamilyReadingSummary() async {
+    final res = await _client.get('/me/profiles/family-summary');
+    return FamilyReadingSummaryModel.fromJson(
+      res.data['data'] as Map<String, dynamic>? ?? const <String, dynamic>{},
+    );
   }
 
   Future<ReaderProfileModel> createChildProfile({

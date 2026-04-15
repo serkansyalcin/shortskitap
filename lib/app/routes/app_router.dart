@@ -20,6 +20,7 @@ import '../../features/book/screens/reader_screen.dart';
 import '../../features/book/screens/series_screen.dart';
 import '../../features/library/screens/library_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
+import '../../features/profile/screens/family_reading_summary_screen.dart';
 import '../../features/profile/screens/reader_profiles_screen.dart';
 import '../../features/profile/screens/settings_screen.dart';
 import '../../features/profile/screens/highlights_screen.dart';
@@ -150,6 +151,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'reader-profiles',
             builder: (_, state) => const ReaderProfilesScreen(),
+            routes: [
+              GoRoute(
+                path: 'reading-summary',
+                builder: (_, state) => const FamilyReadingSummaryScreen(),
+              ),
+            ],
           ),
           GoRoute(
             path: 'badges',

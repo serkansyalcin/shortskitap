@@ -5,11 +5,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/providers/achievements_provider.dart';
 import '../../../app/providers/auth_provider.dart';
+import '../../../app/providers/family_reading_summary_provider.dart';
 import '../../../app/providers/kids_provider.dart';
 import '../../../app/providers/profile_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_ui.dart';
+import '../../../core/models/family_reading_summary_model.dart';
 import '../../../core/models/public_profile_model.dart';
 import '../../../core/models/reader_profile_model.dart';
 import '../../../core/models/user_model.dart';
@@ -17,6 +19,7 @@ import '../../../core/services/subscription_service.dart';
 import '../../../core/widgets/reader_profile_avatar.dart';
 import '../widgets/achievement_badge_grid.dart';
 import '../widgets/delete_account_dialog.dart';
+import '../widgets/family_reading_summary_panel.dart';
 import '../widgets/reader_profile_dialogs.dart';
 import '../widgets/reading_heatmap_widget.dart';
 import '../../home/widgets/kids_mode_exit_dialog.dart';
@@ -44,6 +47,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final username = _username;
     if (username == null || username.isEmpty) return;
     ref.invalidate(publicProfileProvider(username));
+    if (_isSelf) {
+      ref.invalidate(familyReadingSummaryProvider);
+    }
     await ref.read(publicProfileProvider(username).future);
     if (_isSelf) ref.invalidate(earnedAchievementsProvider);
   }
@@ -66,6 +72,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     ref.invalidate(publicProfileProvider(username));
     if (_isSelf) {
       ref.invalidate(earnedAchievementsProvider);
+      ref.invalidate(familyReadingSummaryProvider);
     }
   }
 
@@ -1450,6 +1457,10 @@ class _KidsModeProfileSection extends ConsumerWidget {
     final profileCapabilities = authState.profileCapabilities;
     final userAvatarUrl = authState.user?.avatarUrl;
     final showProfileSummary = activeProfile?.isParent == true;
+    final AsyncValue<FamilyReadingSummaryModel?> familySummaryAsync =
+        showProfileSummary
+        ? ref.watch(familyReadingSummaryProvider)
+        : const AsyncValue.data(null);
     final sectionTitle = showProfileSummary
         ? 'AİLE VE ÇOCUK MODU'
         : 'ÇOCUK MODU';
@@ -1526,7 +1537,7 @@ class _KidsModeProfileSection extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  'Çocuk profillerini ve geçiş işlemlerini buradan yönetin.',
+                                  'Çocuk profillerini, özetlerini ve geçiş işlemlerini buradan yönetin.',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: theme.colorScheme.onSurfaceVariant,
                                     height: 1.35,
@@ -1556,6 +1567,42 @@ class _KidsModeProfileSection extends ConsumerWidget {
                                 .withValues(alpha: 0.7),
                           ),
                         ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                    child: familySummaryAsync.when(
+                      data: (summary) {
+                        if (summary == null) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return FamilyReadingSummaryEntryCard(
+                          summary: summary,
+                          onTap: onOpenReaderProfiles,
+                        );
+                      },
+                      loading: () => _FamilySummaryLoadingCard(accent: accent),
+                      error: (error, stackTrace) => Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: theme.colorScheme.error.withValues(
+                              alpha: 0.18,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          _familySummaryErrorText(error),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -1713,6 +1760,19 @@ class _KidsModeProfileSection extends ConsumerWidget {
   }
 }
 
+String _familySummaryErrorText(Object error) {
+  final raw = error.toString().trim();
+  if (raw.isEmpty) {
+    return 'Aile özeti şu anda yüklenemedi.';
+  }
+
+  if (raw.startsWith('Bad state: ')) {
+    return raw.replaceFirst('Bad state: ', '');
+  }
+
+  return raw;
+}
+
 class _ProfileMiniPill extends StatelessWidget {
   const _ProfileMiniPill(this.label, this.color);
 
@@ -1734,6 +1794,48 @@ class _ProfileMiniPill extends StatelessWidget {
           fontSize: 12,
           fontWeight: FontWeight.w800,
         ),
+      ),
+    );
+  }
+}
+
+class _FamilySummaryLoadingCard extends StatelessWidget {
+  const _FamilySummaryLoadingCard({required this.accent});
+
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.18),
+        ),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2.2, color: accent),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Aile özeti hazırlanıyor…',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

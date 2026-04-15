@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/providers/auth_provider.dart';
+import '../../../app/providers/family_reading_summary_provider.dart';
 import '../../../app/theme/app_ui.dart';
+import '../../../core/models/family_reading_summary_model.dart';
 import '../../../core/models/reader_profile_model.dart';
 import '../../../core/widgets/reader_profile_avatar.dart';
+import '../widgets/family_reading_summary_panel.dart';
 import '../widgets/reader_profile_dialogs.dart';
 import '../widgets/reader_profiles_section.dart';
 
@@ -129,11 +132,29 @@ class _ReaderProfilesScreenState extends ConsumerState<ReaderProfilesScreen> {
     context.go('/home');
   }
 
+  String _familySummaryErrorText(Object error) {
+    final raw = error.toString().trim();
+    if (raw.isEmpty) {
+      return 'Aile okuma özeti şu anda yüklenemedi.';
+    }
+
+    if (raw.startsWith('Bad state: ')) {
+      return raw.replaceFirst('Bad state: ', '');
+    }
+
+    return raw;
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     final activeProfile = auth.activeProfile;
     final isPremium = auth.user?.isPremium == true;
+    final AsyncValue<FamilyReadingSummaryModel?> familySummaryAsync =
+        activeProfile?.isParent == true
+        ? ref.watch(familyReadingSummaryProvider)
+        : const AsyncValue.data(null);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Okuyucu Profilleri')),
@@ -151,11 +172,82 @@ class _ReaderProfilesScreenState extends ConsumerState<ReaderProfilesScreen> {
                 children: [
                   Text(
                     'Aile hesabınızdaki çocuk profillerini burada düzenleyebilir, avatarlarını güncelleyebilir ve profiller arasında geçiş yapabilirsiniz.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                       height: 1.45,
                     ),
                   ),
+                  if (activeProfile.isParent) ...[
+                    const SizedBox(height: 16),
+                    familySummaryAsync.when(
+                      data: (summary) {
+                        if (summary == null) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return FamilyReadingSummaryEntryCard(
+                          summary: summary,
+                          onTap: () => context.push(
+                            '/home/reader-profiles/reading-summary',
+                          ),
+                        );
+                      },
+                      loading: () => Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: theme.colorScheme.outline.withValues(
+                              alpha: 0.18,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Aile okuma özeti hazırlanıyor…',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      error: (error, stackTrace) => Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: theme.colorScheme.error.withValues(
+                              alpha: 0.18,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          _familySummaryErrorText(error),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   ReaderProfilesSection(
                     activeProfile: activeProfile,
