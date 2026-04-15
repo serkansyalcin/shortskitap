@@ -431,7 +431,7 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
               child: aiStoriesAsync.when(
                 data: (books) => AiStoryDiscoverSection(books: books),
                 loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (_, stackTrace) => const SizedBox.shrink(),
               ),
             ),
           ),

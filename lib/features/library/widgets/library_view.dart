@@ -546,7 +546,7 @@ class _LibraryModeContent extends StatelessWidget {
           const SizedBox(height: 12),
           aiStoriesAsync.when(
             loading: () => const _LibraryLoadingCard(height: 180),
-            error: (_, __) => _LibraryErrorCard(
+            error: (_, stackTrace) => _LibraryErrorCard(
               title: 'AI hikâyeler yüklenemedi',
               buttonLabel: 'Tekrar dene',
               onPressed: onRetryAiStories,

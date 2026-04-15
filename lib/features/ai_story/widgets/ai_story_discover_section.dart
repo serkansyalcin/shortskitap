@@ -62,7 +62,7 @@ class AiStoryDiscoverSection extends StatelessWidget {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: books.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              separatorBuilder: (_, index) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 final book = books[index];
                 return InkWell(
