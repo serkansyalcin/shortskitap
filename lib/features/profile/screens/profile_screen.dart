@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -12,11 +11,14 @@ import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_ui.dart';
 import '../../../core/models/public_profile_model.dart';
+import '../../../core/models/reader_profile_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/services/subscription_service.dart';
+import '../../../core/widgets/reader_profile_avatar.dart';
 import '../widgets/achievement_badge_grid.dart';
 import '../widgets/delete_account_dialog.dart';
 import '../widgets/reader_profile_dialogs.dart';
+import '../widgets/reader_profiles_summary_card.dart';
 import '../widgets/reading_heatmap_widget.dart';
 import '../../home/widgets/kids_mode_exit_dialog.dart';
 import '../../home/widgets/kids_mode_pin_set_dialog.dart';
@@ -45,6 +47,195 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     ref.invalidate(publicProfileProvider(username));
     await ref.read(publicProfileProvider(username).future);
     if (_isSelf) ref.invalidate(earnedAchievementsProvider);
+  }
+
+  void _showMessage(String message, {Color? backgroundColor}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: backgroundColor),
+    );
+  }
+
+  void _showAuthError({required String fallback, Color? backgroundColor}) {
+    final message = ref.read(authProvider).error ?? fallback;
+    _showMessage(message, backgroundColor: backgroundColor);
+  }
+
+  Future<void> _refreshSelfProfileState() async {
+    final username = _username;
+    if (username == null || username.isEmpty) return;
+    ref.invalidate(publicProfileProvider(username));
+    if (_isSelf) {
+      ref.invalidate(earnedAchievementsProvider);
+    }
+  }
+
+  ReaderProfileModel? _parentProfileFromAuth(AuthState auth) {
+    for (final profile in auth.profiles) {
+      if (profile.isParent && !profile.isArchived) {
+        return profile;
+      }
+    }
+    return null;
+  }
+
+  String _suggestedChildAvatarUrl(
+    AuthState auth, {
+    ReaderProfileModel? profile,
+  }) {
+    final currentValue = profile?.avatarUrl;
+    if (currentValue != null && currentValue.trim().isNotEmpty) {
+      return currentValue;
+    }
+
+    if (profile != null && profile.isChild) {
+      return ReaderProfileAvatarCatalog.suggestedTokenValue(index: profile.id);
+    }
+
+    return ReaderProfileAvatarCatalog.tokenValueAt(
+      auth.profileCapabilities.activeChildProfilesCount,
+    );
+  }
+
+  Future<void> _openChildProfileForm({ReaderProfileModel? profile}) async {
+    final auth = ref.read(authProvider);
+    final formResult = await ReaderProfileDialogs.showChildProfileFormDialog(
+      context,
+      initialValue: profile == null
+          ? null
+          : ReaderProfileFormData(
+              name: profile.name,
+              birthYear: profile.birthYear,
+              avatarUrl: _suggestedChildAvatarUrl(auth, profile: profile),
+            ),
+      suggestedAvatarUrl: _suggestedChildAvatarUrl(auth, profile: profile),
+      title: profile == null
+          ? 'Çocuk Profili Oluştur'
+          : 'Çocuk Profilini Düzenle',
+      submitLabel: profile == null ? 'Oluştur' : 'Kaydet',
+      helperText: profile == null
+          ? 'Bu profil yalnızca aile hesabınız içinde görünür.'
+          : 'Bu profil bilgileri yalnızca aile hesabınız içinde güncellenir.',
+    );
+    if (formResult == null) return;
+
+    final notifier = ref.read(authProvider.notifier);
+    final ok = profile == null
+        ? await notifier.createChildProfile(
+            name: formResult.name,
+            birthYear: formResult.birthYear,
+            avatarUrl: formResult.avatarUrl,
+            avatarBytes: formResult.avatarBytes,
+            avatarFileName: formResult.avatarFileName,
+          )
+        : await notifier.updateReaderProfile(
+            profileId: profile.id,
+            name: formResult.name,
+            birthYear: formResult.birthYear,
+            avatarUrl: formResult.avatarUrl,
+            avatarBytes: formResult.avatarBytes,
+            avatarFileName: formResult.avatarFileName,
+          );
+
+    if (!ok) {
+      _showAuthError(
+        fallback: profile == null
+            ? 'Çocuk profili oluşturulamadı.'
+            : 'Çocuk profili güncellenemedi.',
+      );
+      return;
+    }
+
+    await _refreshSelfProfileState();
+  }
+
+  Future<void> _handleKidsModeSwitch(bool wantOn) async {
+    if (wantOn) {
+      final auth = ref.read(authProvider);
+      final capabilities = auth.profileCapabilities;
+      var childProfiles = auth.profiles
+          .where((profile) => profile.isChild && !profile.isArchived)
+          .toList(growable: false);
+
+      if (childProfiles.isEmpty) {
+        if (!capabilities.canCreateChildProfile) {
+          _showAuthError(fallback: 'Yeni çocuk profili oluşturulamıyor.');
+          if (capabilities.requiresPremiumForMore && mounted) {
+            context.push('/premium');
+          }
+          return;
+        }
+
+        await _openChildProfileForm();
+        if (!mounted) return;
+
+        childProfiles = ref
+            .read(authProvider)
+            .profiles
+            .where((profile) => profile.isChild && !profile.isArchived)
+            .toList(growable: false);
+      }
+
+      if (childProfiles.isEmpty || !mounted) return;
+      final selected = childProfiles.length == 1
+          ? childProfiles.first
+          : await ReaderProfileDialogs.showChildProfilePicker(
+              context,
+              profiles: childProfiles,
+            );
+      if (selected == null) return;
+
+      final hasParentPin = await _ensureParentPinBeforeEnteringKidsMode();
+      if (!hasParentPin || !mounted) return;
+
+      final activated = await ref
+          .read(authProvider.notifier)
+          .activateReaderProfile(selected.id);
+      if (!activated) {
+        _showAuthError(fallback: 'Çocuk profiline geçilemedi.');
+        return;
+      }
+      await _refreshSelfProfileState();
+      return;
+    }
+
+    final auth = ref.read(authProvider);
+    final parentProfile = _parentProfileFromAuth(auth);
+    if (parentProfile == null) return;
+
+    final svc = await ref.read(kidsModePinServiceProvider.future);
+    final hasParentPin = auth.user?.hasParentPin ?? svc.hasPin();
+    if (!hasParentPin) {
+      final switched = await ref
+          .read(authProvider.notifier)
+          .activateReaderProfile(parentProfile.id);
+      _showMessage(
+        switched
+            ? 'Ebeveyn şifresi bulunmadığı için ebeveyn profiline dönüldü. Lütfen bir şifre belirleyin.'
+            : (ref.read(authProvider).error ??
+                  'Ebeveyn profiline dönülemedi. Lütfen tekrar deneyin.'),
+      );
+      if (switched) {
+        await _refreshSelfProfileState();
+      }
+      return;
+    }
+
+    if (!mounted) return;
+    await KidsModeExitDialog.show(
+      context,
+      verifyPin: (pin) async {
+        final ok = await ref
+            .read(authProvider.notifier)
+            .activateReaderProfile(parentProfile.id, parentPin: pin);
+        if (!ok) {
+          return ref.read(authProvider).error ??
+              'Ebeveyn profiline dönülemedi. Lütfen tekrar deneyin.';
+        }
+        await _refreshSelfProfileState();
+        return null;
+      },
+    );
   }
 
   Future<void> _toggleFollow(PublicProfileModel profile) async {
@@ -192,82 +383,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _onKidsModeSwitch(bool wantOn) async {
-    if (wantOn) {
-      final auth = ref.read(authProvider);
-      var childProfiles = auth.profiles
-          .where((profile) => profile.isChild && !profile.isArchived)
-          .toList(growable: false);
-
-      if (childProfiles.isEmpty) {
-        final name = await ReaderProfileDialogs.showCreateChildProfileDialog(
-          context,
-        );
-        if (name == null || name.trim().isEmpty) return;
-
-        final created = await ref
-            .read(authProvider.notifier)
-            .createChildProfile(name: name.trim());
-        if (!created || !mounted) return;
-
-        childProfiles = ref
-            .read(authProvider)
-            .profiles
-            .where((profile) => profile.isChild && !profile.isArchived)
-            .toList(growable: false);
-      }
-
-      if (childProfiles.isEmpty || !mounted) return;
-      final selected = childProfiles.length == 1
-          ? childProfiles.first
-          : await ReaderProfileDialogs.showChildProfilePicker(
-              context,
-              profiles: childProfiles,
-            );
-      if (selected == null) return;
-
-      final hasParentPin = await _ensureParentPinBeforeEnteringKidsMode();
-      if (!hasParentPin || !mounted) return;
-
-      await ref.read(authProvider.notifier).activateReaderProfile(selected.id);
-      return;
-    }
-
-    final auth = ref.read(authProvider);
-    dynamic parentProfile;
-    for (final profile in auth.profiles) {
-      if (profile.isParent && !profile.isArchived) {
-        parentProfile = profile;
-        break;
-      }
-    }
-    if (parentProfile == null) return;
-
-    final svc = await ref.read(kidsModePinServiceProvider.future);
-    final hasParentPin = auth.user?.hasParentPin ?? svc.hasPin();
-    if (!hasParentPin) {
-      final switched = await ref
-          .read(authProvider.notifier)
-          .activateReaderProfile(parentProfile.id as int);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              switched
-                  ? 'Ebeveyn şifresi bulunmadığı için ebeveyn profiline dönüldü. Lütfen bir şifre belirleyin.'
-                  : 'Ebeveyn profiline dönülemedi. Lütfen tekrar deneyin.',
-            ),
-          ),
-        );
-      }
-      return;
-    }
-    if (!mounted) return;
-    final ok = await KidsModeExitDialog.show(context, verifyPin: svc.verifyPin);
-    if (ok == true && mounted) {
-      await ref
-          .read(authProvider.notifier)
-          .activateReaderProfile(parentProfile.id as int);
-    }
+    await _handleKidsModeSwitch(wantOn);
   }
 
   Future<void> _onOpenParentPinDialog() async {
@@ -668,6 +784,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SizedBox(height: AppUI.sectionGap),
                 const ReadingHeatmapWidget(),
                 const SizedBox(height: AppUI.sectionGap),
+                if (authState.activeProfile?.isParent == true)
+                  ReaderProfilesSummaryCard(
+                    activeProfile: authState.activeProfile!,
+                    profileCapabilities: authState.profileCapabilities,
+                    onTap: () => context.push('/home/reader-profiles'),
+                    parentAvatarUrl: authState.user?.avatarUrl,
+                  ),
+                if (authState.activeProfile?.isParent == true)
+                  const SizedBox(height: AppUI.sectionGap),
                 _KidsModeProfileSection(
                   accent: _kidsAccent,
                   onToggleKidsMode: _onKidsModeSwitch,
@@ -675,7 +800,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ],
               const SizedBox(height: AppUI.sectionGap),
-              _HistorySection(history: profile.leagueHistory),
+              _HistorySection(
+                history: profile.leagueHistory,
+                onOpenAll: () => context.push(
+                  '/league-history',
+                  extra: <String, dynamic>{
+                    'history': profile.leagueHistory,
+                    'title': _isSelf
+                        ? 'Lig Geçmişi'
+                        : '${profile.profile.name} • Lig Geçmişi',
+                  },
+                ),
+              ),
               if (_isSelf) ...[
                 const SizedBox(height: AppUI.sectionGap),
                 _DeleteAccountSection(onTap: _showDeleteAccountDialog),
@@ -878,11 +1014,7 @@ class _HeroCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _ActionButton(
-                    'Çıkış Yap',
-                    onLogout,
-                    dark: isDark,
-                  ),
+                  child: _ActionButton('Çıkış Yap', onLogout, dark: isDark),
                 ),
               ],
             )
@@ -1581,9 +1713,10 @@ class _DeleteAccountSection extends StatelessWidget {
 }
 
 class _HistorySection extends StatelessWidget {
-  const _HistorySection({required this.history});
+  const _HistorySection({required this.history, required this.onOpenAll});
 
   final List<Map<String, dynamic>> history;
+  final VoidCallback onOpenAll;
 
   @override
   Widget build(BuildContext context) {
@@ -1594,25 +1727,103 @@ class _HistorySection extends StatelessWidget {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: history.map((entry) {
-        final result = entry['result'] as String?;
-        final label = switch (result) {
-          'promoted' => 'Terfi etti',
-          'demoted' => 'Lig düşüşü yaşadı',
-          'stayed' => 'Yerini korudu',
-          _ => 'Sezon sonucu yok',
-        };
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: _SectionCard(
-            title: entry['season'] as String? ?? 'Sezon',
-            subtitle:
-                '${entry['tier_label'] ?? ''} • $label • #${entry['rank'] ?? '-'}',
+    final previewEntries = history.take(2).toList(growable: false);
+
+    return Material(
+      color: Theme.of(context).cardColor,
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
+        onTap: onOpenAll,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.7),
+            ),
           ),
-        );
-      }).toList(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Lig Geçmişi',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${history.length} tamamlanan sezonu detay sayfasında görüntüleyin.',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                                height: 1.35,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: previewEntries
+                    .map((entry) {
+                      final season = entry['season'] as String? ?? 'Sezon';
+                      final rank = '#${entry['rank'] ?? '-'}';
+                      return _HistoryPreviewPill(label: '$season  $rank');
+                    })
+                    .toList(growable: false),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HistoryPreviewPill extends StatelessWidget {
+  const _HistoryPreviewPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.bodySmall?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: theme.colorScheme.onSurface,
+        ),
+      ),
     );
   }
 }
@@ -1726,33 +1937,12 @@ class _Avatar extends StatelessWidget {
   final String? url;
   final double size;
   @override
-  Widget build(BuildContext context) {
-    final initial = name.isEmpty ? '?' : name.trim()[0].toUpperCase();
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(size * 0.3),
-      child: Container(
-        width: size,
-        height: size,
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.08)
-            : AppColors.primary.withValues(alpha: 0.14),
-        child: url != null && url!.isNotEmpty
-            ? CachedNetworkImage(imageUrl: url!, fit: BoxFit.cover)
-            : Center(
-                child: Text(
-                  initial,
-                  style: TextStyle(
-                    fontSize: size * 0.44,
-                    fontWeight: FontWeight.w800,
-                    color: isDark ? const Color(0xFF4ADE80) : AppColors.primary,
-                  ),
-                ),
-              ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => ReaderProfileAvatar(
+    name: name,
+    avatarRef: url,
+    size: size,
+    borderRadius: BorderRadius.circular(size * 0.3),
+  );
 }
 
 class _CountChip extends StatelessWidget {

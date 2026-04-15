@@ -81,6 +81,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _saveProfile() async {
+    final activeProfile = ref.read(authProvider).activeProfile;
+    if (activeProfile?.isChild == true) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Çocuk profildeyken hesap bilgileri değiştirilemez. Önce ebeveyn profiline dönün.',
+          ),
+        ),
+      );
+      return;
+    }
+
     final user = ref.read(authProvider).user;
     final previousUsername = user?.username;
     final username = _usernameController.text
@@ -142,6 +155,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _pickAvatar(() => _avatarPicker.pickFromCamera());
 
   Future<void> _pickAvatar(Future<PickedAvatar?> Function() picker) async {
+    final activeProfile = ref.read(authProvider).activeProfile;
+    if (activeProfile?.isChild == true) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Çocuk profildeyken hesap fotoğrafı değiştirilemez. Önce ebeveyn profiline dönün.',
+          ),
+        ),
+      );
+      return;
+    }
+
     try {
       final picked = await picker();
       if (picked == null || !mounted) return;
@@ -153,14 +179,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Fotoğraf seçilirken bir hata oluştu.'),
-        ),
+        const SnackBar(content: Text('Fotoğraf seçilirken bir hata oluştu.')),
       );
     }
   }
 
   Future<void> _showAvatarSourceSheet() async {
+    final activeProfile = ref.read(authProvider).activeProfile;
+    if (activeProfile?.isChild == true) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Çocuk profildeyken hesap fotoğrafı değiştirilemez. Önce ebeveyn profiline dönün.',
+          ),
+        ),
+      );
+      return;
+    }
+
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -234,7 +271,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final theme = Theme.of(context);
     final settings = ref.watch(settingsProvider);
     final settingsNotifier = ref.read(settingsProvider.notifier);
-    final user = ref.watch(authProvider).user;
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+    final activeProfile = authState.activeProfile;
+    final isChildProfileActive = activeProfile?.isChild == true;
     final notificationEnabled =
         _notificationStatus == NotificationPermissionState.granted;
     final notificationText = switch (_notificationStatus) {
@@ -270,7 +310,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  user?.username.isNotEmpty == true
+                  isChildProfileActive
+                      ? 'Çocuk profildeyken hesap bilgileri korunur. Ad, kullanıcı adı, e-posta ve hesap fotoğrafını değiştirmek için ebeveyn profiline dön.'
+                      : user?.username.isNotEmpty == true
                       ? '@${user!.username}'
                       : 'Hesabını ve okuma deneyimini burada yönetebilirsin.',
                   style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
@@ -279,100 +321,150 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          _Card(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Profil Bilgileri',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    _AvatarPreview(
-                      imageUrl: user?.avatarUrl,
-                      imageBytes: _avatarBytes,
-                      name: _nameController.text.isNotEmpty
-                          ? _nameController.text
-                          : (user?.name ?? ''),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
+          isChildProfileActive
+              ? _Card(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Hesap Bilgileri',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Profil Fotoğrafı',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(
+                              Icons.lock_outline_rounded,
+                              color: AppColors.primary,
                             ),
                           ),
-                          const SizedBox(height: 6),
-                          const SizedBox(height: 10),
-                          OutlinedButton.icon(
-                            onPressed: _showAvatarSourceSheet,
-                            icon: const Icon(Icons.photo_library_outlined),
-                            label: Text(
-                              _avatarBytes != null
-                                  ? 'Fotoğrafı Değiştir'
-                                  : 'Fotoğraf Seç',
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Çocuk profildeyken ad soyad, kullanıcı adı, e-posta ve hesap fotoğrafı değiştirilemez. Bu alanları düzenlemek için önce ebeveyn profiline dönün.',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                height: 1.45,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Ad Soyad'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _usernameController,
-                  autocorrect: false,
-                  decoration: const InputDecoration(
-                    labelText: 'Kullanıcı Adı',
+                    ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Küçük harf, rakam ve alt çizgi kullanabilirsin. Profil bağlantın bu alanla açılır.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    height: 1.4,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'E-posta'),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: _profileSaving ? null : _saveProfile,
-                    child: _profileSaving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
+                )
+              : _Card(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Profil Bilgileri',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          _AvatarPreview(
+                            imageUrl: user?.avatarUrl,
+                            imageBytes: _avatarBytes,
+                            name: _nameController.text.isNotEmpty
+                                ? _nameController.text
+                                : (user?.name ?? ''),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Profil Fotoğrafı',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                const SizedBox(height: 10),
+                                OutlinedButton.icon(
+                                  onPressed: _showAvatarSourceSheet,
+                                  icon: const Icon(
+                                    Icons.photo_library_outlined,
+                                  ),
+                                  label: Text(
+                                    _avatarBytes != null
+                                        ? 'Fotoğrafı Değiştir'
+                                        : 'Fotoğraf Seç',
+                                  ),
+                                ),
+                              ],
                             ),
-                          )
-                        : const Text('Bilgileri Kaydet'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Ad Soyad',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _usernameController,
+                        autocorrect: false,
+                        decoration: const InputDecoration(
+                          labelText: 'Kullanıcı Adı',
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Küçük harf, rakam ve alt çizgi kullanabilirsin. Profil bağlantın bu alanla açılır.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.4,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(labelText: 'E-posta'),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: _profileSaving ? null : _saveProfile,
+                          child: _profileSaving
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('Bilgileri Kaydet'),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
           const SizedBox(height: 16),
           _Card(
             child: Column(

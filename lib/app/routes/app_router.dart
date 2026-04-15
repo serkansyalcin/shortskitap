@@ -20,8 +20,10 @@ import '../../features/book/screens/reader_screen.dart';
 import '../../features/book/screens/series_screen.dart';
 import '../../features/library/screens/library_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
+import '../../features/profile/screens/reader_profiles_screen.dart';
 import '../../features/profile/screens/settings_screen.dart';
 import '../../features/profile/screens/highlights_screen.dart';
+import '../../features/profile/screens/league_history_screen.dart';
 import '../../features/league/screens/league_screen.dart';
 import '../../features/league/screens/duel_screen.dart';
 import '../../features/subscription/screens/paywall_screen.dart';
@@ -79,6 +81,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           location == '/home/library' ||
           location == '/home/notifications' ||
           location == '/home/profile' ||
+          location == '/home/reader-profiles' ||
           location == '/home/settings';
 
       if (isSplash) return null;
@@ -145,6 +148,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, state) => const ProfileScreen(standalone: true),
           ),
           GoRoute(
+            path: 'reader-profiles',
+            builder: (_, state) => const ReaderProfilesScreen(),
+          ),
+          GoRoute(
             path: 'badges',
             builder: (_, state) {
               final extra = state.extra as Map<String, dynamic>?;
@@ -174,6 +181,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(path: '/premium', builder: (_, state) => const PaywallScreen()),
+      GoRoute(
+        path: '/league-history',
+        builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final history = (extra?['history'] as List<dynamic>? ?? const [])
+              .whereType<Map<String, dynamic>>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList(growable: false);
+          return LeagueHistoryScreen(
+            history: history,
+            title: extra?['title'] as String? ?? 'Lig Geçmişi',
+          );
+        },
+      ),
       GoRoute(
         path: '/books/:slug/reviews',
         builder: (_, state) =>

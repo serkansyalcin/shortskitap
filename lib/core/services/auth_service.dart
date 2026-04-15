@@ -257,12 +257,12 @@ class AuthService {
         .toList(growable: false);
   }
 
-  Future<void> createChildProfile({
+  Future<ReaderProfileModel> createChildProfile({
     required String name,
     int? birthYear,
     String? avatarUrl,
   }) async {
-    await _client.post(
+    final res = await _client.post(
       '/me/profiles',
       data: {
         'name': name,
@@ -270,6 +270,8 @@ class AuthService {
         ...?_optionalField('avatar_url', avatarUrl),
       },
     );
+    final data = res.data['data'] as Map<String, dynamic>;
+    return ReaderProfileModel.fromJson(data['profile'] as Map<String, dynamic>);
   }
 
   Future<void> updateReaderProfile({
@@ -281,6 +283,22 @@ class AuthService {
     await _client.put(
       '/me/profiles/$profileId',
       data: {'name': name, 'birth_year': birthYear, 'avatar_url': avatarUrl},
+    );
+  }
+
+  Future<void> uploadReaderProfileAvatar({
+    required int profileId,
+    required Uint8List avatarBytes,
+    String? avatarFileName,
+  }) async {
+    await _client.post(
+      '/me/profiles/$profileId/avatar',
+      data: FormData.fromMap({
+        'avatar': MultipartFile.fromBytes(
+          avatarBytes,
+          filename: avatarFileName ?? 'reader-profile-avatar.jpg',
+        ),
+      }),
     );
   }
 

@@ -13,11 +13,11 @@ class KidsModeExitDialog extends StatefulWidget {
 
   final VoidCallback onSuccess;
   final VoidCallback onCancel;
-  final Future<bool> Function(String) verifyPin;
+  final Future<Object?> Function(String) verifyPin;
 
   static Future<bool?> show(
     BuildContext context, {
-    required Future<bool> Function(String) verifyPin,
+    required Future<Object?> Function(String) verifyPin,
   }) {
     return showDialog<bool>(
       context: context,
@@ -65,13 +65,21 @@ class _KidsModeExitDialogState extends State<KidsModeExitDialog> {
     });
 
     try {
-      final isValid = await widget.verifyPin(pin);
+      final result = await widget.verifyPin(pin);
       if (!mounted) return;
 
-      if (isValid) {
+      if (result == null) {
         widget.onSuccess();
+      } else if (result is bool) {
+        if (result) {
+          widget.onSuccess();
+        } else {
+          setState(() => _error = 'Şifre hatalı. Lütfen tekrar deneyin.');
+        }
+      } else if (result is String && result.isNotEmpty) {
+        setState(() => _error = result);
       } else {
-        setState(() => _error = 'Şifre yanlış. Lütfen tekrar deneyin.');
+        setState(() => _error = 'Şifre doğrulanamadı. Lütfen tekrar deneyin.');
       }
     } catch (error) {
       if (!mounted) return;

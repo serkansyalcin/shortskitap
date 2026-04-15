@@ -35,7 +35,7 @@ String _dioMessage(DioException e, {required String fallback}) {
     case DioExceptionType.receiveTimeout:
       return 'Bağlantı zaman aşımına uğradı. İnternetini kontrol edip tekrar dene.';
     case DioExceptionType.connectionError:
-      return 'İnternet bağlantısı yok veya sunucuya ulaşılamıyor. Wi‑Fi veya mobil verini kontrol edip tekrar dene.';
+      return 'İnternet bağlantısı yok veya sunucuya ulaşılamıyor. Wi-Fi veya mobil verini kontrol edip tekrar dene.';
     case DioExceptionType.badCertificate:
       return 'Güvenli bağlantı kurulamadı. Daha sonra tekrar dene.';
     case DioExceptionType.cancel:
@@ -77,6 +77,12 @@ String apiFormErrorMessage(
 
     final data = error.response?.data;
     if (data is Map<String, dynamic>) {
+      final code = data['code'];
+      if (code is String && code.trim().isNotEmpty) {
+        final normalized = _normalizeApiCode(code.trim(), data['data']);
+        if (normalized != null) return normalized;
+      }
+
       final errors = data['errors'];
       if (errors is Map && errors.isNotEmpty) {
         final first = errors.values.first;
@@ -101,6 +107,29 @@ String apiFormErrorMessage(
   }
 
   return userFacingErrorMessage(error, fallback: fallback);
+}
+
+String? _normalizeApiCode(String code, Object? payload) {
+  final data = payload is Map<String, dynamic> ? payload : null;
+
+  switch (code) {
+    case 'reader_profile_limit_reached':
+      final limit = (data?['child_profile_limit'] as num?)?.toInt();
+      final requiresPremium = data?['requires_premium_for_more'] == true;
+      if (requiresPremium && limit != null) {
+        return 'Bu hesapta en fazla $limit çocuk profili oluşturabilirsiniz. Daha fazlası için Premium gerekli.';
+      }
+      if (limit != null) {
+        return 'Çocuk profili limiti dolu. En fazla $limit profil oluşturabilirsiniz.';
+      }
+      return 'Çocuk profili limiti dolu.';
+    case 'parent_pin_required':
+      return 'Lütfen ebeveyn şifresini girin.';
+    case 'invalid_parent_pin':
+      return 'Ebeveyn şifresi hatalı. Lütfen tekrar deneyin.';
+  }
+
+  return null;
 }
 
 String? _normalizeApiMessage(String raw) {

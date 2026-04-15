@@ -17,6 +17,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../core/models/achievement_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/widgets/category_visuals.dart';
+import '../../../core/widgets/reader_profile_avatar.dart';
 import '../../../core/services/subscription_service.dart';
 import '../../../core/services/notification_permission_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -661,9 +662,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
       case NotificationPermissionState.unsupported:
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Bu platformda bildirim desteği kullanılamıyor.',
-            ),
+            content: Text('Bu platformda bildirim desteği kullanılamıyor.'),
           ),
         );
         break;
@@ -755,14 +754,23 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
         .toList(growable: false);
 
     if (childProfiles.isEmpty) {
-      final name = await ReaderProfileDialogs.showCreateChildProfileDialog(
+      final form = await ReaderProfileDialogs.showChildProfileFormDialog(
         context,
+        suggestedAvatarUrl: ReaderProfileAvatarCatalog.tokenValueAt(
+          auth.profileCapabilities.activeChildProfilesCount,
+        ),
       );
-      if (name == null || name.trim().isEmpty) return;
+      if (form == null || form.name.trim().isEmpty) return;
 
       final created = await ref
           .read(authProvider.notifier)
-          .createChildProfile(name: name.trim());
+          .createChildProfile(
+            name: form.name.trim(),
+            birthYear: form.birthYear,
+            avatarUrl: form.avatarUrl,
+            avatarBytes: form.avatarBytes,
+            avatarFileName: form.avatarFileName,
+          );
       if (!created || !mounted) return;
 
       childProfiles = ref
@@ -819,21 +827,28 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
     }
 
     if (!mounted) return;
-    final ok = await KidsModeExitDialog.show(context, verifyPin: svc.verifyPin);
-    if (ok == true && mounted) {
-      await ref
-          .read(authProvider.notifier)
-          .activateReaderProfile(parentProfile.id as int);
-    }
+    await KidsModeExitDialog.show(
+      context,
+      verifyPin: (pin) async {
+        final ok = await ref
+            .read(authProvider.notifier)
+            .activateReaderProfile(parentProfile.id as int, parentPin: pin);
+        if (!ok) {
+          return ref.read(authProvider).error ??
+              'Ebeveyn profiline dönülemedi. Lütfen tekrar deneyin.';
+        }
+        return null;
+      },
+    );
   }
 
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sayfa açılamadı.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Sayfa açılamadı.')));
       }
     }
   }
@@ -1292,11 +1307,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                         icon: '🎯',
                       ),
                       const SizedBox(width: 12),
-                      const _StatCard(
-                        label: 'Seri',
-                        value: '—',
-                        icon: '🔥',
-                      ),
+                      const _StatCard(label: 'Seri', value: '—', icon: '🔥'),
                       const SizedBox(width: 12),
                       const _StatCard(
                         label: 'Rozetler',
@@ -1323,16 +1334,14 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                     _MenuItem(
                       icon: Icons.settings_outlined,
                       title: 'Ayarlar',
-                      subtitle:
-                          'Tema, okuma tercihleri ve uygulama ayarları',
+                      subtitle: 'Tema, okuma tercihleri ve uygulama ayarları',
                       onTap: () => context.push('/home/settings'),
                     ),
                     _MenuDivider(),
                     _MenuItem(
                       icon: Icons.child_care_rounded,
                       title: 'Çocuk Modu',
-                      subtitle:
-                          'Çocuklara özel güvenli okuma alanı',
+                      subtitle: 'Çocuklara özel güvenli okuma alanı',
                       color: Colors.pink.shade600,
                       trailing: Switch(
                         value: ref.watch(kidsModeProvider),

@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/models/auth_session_model.dart';
+import '../../core/models/reader_profile_capabilities_model.dart';
 import '../../core/models/reader_profile_model.dart';
 import '../../core/models/user_model.dart';
 import '../../core/services/auth_service.dart';
@@ -19,6 +20,7 @@ class AuthState {
   final UserModel? user;
   final List<ReaderProfileModel> profiles;
   final ReaderProfileModel? activeProfile;
+  final ReaderProfileCapabilitiesModel profileCapabilities;
   final String? error;
 
   /// True when `/me` could not be reached but a locally cached profile is used.
@@ -29,6 +31,7 @@ class AuthState {
     this.user,
     this.profiles = const <ReaderProfileModel>[],
     this.activeProfile,
+    this.profileCapabilities = const ReaderProfileCapabilitiesModel.defaults(),
     this.error,
     this.isOfflineSession = false,
   });
@@ -39,6 +42,7 @@ class AuthState {
     this.user, {
     this.profiles = const <ReaderProfileModel>[],
     this.activeProfile,
+    this.profileCapabilities = const ReaderProfileCapabilitiesModel.defaults(),
     bool offlineSession = false,
   }) : status = AuthStatus.authenticated,
        error = null,
@@ -175,14 +179,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _setSession(session, offlineSession: false);
       return true;
     } catch (e) {
-      state = AuthState(
-        status: AuthStatus.authenticated,
-        user: state.user,
-        profiles: state.profiles,
-        activeProfile: state.activeProfile,
-        error: _parseError(e),
-        isOfflineSession: state.isOfflineSession,
-      );
+      _setAuthenticatedError(_parseError(e));
       return false;
     }
   }
@@ -227,6 +224,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       user,
       profiles: state.profiles,
       activeProfile: state.activeProfile,
+      profileCapabilities: state.profileCapabilities,
       offlineSession: false,
     );
     final snapshot = _sessionFromState(state);
@@ -240,23 +238,54 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String name,
     int? birthYear,
     String? avatarUrl,
+    Uint8List? avatarBytes,
+    String? avatarFileName,
   }) async {
     try {
-      await _service.createChildProfile(
+      final profile = await _service.createChildProfile(
         name: name,
         birthYear: birthYear,
         avatarUrl: avatarUrl,
       );
+      if (avatarBytes != null) {
+        await _service.uploadReaderProfileAvatar(
+          profileId: profile.id,
+          avatarBytes: avatarBytes,
+          avatarFileName: avatarFileName,
+        );
+      }
       return await refreshMe();
     } catch (e) {
-      state = AuthState(
-        status: AuthStatus.authenticated,
-        user: state.user,
-        profiles: state.profiles,
-        activeProfile: state.activeProfile,
-        error: _parseError(e),
-        isOfflineSession: state.isOfflineSession,
+      _setAuthenticatedError(_parseError(e));
+      return false;
+    }
+  }
+
+  Future<bool> updateReaderProfile({
+    required int profileId,
+    required String name,
+    int? birthYear,
+    String? avatarUrl,
+    Uint8List? avatarBytes,
+    String? avatarFileName,
+  }) async {
+    try {
+      await _service.updateReaderProfile(
+        profileId: profileId,
+        name: name,
+        birthYear: birthYear,
+        avatarUrl: avatarUrl,
       );
+      if (avatarBytes != null) {
+        await _service.uploadReaderProfileAvatar(
+          profileId: profileId,
+          avatarBytes: avatarBytes,
+          avatarFileName: avatarFileName,
+        );
+      }
+      return await refreshMe();
+    } catch (e) {
+      _setAuthenticatedError(_parseError(e));
       return false;
     }
   }
@@ -270,14 +299,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _setSession(session, offlineSession: false);
       return true;
     } catch (e) {
-      state = AuthState(
-        status: AuthStatus.authenticated,
-        user: state.user,
-        profiles: state.profiles,
-        activeProfile: state.activeProfile,
-        error: _parseError(e),
-        isOfflineSession: state.isOfflineSession,
-      );
+      _setAuthenticatedError(_parseError(e));
+      return false;
+    }
+  }
+
+  Future<bool> archiveReaderProfile(int profileId) async {
+    try {
+      final session = await _service.archiveReaderProfile(profileId);
+      await _setSession(session, offlineSession: false);
+      return true;
+    } catch (e) {
+      _setAuthenticatedError(_parseError(e));
       return false;
     }
   }
@@ -288,14 +321,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _setSession(session, offlineSession: false);
       return true;
     } catch (e) {
-      state = AuthState(
-        status: AuthStatus.authenticated,
-        user: state.user,
-        profiles: state.profiles,
-        activeProfile: state.activeProfile,
-        error: _parseError(e),
-        isOfflineSession: state.isOfflineSession,
-      );
+      _setAuthenticatedError(_parseError(e));
       return false;
     }
   }
@@ -320,10 +346,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (_) {}
   }
 
+  void _setAuthenticatedError(String error) {
+    state = AuthState(
+      status: AuthStatus.authenticated,
+      user: state.user,
+      profiles: state.profiles,
+      activeProfile: state.activeProfile,
+      profileCapabilities: state.profileCapabilities,
+      error: error,
+      isOfflineSession: state.isOfflineSession,
+    );
+  }
+
   String _parseError(dynamic error) {
     if (error is DioException) {
       final data = error.response?.data;
       if (data is Map<String, dynamic>) {
+        final code = data['code']?.toString();
+        if (code != null && code.isNotEmpty) {
+          return _translateCode(code, data['data']);
+        }
+
         final errors = data['errors'];
         if (errors is Map<String, dynamic> && errors.isNotEmpty) {
           final firstError = errors.values.first;
@@ -364,6 +407,29 @@ class AuthNotifier extends StateNotifier<AuthState> {
     return message;
   }
 
+  String _translateCode(String code, Object? payload) {
+    final data = payload is Map<String, dynamic> ? payload : null;
+
+    switch (code) {
+      case 'reader_profile_limit_reached':
+        final limit = (data?['child_profile_limit'] as num?)?.toInt();
+        final requiresPremium = data?['requires_premium_for_more'] == true;
+        if (requiresPremium && limit != null) {
+          return 'Bu hesapta en fazla $limit çocuk profili oluşturabilirsiniz. Daha fazlası için Premium gerekli.';
+        }
+        if (limit != null) {
+          return 'Çocuk profili limiti dolu. En fazla $limit profil oluşturabilirsiniz.';
+        }
+        return 'Çocuk profili limiti dolu.';
+      case 'parent_pin_required':
+        return 'Lütfen ebeveyn şifresini girin.';
+      case 'invalid_parent_pin':
+        return 'Ebeveyn şifresi hatalı. Lütfen tekrar deneyin.';
+      default:
+        return code;
+    }
+  }
+
   Future<void> _setSession(
     AuthSessionModel session, {
     required bool offlineSession,
@@ -381,6 +447,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       session.account,
       profiles: session.profiles,
       activeProfile: session.activeProfile,
+      profileCapabilities: session.profileCapabilities,
       offlineSession: offlineSession,
     );
   }
@@ -395,6 +462,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       account: user,
       profiles: authState.profiles,
       activeProfile: authState.activeProfile,
+      profileCapabilities: authState.profileCapabilities,
     );
   }
 }
