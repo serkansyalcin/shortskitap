@@ -19,6 +19,12 @@ class BookModel {
   final bool isFeatured;
   final bool isPremium;
   final bool isKids;
+  final String sourceType;
+  final String visibility;
+  final bool isAiGenerated;
+  final String? generationType;
+  final String? creatorDisplayName;
+  final bool isOwnedByMe;
   final int totalParagraphs;
   final int? estimatedReadMinutes;
   final int viewCount;
@@ -45,6 +51,12 @@ class BookModel {
     required this.isFeatured,
     required this.isPremium,
     required this.isKids,
+    this.sourceType = 'editorial',
+    this.visibility = 'public',
+    this.isAiGenerated = false,
+    this.generationType,
+    this.creatorDisplayName,
+    this.isOwnedByMe = false,
     required this.totalParagraphs,
     this.estimatedReadMinutes,
     required this.viewCount,
@@ -61,7 +73,12 @@ class BookModel {
     slug: json['slug'] as String,
     author: json['author'] != null
         ? AuthorModel.fromJson(json['author'] as Map<String, dynamic>)
-        : null,
+        : ((json['creator_display_name'] as String?)?.trim().isNotEmpty == true
+              ? AuthorModel(
+                  id: 0,
+                  name: json['creator_display_name'] as String,
+                )
+              : null),
     category: json['category'] != null
         ? CategoryModel.fromJson(json['category'] as Map<String, dynamic>)
         : null,
@@ -76,6 +93,14 @@ class BookModel {
     isFeatured: _asBool(json['is_featured']),
     isPremium: _asBool(json['is_premium']),
     isKids: _asBool(json['is_kids']),
+    sourceType: json['source_type'] as String? ?? 'editorial',
+    visibility: json['visibility'] as String? ?? 'public',
+    isAiGenerated:
+        _asBool(json['is_ai_generated']) ||
+        (json['source_type'] as String?) == 'user_ai',
+    generationType: json['generation_type'] as String?,
+    creatorDisplayName: json['creator_display_name'] as String?,
+    isOwnedByMe: _asBool(json['is_owned_by_me']),
     totalParagraphs: _asInt(json['total_paragraphs']),
     estimatedReadMinutes: _asNullableInt(json['estimated_read_minutes']),
     viewCount: _asInt(json['view_count']),
@@ -110,6 +135,12 @@ class BookModel {
     'is_featured': isFeatured,
     'is_premium': isPremium,
     'is_kids': isKids,
+    'source_type': sourceType,
+    'visibility': visibility,
+    'is_ai_generated': isAiGenerated,
+    'generation_type': generationType,
+    'creator_display_name': creatorDisplayName,
+    'is_owned_by_me': isOwnedByMe,
     'total_paragraphs': totalParagraphs,
     'estimated_read_minutes': estimatedReadMinutes,
     'view_count': viewCount,

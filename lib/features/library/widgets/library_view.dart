@@ -15,6 +15,9 @@ import '../../../core/models/highlight_model.dart';
 import '../../../core/models/progress_model.dart';
 import '../../../core/utils/user_friendly_error.dart';
 import '../../../core/widgets/animated_segmented_control.dart';
+import '../../ai_story/ai_story_strings.dart';
+import '../../ai_story/providers/ai_story_provider.dart';
+import '../../ai_story/widgets/ai_story_preview_card.dart';
 
 enum _LibraryMode {
   overview,
@@ -23,6 +26,7 @@ enum _LibraryMode {
   downloaded,
   favorites,
   highlights,
+  aiStories,
 }
 
 class LibraryView extends ConsumerStatefulWidget {
@@ -34,6 +38,7 @@ class LibraryView extends ConsumerStatefulWidget {
 
 class _LibraryViewState extends ConsumerState<LibraryView> {
   _LibraryMode _mode = _LibraryMode.overview;
+  String? _aiStoryVisibilityFilter;
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +62,9 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
     final favoritesAsync = ref.watch(favoritesProvider);
     final highlightsAsync = ref.watch(highlightsProvider);
     final downloadedAsync = ref.watch(downloadedBooksProvider);
+    final myAiStoriesAsync = ref.watch(
+      myAiStoriesProvider(_aiStoryVisibilityFilter),
+    );
     final isKidsMode = ref.watch(kidsModeProvider);
 
     final rawProgress = progressAsync.valueOrNull ?? const <ProgressModel>[];
@@ -86,6 +94,7 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
               .toList(growable: false)
         : rawHighlights;
     final downloadedBooks = downloadedAsync.valueOrNull ?? const <BookModel>[];
+    final myAiStories = myAiStoriesAsync.valueOrNull ?? const <BookModel>[];
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -148,6 +157,11 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
                   label: 'Alıntı',
                   icon: Icons.bookmark_rounded,
                 ),
+                SegmentedItem(
+                  value: _LibraryMode.aiStories,
+                  label: 'AI Hikâye',
+                  icon: Icons.auto_awesome_rounded,
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -172,8 +186,14 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
                   onRetryProgress: () => ref.invalidate(allProgressProvider),
                   onRetryFavorites: () => ref.invalidate(favoritesProvider),
                   onRetryHighlights: () => ref.invalidate(highlightsProvider),
+                  onRetryAiStories: () => ref.invalidate(
+                    myAiStoriesProvider(_aiStoryVisibilityFilter),
+                  ),
                   onOpenHighlightsTab: () =>
                       setState(() => _mode = _LibraryMode.highlights),
+                  onAiStoryFilterChanged: (value) {
+                    setState(() => _aiStoryVisibilityFilter = value);
+                  },
                   onLoadMoreHighlights: () async {
                     try {
                       await ref.read(highlightsProvider.notifier).loadMore();
@@ -188,12 +208,15 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
                   favoritesAsync: favoritesAsync,
                   highlightsAsync: highlightsAsync,
                   downloadedAsync: downloadedAsync,
+                  aiStoriesAsync: myAiStoriesAsync,
+                  aiStoryVisibilityFilter: _aiStoryVisibilityFilter,
                   allProgress: allProgress,
                   activeProgress: activeProgress,
                   completedProgress: completedProgress,
                   downloadedBooks: downloadedBooks,
                   favorites: favorites,
                   highlights: highlights,
+                  myAiStories: myAiStories,
                 ),
               ),
             ),
@@ -209,36 +232,46 @@ class _LibraryModeContent extends StatelessWidget {
   final VoidCallback onRetryProgress;
   final VoidCallback onRetryFavorites;
   final VoidCallback onRetryHighlights;
+  final VoidCallback onRetryAiStories;
   final VoidCallback onOpenHighlightsTab;
+  final ValueChanged<String?> onAiStoryFilterChanged;
   final Future<void> Function() onLoadMoreHighlights;
   final AsyncValue<List<ProgressModel>> progressAsync;
   final AsyncValue<List<FavoriteModel>> favoritesAsync;
   final AsyncValue<HighlightsListState> highlightsAsync;
   final AsyncValue<List<BookModel>> downloadedAsync;
+  final AsyncValue<List<BookModel>> aiStoriesAsync;
+  final String? aiStoryVisibilityFilter;
   final List<ProgressModel> allProgress;
   final List<ProgressModel> activeProgress;
   final List<ProgressModel> completedProgress;
   final List<BookModel> downloadedBooks;
   final List<FavoriteModel> favorites;
   final List<HighlightModel> highlights;
+  final List<BookModel> myAiStories;
 
   const _LibraryModeContent({
     required this.mode,
     required this.onRetryProgress,
     required this.onRetryFavorites,
     required this.onRetryHighlights,
+    required this.onRetryAiStories,
     required this.onOpenHighlightsTab,
+    required this.onAiStoryFilterChanged,
     required this.onLoadMoreHighlights,
     required this.progressAsync,
     required this.favoritesAsync,
     required this.highlightsAsync,
     required this.downloadedAsync,
+    required this.aiStoriesAsync,
+    required this.aiStoryVisibilityFilter,
     required this.allProgress,
     required this.activeProgress,
     required this.completedProgress,
     required this.downloadedBooks,
     required this.favorites,
     required this.highlights,
+    required this.myAiStories,
   });
 
   @override
@@ -261,6 +294,8 @@ class _LibraryModeContent extends StatelessWidget {
         'Gözunun önunde tutmak istediğin kitapların kısayolu.',
       _LibraryMode.highlights =>
         'Kaydettiğin notlar ve dönmek istedigin alıntılar burada.',
+      _LibraryMode.aiStories =>
+        'AI ile ürettiğin hikâyeleri özel veya paylaşılan olarak yönet.',
     };
 
     return Column(
@@ -476,6 +511,63 @@ class _LibraryModeContent extends StatelessWidget {
                       ),
                   ],
                 ],
+              );
+            },
+          ),
+        ],
+        if (mode == _LibraryMode.overview || mode == _LibraryMode.aiStories) ...[
+          const SizedBox(height: 24),
+          const _SectionTitle(
+            title: AiStoryStrings.myStoriesTitle,
+            subtitle: 'Ürettiğin AI hikâyeleri burada bulabilirsin.',
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _AiFilterChip(
+                label: AiStoryStrings.allFilter,
+                selected: aiStoryVisibilityFilter == null,
+                onTap: () => onAiStoryFilterChanged(null),
+              ),
+              _AiFilterChip(
+                label: AiStoryStrings.privateFilter,
+                selected: aiStoryVisibilityFilter == 'private',
+                onTap: () => onAiStoryFilterChanged('private'),
+              ),
+              _AiFilterChip(
+                label: AiStoryStrings.publicFilter,
+                selected: aiStoryVisibilityFilter == 'public',
+                onTap: () => onAiStoryFilterChanged('public'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          aiStoriesAsync.when(
+            loading: () => const _LibraryLoadingCard(height: 180),
+            error: (_, __) => _LibraryErrorCard(
+              title: 'AI hikâyeler yüklenemedi',
+              buttonLabel: 'Tekrar dene',
+              onPressed: onRetryAiStories,
+            ),
+            data: (_) {
+              if (myAiStories.isEmpty) {
+                return const _InlineInfoCard(
+                  title: AiStoryStrings.myStoriesTitle,
+                  subtitle: AiStoryStrings.emptyMyStories,
+                );
+              }
+
+              return Column(
+                children: myAiStories
+                    .map(
+                      (book) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: AiStoryPreviewCard(book: book),
+                      ),
+                    )
+                    .toList(growable: false),
               );
             },
           ),
@@ -1305,6 +1397,52 @@ class _InlineInfoCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AiFilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _AiFilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? colorScheme.primaryContainer
+              : colorScheme.surfaceContainerHighest.withValues(alpha: 0.26),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected
+                ? colorScheme.primary.withValues(alpha: 0.35)
+                : colorScheme.outline.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: selected
+                ? colorScheme.onPrimaryContainer
+                : colorScheme.onSurface,
+          ),
+        ),
       ),
     );
   }

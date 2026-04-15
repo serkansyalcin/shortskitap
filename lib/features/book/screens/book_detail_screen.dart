@@ -16,6 +16,7 @@ import '../../../core/models/book_model.dart';
 import '../../../core/utils/user_friendly_error.dart';
 import '../../../core/models/progress_model.dart';
 import '../../../features/subscription/widgets/premium_badge.dart';
+import '../../ai_story/ai_story_strings.dart';
 import '../../interactive_elements/theme/interaction_palette.dart';
 import '../../interactive_elements/widgets/interactive_elements_section.dart';
 import '../widgets/book_review_tile.dart';
@@ -507,6 +508,11 @@ class _BookHeroCard extends StatelessWidget {
                               if (book.isPremium)
                                 const PremiumBadge(
                                   size: PremiumBadgeSize.small,
+                                ),
+                              if (book.isAiGenerated)
+                                _Chip(
+                                  label: AiStoryStrings.aiGeneratedBadge,
+                                  color: colorScheme.primary,
                                 ),
                             ],
                           ),

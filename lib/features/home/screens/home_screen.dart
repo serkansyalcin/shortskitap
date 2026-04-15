@@ -21,6 +21,8 @@ import '../../../core/widgets/reader_profile_avatar.dart';
 import '../../../core/services/subscription_service.dart';
 import '../../../core/services/notification_permission_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../ai_story/providers/ai_story_provider.dart';
+import '../../ai_story/widgets/ai_story_discover_section.dart';
 import '../../league/screens/league_screen.dart';
 import '../../library/widgets/library_view.dart';
 import '../../profile/screens/profile_screen.dart';
@@ -218,6 +220,7 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
       isKids: isKids,
     );
     final booksAsync = ref.watch(booksProvider(currentFilter));
+    final aiStoriesAsync = ref.watch(discoverAiStoriesProvider);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
@@ -419,6 +422,17 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
                         ],
                       ),
                     ),
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+              child: aiStoriesAsync.when(
+                data: (books) => AiStoryDiscoverSection(books: books),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
             ),
           ),
 

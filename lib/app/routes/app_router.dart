@@ -29,6 +29,7 @@ import '../../features/league/screens/league_screen.dart';
 import '../../features/league/screens/duel_screen.dart';
 import '../../features/subscription/screens/paywall_screen.dart';
 import '../../features/profile/screens/all_achievements_screen.dart';
+import '../../features/ai_story/screens/ai_story_studio_screen.dart';
 import '../../core/models/achievement_model.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -80,6 +81,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           location == '/league' ||
           location.startsWith('/duels/') ||
           location == '/home/library' ||
+          location == '/home/ai-story-studio' ||
           location == '/home/notifications' ||
           location == '/home/profile' ||
           location == '/home/reader-profiles' ||
@@ -136,6 +138,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, state) => const DiscoverScreen(),
           ),
           GoRoute(path: 'search', builder: (_, state) => const SearchScreen()),
+          GoRoute(
+            path: 'ai-story-studio',
+            builder: (_, state) => const AiStoryStudioScreen(),
+          ),
           GoRoute(
             path: 'library',
             builder: (_, state) => const LibraryScreen(),

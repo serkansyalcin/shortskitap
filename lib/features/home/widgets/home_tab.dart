@@ -12,6 +12,8 @@ import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_ui.dart';
 import '../../../core/models/progress_model.dart';
+import '../../ai_story/providers/ai_story_provider.dart';
+import '../../ai_story/widgets/ai_story_home_entry_card.dart';
 import '../../league/widgets/league_mini_card.dart';
 import 'home_daily_quote_card.dart';
 import 'home_tab_sections.dart';
@@ -95,6 +97,7 @@ class _HomeTabSectionState extends ConsumerState<HomeTabSection>
     final categoriesAsync = ref.watch(homeQuickCategoriesProvider);
     final isPremium = ref.watch(isPremiumProvider);
     final kidsModeEnabled = ref.watch(kidsModeProvider);
+    final myAiStoriesAsync = ref.watch(myAiStoriesProvider(null));
     final infoCardDismissed = ref.watch(
       kidsUiPrefsProvider.select((state) => state.infoCardDismissed),
     );
@@ -108,6 +111,10 @@ class _HomeTabSectionState extends ConsumerState<HomeTabSection>
           )
         : null;
     final showLeagueSection = isAuthenticated;
+    final latestAiBook = myAiStoriesAsync.valueOrNull != null &&
+            myAiStoriesAsync.valueOrNull!.isNotEmpty
+        ? myAiStoriesAsync.valueOrNull!.first
+        : null;
 
     return SafeArea(
       child: Scrollbar(
@@ -166,6 +173,10 @@ class _HomeTabSectionState extends ConsumerState<HomeTabSection>
               if (continueReadingProgress != null)
                 HomeContinueReadingSection(recent: continueReadingProgress),
               const SizedBox(height: AppUI.sectionGap),
+              if (isAuthenticated) ...[
+                AiStoryHomeEntryCard(latestBook: latestAiBook),
+                const SizedBox(height: AppUI.sectionGap),
+              ],
               HomeQuickCategoriesSection(
                 categoriesAsync: categoriesAsync,
                 kidsModeEnabled: kidsModeEnabled,

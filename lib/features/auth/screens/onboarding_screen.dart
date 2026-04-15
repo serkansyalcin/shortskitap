@@ -23,7 +23,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     with TickerProviderStateMixin {
   final _pageController = PageController();
   late final AnimationController _bgAnimationController;
-  static const int _pageCount = 6;
+  static const int _pageCount = 7;
   int _currentPage = 0;
   bool _isSubmitting = false;
 
@@ -223,6 +223,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                         accentColor: Colors.pinkAccent,
                         isDark: isDark,
                       ),
+                      _FeaturePage(
+                        icon: Icons.auto_stories_rounded,
+                        title: 'AI ile\nKendi Hikâyeni Yaz',
+                        description:
+                            'Başlığını ve temanı yaz, AI senin için özgün bir hikâye oluştursun. İstersen sana özel sakla, istersen paylaş. Çocuk modunda yaşa uygun üretimler de hazır.',
+                        accentColor: AppColors.accent,
+                        isDark: isDark,
+                        highlights: const [
+                          'Başlık ve tema ile hızlı üretim',
+                          'Sana özel veya paylaşılabilir hikâyeler',
+                          'Çocuk profilleri için güvenli içerik',
+                        ],
+                      ),
                       _SetupPage(
                         goals: _goals,
                         categories: onboardingCategories,
@@ -373,6 +386,7 @@ class _FeaturePage extends StatelessWidget {
   final String description;
   final Color accentColor;
   final bool isDark;
+  final List<String> highlights;
 
   const _FeaturePage({
     required this.icon,
@@ -380,6 +394,7 @@ class _FeaturePage extends StatelessWidget {
     required this.description,
     required this.accentColor,
     required this.isDark,
+    this.highlights = const [],
   });
 
   @override
@@ -458,6 +473,50 @@ class _FeaturePage extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
+          if (highlights.isNotEmpty) ...[
+            const SizedBox(height: 28),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 10,
+              runSpacing: 10,
+              children: highlights.map((item) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.06)
+                        : Colors.white.withValues(alpha: 0.92),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: accentColor.withValues(alpha: isDark ? 0.34 : 0.18),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.check_circle_rounded,
+                        size: 16,
+                        color: accentColor,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        item,
+                        style: TextStyle(
+                          color: isDark ? Colors.white70 : const Color(0xFF334155),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
         ],
       ),
     );

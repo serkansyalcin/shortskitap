@@ -167,6 +167,11 @@ String? _normalizeApiMessage(String raw) {
   if (compact.contains('parent_pin') && compact.contains('required')) {
     return 'Lütfen ebeveyn şifresini girin.';
   }
+  if (compact.contains('bugunkuiaihikayeuretimhakkinizdoldu.') ||
+      compact.contains('bugunkuiaihikayeuretimhakkinizdoldu') ||
+      (compact.contains('aihikayeuretimhakk') && compact.contains('doldu'))) {
+    return 'Bugünkü AI hikâye üretim hakkın doldu. Yeni hakların gece yarısından sonra yenilenir.';
+  }
 
   return message;
 }
