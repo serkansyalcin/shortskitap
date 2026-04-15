@@ -23,7 +23,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     with TickerProviderStateMixin {
   final _pageController = PageController();
   late final AnimationController _bgAnimationController;
-  static const int _pageCount = 7;
+  static const int _pageCount = 6;
   int _currentPage = 0;
   bool _isSubmitting = false;
 
@@ -187,47 +187,53 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                         icon: Icons.auto_awesome_rounded,
                         title: 'Kısa ve Akıcı\nOkuma',
                         description:
-                            'Yorucu sayfalar yerine odaklanmanı sağlayan kısa paragraflarla ritmini kaybetmeden ilerle.',
+                            'Yorucu sayfalar yerine kısa paragraflarla ritmini kaybetmeden oku ve odağını koru.',
                         accentColor: AppColors.primary,
                         isDark: isDark,
                       ),
                       _FeaturePage(
                         icon: Icons.headphones_rounded,
-                        title: 'Duyarak Hisset,\nDinleyerek Yaşa',
+                        title: 'Dinle ve\nÇevrim Dışı Devam Et',
                         description:
-                            'Kitapları sadece okumakla kalma, yüksek kaliteli sesli kitap özelliği ile yoldayken de hikayenin içinde kal.',
-                        accentColor: Colors.deepPurpleAccent,
-                        isDark: isDark,
-                      ),
-                      _FeaturePage(
-                        icon: Icons.cloud_download_rounded,
-                        title: 'Sınırları Kaldır,\nÇevrim Dışı Oku',
-                        description:
-                            'İnternet bağlantın olmadığında bile indirdiğin eserleri her yerde keyifle okumaya devam et.',
+                            'Sesli kitap ve indirme özellikleriyle hikâyene ister yolda ister internetsizken kaldığın yerden devam et.',
                         accentColor: Colors.blueAccent,
+                        highlights: const [
+                          'Sesli kitap ile dinleyerek takip et',
+                          'İndir ve çevrim dışı oku',
+                        ],
                         isDark: isDark,
                       ),
                       _FeaturePage(
                         icon: Icons.emoji_events_rounded,
-                        title: 'Lig Sistemi ile\nYarış',
+                        title: 'Ligler ve\nDüellolar',
                         description:
-                            'Okudukça puan topla, liglerde yükselerek diğer okurlarla mücadele et ve sürpriz kilitleri aç.',
+                            'Okudukça puan topla, liglerde yüksel ve düellolarda diğer okurlarla yarış. Çocuk ve yetişkin profilleri kendi alanlarında ayrı ilerler.',
                         accentColor: Colors.amber.shade600,
+                        highlights: const [
+                          'Okudukça puan ve sıralama kazan',
+                          'Düellolarda bire bir yarış',
+                          'Çocuk ve yetişkin profilleri ayrı çalışır',
+                        ],
                         isDark: isDark,
                       ),
                       _FeaturePage(
                         icon: Icons.family_restroom_rounded,
                         title: 'Çocuk\nModu',
                         description:
-                            'Çocuk Modu ile yalnızca çocuklara uygun içerikler gösterilir. İstersen çocuklar için ayrı bir profil oluşturabilir, yetişkin alanına dönüşü şifreyle koruyabilirsin.',
+                            'Çocuklara uygun içerikleri güvenli bir alanda sun. Ayrı profil oluştur, yetişkin alanına dönüşü şifreyle koru ve çocuk deneyimini ayrı tut.',
                         accentColor: Colors.pinkAccent,
+                        highlights: const [
+                          'Yaşa uygun güvenli içerik',
+                          'Çocuk profilleri yetişkinlerden ayrı çalışır',
+                          'Ligler ve düellolar profil tipine göre ayrılır',
+                        ],
                         isDark: isDark,
                       ),
                       _FeaturePage(
                         icon: Icons.auto_stories_rounded,
                         title: 'AI ile\nKendi Hikâyeni Yaz',
                         description:
-                            'Başlığını ve temanı yaz, AI senin için özgün bir hikâye oluştursun. İstersen sana özel sakla, istersen paylaş. Çocuk modunda yaşa uygun üretimler de hazır.',
+                            'Başlığını ve temanı yaz, AI senin için özgün bir hikâye oluştursun. İstersen özel tut, istersen paylaş.',
                         accentColor: AppColors.accent,
                         isDark: isDark,
                         highlights: const [

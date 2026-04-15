@@ -145,6 +145,8 @@ IconData _iconForType(String type) {
       return Icons.leaderboard_rounded;
     case 'followed_you':
       return Icons.person_add_alt_1_rounded;
+    case 'ai_story_ready':
+      return Icons.auto_stories_rounded;
     default:
       return Icons.notifications_none_rounded;
   }
@@ -170,6 +172,8 @@ Color _iconColor(String type) {
       return const Color(0xFF0891B2);
     case 'followed_you':
       return const Color(0xFF16A34A);
+    case 'ai_story_ready':
+      return const Color(0xFF0F766E);
     default:
       return AppColors.primary;
   }

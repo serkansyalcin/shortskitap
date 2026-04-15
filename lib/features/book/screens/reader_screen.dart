@@ -141,6 +141,31 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
+  bool get _isAiGeneratedBook {
+    final book = ref.read(bookByIdProvider(widget.bookId)).valueOrNull;
+    return book?.isAiGenerated == true;
+  }
+
+  String _voiceoverUnavailableMessage({bool forAutoplay = false}) {
+    if (_isAiGeneratedBook) {
+      return forAutoplay
+          ? 'Şimdilik AI ile kendi ürettiğiniz içeriklerde otomatik seslendirme desteğimiz yok.'
+          : 'Şimdilik AI ile kendi ürettiğiniz içeriklerde seslendirme desteğimiz yok.';
+    }
+
+    return forAutoplay
+        ? 'Otomatik oynatma için bu paragrafta hazır seslendirme olmalı.'
+        : 'Bu paragraf için hazır seslendirme bulunmuyor.';
+  }
+
+  String _nextVoiceoverUnavailableMessage() {
+    if (_isAiGeneratedBook) {
+      return 'Şimdilik AI ile kendi ürettiğiniz içeriklerde sesli devam desteğimiz yok.';
+    }
+
+    return 'Sıradaki paragraf için hazır seslendirme bulunmuyor.';
+  }
+
   void _jumpToBookStart() {
     final items = _lastBuiltItems;
     if (items.isEmpty) return;
@@ -199,7 +224,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         _disableContinuousVoiceover(
           showMessage:
               paragraph != null && !paragraph.hasAudio && _showControls,
-          message: 'Bu paragraf için hazır seslendirme bulunmuyor.',
+          message: _voiceoverUnavailableMessage(),
           disableVoiceover: true,
         );
       }
@@ -309,8 +334,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       );
       if (currentParagraph == null || !currentParagraph.hasAudio) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Bu paragraf için hazır seslendirme bulunmuyor.'),
+          SnackBar(
+            content: Text(_voiceoverUnavailableMessage()),
           ),
         );
         return;
@@ -334,10 +359,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final currentParagraph = _paragraphForIndex(_lastBuiltItems, _currentIndex);
     if (currentParagraph == null || !currentParagraph.hasAudio) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Otomatik oynatma için bu paragrafta hazır seslendirme olmalı.',
-          ),
+        SnackBar(
+          content: Text(_voiceoverUnavailableMessage(forAutoplay: true)),
         ),
       );
       return;
@@ -623,7 +646,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (nextParagraph == null || !nextParagraph.hasAudio) {
       _disableContinuousVoiceover(
         showMessage: true,
-        message: 'Sıradaki paragraf için hazır seslendirme bulunmuyor.',
+        message: _nextVoiceoverUnavailableMessage(),
         disableVoiceover: true,
       );
       return;
