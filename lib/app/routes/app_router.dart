@@ -219,6 +219,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             bookId: int.parse(state.pathParameters['bookId']!),
             bookIsPremium: extra?['isPremium'] == true,
             backTo: state.uri.queryParameters['backTo'],
+            startFromBeginning:
+                state.uri.queryParameters['startFromBeginning'] == '1',
           );
         },
       ),

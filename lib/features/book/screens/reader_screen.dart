@@ -34,6 +34,7 @@ class ReaderScreen extends ConsumerStatefulWidget {
   final String? bookTitle;
   final String? authorName;
   final String? backTo;
+  final bool startFromBeginning;
 
   const ReaderScreen({
     super.key,
@@ -42,6 +43,7 @@ class ReaderScreen extends ConsumerStatefulWidget {
     this.bookTitle,
     this.authorName,
     this.backTo,
+    this.startFromBeginning = false,
   });
 
   @override
@@ -660,6 +662,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   int _resolveInitialIndex(List<dynamic> items, int? lastParagraphOrder) {
+    if (widget.startFromBeginning) return 0;
     if (lastParagraphOrder == null || lastParagraphOrder <= 1) return 0;
     for (var i = 0; i < items.length; i++) {
       final item = items[i];

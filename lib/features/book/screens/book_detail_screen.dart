@@ -879,6 +879,7 @@ class _PrimaryReadingCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final locked = isPremiumBook && !hasPremiumAccess;
     final hasProgress = progress != null;
+    final isCompleted = progress?.isCompleted == true;
     final progressValue = ((progress?.completionPercentage ?? 0) / 100).clamp(
       0.0,
       1.0,
@@ -887,6 +888,13 @@ class _PrimaryReadingCard extends StatelessWidget {
     final readerLocation = Uri(
       path: '/read/$bookId',
       queryParameters: {'backTo': '/books/$bookSlug'},
+    ).toString();
+    final restartReaderLocation = Uri(
+      path: '/read/$bookId',
+      queryParameters: {
+        'backTo': '/books/$bookSlug',
+        'startFromBeginning': '1',
+      },
     ).toString();
 
     return Container(
@@ -910,6 +918,8 @@ class _PrimaryReadingCard extends StatelessWidget {
           Text(
             locked
                 ? 'Bu eser premium kütüphanede yer alıyor'
+                : isCompleted
+                ? 'Tamamlandı'
                 : hasProgress
                 ? 'Okumaya devam et'
                 : 'Okumaya başla',
@@ -923,6 +933,8 @@ class _PrimaryReadingCard extends StatelessWidget {
           Text(
             locked
                 ? 'Tüm bölümlere erişmek için premium üyelik açabilir ya da kısa önizleme ile başlayabilirsin.'
+                : isCompleted
+                ? 'Bu kitabı tamamladın. İstersen ilk paragraftan yeniden başlayabilirsin.'
                 : hasProgress
                 ? lastParagraph != null
                       ? '$lastParagraph. paragraftan devam edebilirsin.'
@@ -934,12 +946,14 @@ class _PrimaryReadingCard extends StatelessWidget {
               color: colorScheme.onSurfaceVariant,
             ),
           ),
-          if (!locked && hasProgress) ...[
+          if (!locked && hasProgress && !isCompleted) ...[
             const SizedBox(height: 14),
             Row(
               children: [
                 Text(
-                  '%${progress!.completionPercentage.toStringAsFixed(0)} tamamlandı',
+                  isCompleted
+                      ? 'Tamamlandı'
+                      : '%${progress!.completionPercentage.toStringAsFixed(0)} tamamlandı',
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
@@ -998,6 +1012,52 @@ class _PrimaryReadingCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
+            ),
+          ] else if (isCompleted) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: accentColor.withValues(alpha: 0.18),
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Tamamlandı',
+                      style: TextStyle(
+                        color: accentColor,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push(
+                      restartReaderLocation,
+                      extra: {'isPremium': isPremiumBook},
+                    ),
+                    icon: const Icon(Icons.replay_rounded, size: 20),
+                    label: const Text('Baştan Başla'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 56),
+                      side: BorderSide(
+                        color: accentColor.withValues(alpha: 0.35),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ] else
             ElevatedButton.icon(
@@ -1343,9 +1403,7 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
       if (!mounted) return;
       setState(() => _optimisticFavorite = currentFavorite);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Favori işlemi şu anda tamamlanamadı.'),
-        ),
+        const SnackBar(content: Text('Favori işlemi şu anda tamamlanamadı.')),
       );
     } finally {
       if (mounted) {
@@ -1359,9 +1417,7 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
     final shareText = StringBuffer()
       ..writeln('${widget.book.title}${author != null ? ' - $author' : ''}')
       ..writeln()
-      ..write(
-        'Kitaplig uygulamasında bu kitaba göz at: ${widget.book.title}',
-      );
+      ..write('Kitaplig uygulamasında bu kitaba göz at: ${widget.book.title}');
 
     Share.share(shareText.toString(), subject: widget.book.title);
   }

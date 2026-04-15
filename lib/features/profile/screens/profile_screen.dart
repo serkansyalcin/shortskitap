@@ -18,7 +18,6 @@ import '../../../core/widgets/reader_profile_avatar.dart';
 import '../widgets/achievement_badge_grid.dart';
 import '../widgets/delete_account_dialog.dart';
 import '../widgets/reader_profile_dialogs.dart';
-import '../widgets/reader_profiles_summary_card.dart';
 import '../widgets/reading_heatmap_widget.dart';
 import '../../home/widgets/kids_mode_exit_dialog.dart';
 import '../../home/widgets/kids_mode_pin_set_dialog.dart';
@@ -784,19 +783,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SizedBox(height: AppUI.sectionGap),
                 const ReadingHeatmapWidget(),
                 const SizedBox(height: AppUI.sectionGap),
-                if (authState.activeProfile?.isParent == true)
-                  ReaderProfilesSummaryCard(
-                    activeProfile: authState.activeProfile!,
-                    profileCapabilities: authState.profileCapabilities,
-                    onTap: () => context.push('/home/reader-profiles'),
-                    parentAvatarUrl: authState.user?.avatarUrl,
-                  ),
-                if (authState.activeProfile?.isParent == true)
-                  const SizedBox(height: AppUI.sectionGap),
                 _KidsModeProfileSection(
                   accent: _kidsAccent,
                   onToggleKidsMode: _onKidsModeSwitch,
                   onOpenParentPin: _onOpenParentPinDialog,
+                  onOpenReaderProfiles: () =>
+                      context.push('/home/reader-profiles'),
                 ),
               ],
               const SizedBox(height: AppUI.sectionGap),
@@ -1437,11 +1429,13 @@ class _KidsModeProfileSection extends ConsumerWidget {
     required this.accent,
     required this.onToggleKidsMode,
     required this.onOpenParentPin,
+    required this.onOpenReaderProfiles,
   });
 
   final Color accent;
   final Future<void> Function(bool wantOn) onToggleKidsMode;
   final Future<void> Function() onOpenParentPin;
+  final VoidCallback onOpenReaderProfiles;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1450,9 +1444,15 @@ class _KidsModeProfileSection extends ConsumerWidget {
     final borderColor = accent.withValues(alpha: isDark ? 0.45 : 0.35);
     final kidsOn = ref.watch(kidsModeProvider);
     final pinAsync = ref.watch(kidsModePinServiceProvider);
-    final userHasParentPin = ref.watch(
-      authProvider.select((state) => state.user?.hasParentPin),
-    );
+    final authState = ref.watch(authProvider);
+    final activeProfile = authState.activeProfile;
+    final userHasParentPin = authState.user?.hasParentPin;
+    final profileCapabilities = authState.profileCapabilities;
+    final userAvatarUrl = authState.user?.avatarUrl;
+    final showProfileSummary = activeProfile?.isParent == true;
+    final sectionTitle = showProfileSummary
+        ? 'AİLE VE ÇOCUK MODU'
+        : 'ÇOCUK MODU';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1460,7 +1460,7 @@ class _KidsModeProfileSection extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
-            'ÇOCUK MODU',
+            sectionTitle,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -1480,6 +1480,95 @@ class _KidsModeProfileSection extends ConsumerWidget {
             ),
             child: Column(
               children: [
+                if (showProfileSummary && activeProfile != null) ...[
+                  InkWell(
+                    onTap: onOpenReaderProfiles,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                      child: Row(
+                        children: [
+                          ReaderProfileAvatar(
+                            name: activeProfile.name,
+                            avatarRef:
+                                activeProfile.avatarUrl ??
+                                ((userAvatarUrl ?? '').trim().isNotEmpty
+                                    ? userAvatarUrl
+                                    : null),
+                            size: 56,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    Text(
+                                      activeProfile.name,
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                            color: theme.colorScheme.onSurface,
+                                          ),
+                                    ),
+                                    _ProfileMiniPill(
+                                      'Ebeveyn aktif',
+                                      AppColors.primary,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Çocuk profillerini ve geçiş işlemlerini buradan yönetin.',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    height: 1.35,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    _ProfileInfoPill(
+                                      label:
+                                          '${profileCapabilities.activeChildProfilesCount}/${profileCapabilities.maxChildProfiles} çocuk profili',
+                                    ),
+                                    const _ProfileInfoPill(
+                                      label: 'Aile hesabı',
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.7),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Divider(
+                    height: 1,
+                    thickness: 1,
+                    indent: 16,
+                    endIndent: 16,
+                    color: theme.colorScheme.outline.withValues(
+                      alpha: isDark ? 0.2 : 0.35,
+                    ),
+                  ),
+                ],
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
                   child: Row(
@@ -1620,6 +1709,58 @@ class _KidsModeProfileSection extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ProfileMiniPill extends StatelessWidget {
+  const _ProfileMiniPill(this.label, this.color);
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: color.withValues(alpha: 0.12),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileInfoPill extends StatelessWidget {
+  const _ProfileInfoPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: theme.colorScheme.surfaceContainerHigh,
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.bodySmall?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: theme.colorScheme.onSurface,
+        ),
+      ),
     );
   }
 }
