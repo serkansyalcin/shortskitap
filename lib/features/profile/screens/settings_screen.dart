@@ -11,6 +11,7 @@ import '../../../app/providers/league_provider.dart';
 import '../../../app/providers/profile_provider.dart';
 import '../../../app/providers/settings_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/platform/platform_support.dart';
 import '../../../core/services/avatar_picker_service.dart';
 import '../../../core/services/avatar_picker_types.dart';
 import '../../../core/services/notification_permission_service.dart';
@@ -584,10 +585,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const Divider(),
                 _LinkRow(
                   label: 'Geri Bildirim Gönder',
-                  onTap: () => _openUrl(
-                    'mailto:serkan.syalcin@khotmail.com?subject=Kitaplig%20Geri%20Bildirim',
-                  ),
+                  trailingIcon: Icons.chevron_right_rounded,
+                  onTap: () => context.push('/home/feedback'),
                 ),
+                const Divider(),
+                if (PlatformSupport.isMobileNative)
+                  _LinkRow(
+                    label: 'Uygulamayı Değerlendirin',
+                    trailingIcon: Icons.star_rounded,
+                    onTap: () => context.push('/home/feedback'),
+                  ),
               ],
             ),
           ),
@@ -626,17 +633,22 @@ class _Card extends StatelessWidget {
 }
 
 class _LinkRow extends StatelessWidget {
-  const _LinkRow({required this.label, required this.onTap});
+  const _LinkRow({
+    required this.label,
+    required this.onTap,
+    this.trailingIcon = Icons.open_in_new_rounded,
+  });
 
   final String label;
   final VoidCallback onTap;
+  final IconData trailingIcon;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(label),
-      trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+      trailing: Icon(trailingIcon, size: 18),
       onTap: onTap,
     );
   }

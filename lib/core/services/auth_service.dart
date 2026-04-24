@@ -6,6 +6,7 @@ import '../api/api_client.dart';
 import '../models/auth_session_model.dart';
 import '../models/family_reading_summary_model.dart';
 import '../models/reader_profile_model.dart';
+import '../platform/platform_support.dart';
 
 /// Result of validating the stored session against `/me`.
 enum SessionFetchResult { success, unauthorized, offline }
@@ -71,6 +72,7 @@ class AuthService {
         'password_confirmation': password,
         'accept_terms': acceptTerms,
         'accept_privacy_policy': acceptPrivacyPolicy,
+        'platform': PlatformSupport.platformName,
       },
     );
     final data = res.data['data'] as Map<String, dynamic>;

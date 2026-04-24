@@ -75,6 +75,9 @@ dependencies:
   image_gallery_saver_plus: ^4.0.1
   wakelock_plus: ^1.3.3
 
+  # In-app review (App Store / Play Store rating prompt)
+  in_app_review: ^2.0.9
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

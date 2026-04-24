@@ -20,4 +20,10 @@ class PlatformSupport {
   static bool get supportsMobileAds => isMobileNative;
 
   static bool get supportsInAppPurchases => isMobileNative;
+
+  static String get platformName {
+    if (isAndroid) return 'android';
+    if (isIOS) return 'ios';
+    return 'web';
+  }
 }

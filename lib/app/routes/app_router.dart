@@ -31,6 +31,7 @@ import '../../features/subscription/screens/paywall_screen.dart';
 import '../../features/profile/screens/all_achievements_screen.dart';
 import '../../features/ai_story/screens/ai_story_studio_screen.dart';
 import '../../core/models/achievement_model.dart';
+import '../../features/feedback/screens/feedback_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -178,6 +179,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'settings',
             builder: (_, state) => const SettingsScreen(),
+          ),
+          GoRoute(
+            path: 'feedback',
+            builder: (_, state) => const FeedbackScreen(),
           ),
           GoRoute(
             path: 'highlights',

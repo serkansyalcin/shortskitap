@@ -908,7 +908,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                     child: PageView.builder(
                       controller: _pageController,
                       scrollDirection: Axis.vertical,
-                      physics: const PageScrollPhysics(),
+                      physics: const PageScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
                       itemCount: items.length,
                       onPageChanged: _onPageChanged,
                       itemBuilder: (ctx, index) {
@@ -1004,6 +1006,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                       continuousVoiceoverEnabled: _continuousVoiceoverEnabled,
                       onVoiceoverToggle: _toggleVoiceover,
                       onContinuousVoiceoverToggle: _toggleContinuousVoiceover,
+                      onRateBook:
+                          paragraphs.isNotEmpty &&
+                              _currentParagraphOrder == paragraphs.length
+                          ? () => _triggerInteractionOrReview()
+                          : null,
                       onRestartFromBeginning:
                           paragraphs.isNotEmpty &&
                               _currentParagraphOrder == paragraphs.length
@@ -1603,6 +1610,7 @@ class _ReaderBottomBar extends StatelessWidget {
   final VoidCallback? onVoiceoverToggle;
   final VoidCallback? onContinuousVoiceoverToggle;
   final VoidCallback? onRestartFromBeginning;
+  final VoidCallback? onRateBook;
 
   const _ReaderBottomBar({
     required this.readerTheme,
@@ -1618,6 +1626,7 @@ class _ReaderBottomBar extends StatelessWidget {
     this.onVoiceoverToggle,
     this.onContinuousVoiceoverToggle,
     this.onRestartFromBeginning,
+    this.onRateBook,
   });
 
   @override
@@ -1785,6 +1794,29 @@ class _ReaderBottomBar extends StatelessWidget {
               ),
             ],
           ),
+          if (onRateBook != null) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                onPressed: onRateBook,
+                icon: const Icon(Icons.star_rounded, size: 18),
+                label: const Text(
+                  'Kitabı Değerlendir',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
+              ),
+            ),
+          ],
           if (onRestartFromBeginning != null) ...[
             const SizedBox(height: 10),
             SizedBox(

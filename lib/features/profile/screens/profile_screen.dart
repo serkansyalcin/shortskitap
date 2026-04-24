@@ -813,6 +813,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               if (_isSelf) ...[
                 const SizedBox(height: AppUI.sectionGap),
+                _FeedbackSection(
+                  onFeedback: () => context.push('/home/feedback'),
+                ),
+                const SizedBox(height: AppUI.sectionGap),
                 _DeleteAccountSection(onTap: _showDeleteAccountDialog),
               ],
             ],
@@ -1863,6 +1867,96 @@ class _ProfileInfoPill extends StatelessWidget {
           color: theme.colorScheme.onSurface,
         ),
       ),
+    );
+  }
+}
+
+class _FeedbackSection extends StatelessWidget {
+  const _FeedbackSection({required this.onFeedback});
+
+  final VoidCallback onFeedback;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final borderColor = AppColors.primary.withValues(alpha: isDark ? 0.45 : 0.35);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'GERİ BİLDİRİM',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onSurfaceVariant,
+              letterSpacing: 0.4,
+            ),
+          ),
+        ),
+        Material(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(24),
+          child: InkWell(
+            onTap: onFeedback,
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: borderColor),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.10),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.star_outline_rounded,
+                      color: AppColors.primary,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Değerlendir & Geri Bildirim',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Mağazada puan ver veya öneri gönder',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
