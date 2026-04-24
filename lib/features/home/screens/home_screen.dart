@@ -1,4 +1,4 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
+﻿import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,6 +15,7 @@ import '../../../app/providers/kids_provider.dart';
 import '../../../app/providers/league_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/achievement_model.dart';
+import '../../../core/models/category_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/widgets/category_visuals.dart';
 import '../../../core/widgets/reader_profile_avatar.dart';
@@ -22,7 +23,6 @@ import '../../../core/services/subscription_service.dart';
 import '../../../core/services/notification_permission_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../ai_story/providers/ai_story_provider.dart';
-import '../../ai_story/widgets/ai_story_discover_section.dart';
 import '../../league/screens/league_screen.dart';
 import '../../library/widgets/library_view.dart';
 import '../../profile/screens/profile_screen.dart';
@@ -37,6 +37,15 @@ import '../widgets/kids_mode_exit_dialog.dart';
 import '../widgets/kids_mode_pin_set_dialog.dart';
 import '../widgets/home_async_inline_retry.dart';
 import '../widgets/home_tab.dart';
+
+const _discoverAiCategorySlug = '__ai_generated__';
+const _discoverAiCategory = CategoryModel(
+  id: -1,
+  name: 'AI İle Üretilen',
+  slug: _discoverAiCategorySlug,
+  isActive: true,
+  sortOrder: -1,
+);
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -215,12 +224,14 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesProvider);
     final isKids = ref.watch(kidsModeProvider);
+    final isAiCategorySelected = _selectedCategory == _discoverAiCategorySlug;
     final currentFilter = BooksFilter(
-      category: _selectedCategory,
+      category: isAiCategorySelected ? null : _selectedCategory,
       isKids: isKids,
     );
-    final booksAsync = ref.watch(booksProvider(currentFilter));
-    final aiStoriesAsync = ref.watch(discoverAiStoriesProvider);
+    final visibleBooksAsync = isAiCategorySelected
+        ? ref.watch(discoverAiStoriesProvider)
+        : ref.watch(booksProvider(currentFilter));
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
@@ -294,12 +305,19 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: cats.length + 1,
+                  itemCount: cats.length + 2,
                   itemBuilder: (ctx, i) {
                     final isAllTab = i == 0;
-                    final category = isAllTab ? null : cats[i - 1];
+                    final isAiTab = i == cats.length + 1;
+                    final category = isAllTab
+                        ? null
+                        : isAiTab
+                        ? _discoverAiCategory
+                        : cats[i - 1];
                     final isSelected = isAllTab
                         ? _selectedCategory == null
+                        : isAiTab
+                        ? _selectedCategory == _discoverAiCategorySlug
                         : _selectedCategory == category!.slug;
 
                     return GestureDetector(
@@ -308,6 +326,10 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
                         setState(() {
                           if (isAllTab) {
                             nextCategory = null;
+                          } else if (isAiTab) {
+                            nextCategory = isSelected
+                                ? null
+                                : _discoverAiCategorySlug;
                           } else if (isSelected) {
                             nextCategory = null;
                           } else {
@@ -338,6 +360,14 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
                             if (isAllTab)
                               Icon(
                                 Icons.grid_view_rounded,
+                                size: 16,
+                                color: isSelected
+                                    ? selectedCategoryForeground
+                                    : colorScheme.onSurface,
+                              )
+                            else if (isAiTab)
+                              Icon(
+                                Icons.auto_awesome_rounded,
                                 size: 16,
                                 color: isSelected
                                     ? selectedCategoryForeground
@@ -425,29 +455,56 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
             ),
           ),
 
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-              child: aiStoriesAsync.when(
-                data: (books) => AiStoryDiscoverSection(books: books),
-                loading: () => const SizedBox.shrink(),
-                error: (_, stackTrace) => const SizedBox.shrink(),
-              ),
-            ),
-          ),
-
           // Books grid
           SliverPadding(
             padding: const EdgeInsets.all(20),
-            sliver: booksAsync.when(
+            sliver: visibleBooksAsync.when(
               data: (books) {
+                if (books.isEmpty && isAiCategorySelected) {
+                  return SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 48),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.auto_stories_rounded,
+                            size: 48,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Henüz AI içeirği oluşturulmamış.',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'İçerik Bulunamadı',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: textSecondary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
                 if (books.isEmpty) {
                   return SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 48),
                       child: Column(
                         children: [
-                          Text('📚', style: TextStyle(fontSize: 48)),
+                          const Icon(
+                            Icons.auto_stories_rounded,
+                            size: 48,
+                            color: AppColors.primary,
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             'Henüz kitap bulunamadı.',
@@ -492,9 +549,10 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
                                               alpha: 0.1,
                                             ),
                                             child: const Center(
-                                              child: Text(
-                                                '📖',
-                                                style: TextStyle(fontSize: 36),
+                                              child: Icon(
+                                                Icons.menu_book_rounded,
+                                                size: 36,
+                                                color: AppColors.primary,
                                               ),
                                             ),
                                           ),
@@ -504,10 +562,11 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
                                         alpha: 0.1,
                                       ),
                                       child: const Center(
-                                        child: Text(
-                                          '📖',
-                                          style: TextStyle(fontSize: 36),
-                                        ),
+                                        child: Icon(
+                                                Icons.menu_book_rounded,
+                                                size: 36,
+                                                color: AppColors.primary,
+                                              ),
                                       ),
                                     ),
                             ),
@@ -2210,3 +2269,4 @@ class _MenuItem extends StatelessWidget {
     );
   }
 }
+
