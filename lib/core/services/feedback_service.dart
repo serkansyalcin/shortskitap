@@ -24,10 +24,18 @@ class FeedbackService {
       data: {
         'type': type,
         'message': message,
-        if (rating != null) 'rating': rating,
         'platform': PlatformSupport.platformName,
-        if (appVersion != null) 'app_version': appVersion,
+        ...?_optionalField('rating', rating),
+        ...?_optionalField('app_version', appVersion),
       },
     );
+  }
+
+  Map<String, dynamic>? _optionalField(String key, Object? value) {
+    if (value == null) {
+      return null;
+    }
+
+    return <String, dynamic>{key: value};
   }
 }

@@ -69,6 +69,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _currentParagraphHasAudio = false;
   bool _continuousVoiceoverEnabled = false;
   bool _voiceoverAutoAdvancing = false;
+  bool _readerBannerWarmupStarted = false;
   late final AutoVoiceoverService _voiceoverService;
   StreamSubscription<int>? _voiceoverCompletionSubscription;
   final Map<int, String> _localHighlights = {};
@@ -333,11 +334,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         _currentIndex,
       );
       if (currentParagraph == null || !currentParagraph.hasAudio) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_voiceoverUnavailableMessage()),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_voiceoverUnavailableMessage())));
         return;
       }
 
@@ -743,6 +742,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     return _paragraphForIndex(items, i);
   }
 
+  void _warmUpReaderBannerIfNeeded(bool isPremium) {
+    if (_readerBannerWarmupStarted || isPremium) return;
+    _readerBannerWarmupStarted = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(
+        warmUpAdBanner(ref: ref, context: context, position: 'reader_banner'),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final paragraphsAsync = ref.watch(paragraphsProvider(widget.bookId));
@@ -762,6 +773,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     final readerFontFamily = _readerFontFamilyOverride ?? 'classic';
     final readerLineHeight = _readerLineHeightOverride ?? 1.8;
     final palette = _paletteForTheme(readerTheme);
+
+    _warmUpReaderBannerIfNeeded(isPremium);
 
     if (widget.bookIsPremium && !isPremium) {
       return _PremiumGateScreen(

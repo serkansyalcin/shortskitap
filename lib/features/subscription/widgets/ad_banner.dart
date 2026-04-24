@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -41,59 +43,86 @@ final _adsProvider = FutureProvider.family<List<AdvertisementModel>, String>((
   }
 });
 
-/// AdMob banner (test ID by default; replace with real IDs in production).
-class _AdMobBanner extends StatefulWidget {
-  const _AdMobBanner();
+final _adMobBannerProvider = FutureProvider.family<BannerAd?, String>((
+  ref,
+  position,
+) async {
+  if (!_supportsAdMobBanner) return null;
 
-  @override
-  State<_AdMobBanner> createState() => _AdMobBannerState();
+  final completer = Completer<BannerAd?>();
+  BannerAd? bannerAd;
+
+  bannerAd = BannerAd(
+    adUnitId: _bannerAdUnitId,
+    size: AdSize.banner,
+    request: const AdRequest(),
+    listener: BannerAdListener(
+      onAdLoaded: (ad) {
+        if (!completer.isCompleted) {
+          completer.complete(ad is BannerAd ? ad : bannerAd);
+        }
+      },
+      onAdFailedToLoad: (ad, _) {
+        ad.dispose();
+        bannerAd = null;
+        if (!completer.isCompleted) {
+          completer.complete(null);
+        }
+      },
+    ),
+  )..load();
+
+  ref.onDispose(() {
+    if (!completer.isCompleted) {
+      completer.complete(null);
+    }
+    bannerAd?.dispose();
+  });
+
+  return completer.future;
+});
+
+Future<void> warmUpAdBanner({
+  required WidgetRef ref,
+  required BuildContext context,
+  String position = 'reader_banner',
+}) async {
+  if (ref.read(isPremiumProvider)) return;
+
+  final ads = await ref.read(_adsProvider(position).future);
+  if (ads.isNotEmpty) {
+    final imageUrl = ads.first.imageUrl;
+    if (imageUrl != null && imageUrl.isNotEmpty && context.mounted) {
+      await precacheImage(CachedNetworkImageProvider(imageUrl), context);
+    }
+    return;
+  }
+
+  await ref.read(_adMobBannerProvider(position).future);
 }
 
-class _AdMobBannerState extends State<_AdMobBanner> {
-  BannerAd? _bannerAd;
-  bool _adLoaded = false;
+/// AdMob banner (test ID by default; replace with real IDs in production).
+class _AdMobBanner extends ConsumerWidget {
+  final String position;
+
+  const _AdMobBanner({required this.position});
 
   @override
-  void initState() {
-    super.initState();
-    _loadAd();
-  }
-
-  void _loadAd() {
-    if (!_supportsAdMobBanner) return;
-
-    _bannerAd = BannerAd(
-      adUnitId: _bannerAdUnitId,
-      size: AdSize.banner,
-      request: const AdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (_) {
-          if (mounted) {
-            setState(() => _adLoaded = true);
-          }
-        },
-        onAdFailedToLoad: (ad, _) {
-          ad.dispose();
-          _bannerAd = null;
-        },
-      ),
-    )..load();
-  }
-
-  @override
-  void dispose() {
-    _bannerAd?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (!_supportsAdMobBanner) return const SizedBox.shrink();
-    if (!_adLoaded || _bannerAd == null) return const SizedBox.shrink();
-    return SizedBox(
-      width: _bannerAd!.size.width.toDouble(),
-      height: _bannerAd!.size.height.toDouble(),
-      child: AdWidget(ad: _bannerAd!),
+
+    final bannerAsync = ref.watch(_adMobBannerProvider(position));
+    return bannerAsync.when(
+      data: (bannerAd) {
+        if (bannerAd == null) return const SizedBox.shrink();
+        return SizedBox(
+          width: bannerAd.size.width.toDouble(),
+          height: bannerAd.size.height.toDouble(),
+          child: AdWidget(ad: bannerAd),
+        );
+      },
+      loading: () => const SizedBox(height: 56),
+      error: (error, stackTrace) => const SizedBox.shrink(),
     );
   }
 }
@@ -115,13 +144,13 @@ class AdBannerWidget extends ConsumerWidget {
     return adsAsync.when(
       data: (ads) {
         if (ads.isEmpty) {
-          return const _AdMobBanner();
+          return _AdMobBanner(position: position);
         }
         final ad = ads.first;
         return _ApiAdBanner(ad: ad);
       },
       loading: () => const SizedBox(height: 56),
-      error: (_, stackTrace) => const _AdMobBanner(),
+      error: (_, stackTrace) => _AdMobBanner(position: position),
     );
   }
 }
