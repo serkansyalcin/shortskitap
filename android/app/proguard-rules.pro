@@ -46,3 +46,7 @@
 -dontwarn com.google.api.client.http.HttpTransport
 -dontwarn com.google.api.client.http.javanet.NetHttpTransport$Builder
 -dontwarn com.google.api.client.http.javanet.NetHttpTransport
+
+# Please add these rules to your existing keep rules in order to suppress warnings.
+# This is generated automatically by the Android Gradle plugin.
+-dontwarn com.google.android.gms.common.annotation.NoNullnessRewrite

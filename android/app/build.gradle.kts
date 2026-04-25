@@ -102,6 +102,7 @@ dependencies {
     }
     implementation("joda-time:joda-time:2.12.7")
     implementation("org.joda:joda-convert:2.2.3")
+    implementation("com.google.android.gms:play-services-basement:18.3.0")
 }
 
 flutter {
