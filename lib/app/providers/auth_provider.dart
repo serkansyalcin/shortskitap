@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -62,6 +63,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _checkAuth() async {
     final token = await ApiClient.getToken();
+    log("Auth check, token: $token");
     if (token == null) {
       state = const AuthState.unauthenticated();
       return;
@@ -123,6 +125,39 @@ class AuthNotifier extends StateNotifier<AuthState> {
         password,
         acceptTerms: acceptTerms,
         acceptPrivacyPolicy: acceptPrivacyPolicy,
+      );
+      await _setSession(result.session, offlineSession: false);
+      _syncOnboardingPrefs();
+      return true;
+    } catch (e) {
+      state = AuthState(
+        status: AuthStatus.unauthenticated,
+        error: _parseError(e),
+      );
+      return false;
+    }
+  }
+
+  Future<bool> socialLogin({
+    required String provider,
+    String? idToken,
+    String? accessToken,
+    String? identityToken,
+    String? authorizationCode,
+    String? name,
+    String? email,
+    String? avatarUrl,
+  }) async {
+    try {
+      final result = await _service.socialLogin(
+        provider: provider,
+        idToken: idToken,
+        accessToken: accessToken,
+        identityToken: identityToken,
+        authorizationCode: authorizationCode,
+        name: name,
+        email: email,
+        avatarUrl: avatarUrl,
       );
       await _setSession(result.session, offlineSession: false);
       _syncOnboardingPrefs();

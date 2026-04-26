@@ -1,4 +1,6 @@
-﻿import 'package:connectivity_plus/connectivity_plus.dart';
+﻿import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,6 +21,7 @@ import '../../../core/models/category_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/widgets/category_visuals.dart';
 import '../../../core/widgets/reader_profile_avatar.dart';
+import '../../../core/services/push_notification_service.dart';
 import '../../../core/services/subscription_service.dart';
 import '../../../core/services/notification_permission_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -57,6 +60,29 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedIndex = 0;
   String? _discoverCategory;
+  bool _pushTokenSynced = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_syncPushTokenIfAuthenticated());
+    });
+  }
+
+  Future<void> _syncPushTokenIfAuthenticated() async {
+    if (_pushTokenSynced) {
+      return;
+    }
+
+    final authState = ref.read(authProvider);
+    if (!authState.isAuthenticated) {
+      return;
+    }
+
+    _pushTokenSynced = true;
+    // await PushNotificationService.instance.registerPushTokenIfAvailable();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +110,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ref.read(authProvider.notifier).refreshMe();
         }
       });
+    });
+
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (!next.isAuthenticated) {
+        _pushTokenSynced = false;
+        return;
+      }
+      if (!_pushTokenSynced) {
+        unawaited(_syncPushTokenIfAuthenticated());
+      }
     });
 
     return Scaffold(

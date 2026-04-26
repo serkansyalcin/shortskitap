@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -94,6 +95,7 @@ class AuthService {
   Future<(SessionFetchResult, AuthSessionModel?)> fetchSessionUser() async {
     try {
       final res = await _client.get('/me');
+      log("res /me: ${res.data}");
       final session = AuthSessionModel.fromJson(
         res.data['data'] as Map<String, dynamic>,
       );
@@ -118,6 +120,7 @@ class AuthService {
 
   Future<AuthSessionModel?> getMe() async {
     final (result, session) = await fetchSessionUser();
+    log("fetchSessionUser result: $result, session: ${session?.toJson()}");
     if (result == SessionFetchResult.success) return session;
     return null;
   }
@@ -166,6 +169,7 @@ class AuthService {
           ),
         }),
       );
+      log("res ${res.data}");
       updatedSession = AuthSessionModel.fromJson(
         res.data['data'] as Map<String, dynamic>,
       );
@@ -179,6 +183,7 @@ class AuthService {
     }
 
     final me = await getMe();
+    log("me after update: ${me?.toJson()}");
     if (me == null) {
       throw StateError(
         'Profil güncellemesi sonrası kullanıcı verisi alınamadı.',

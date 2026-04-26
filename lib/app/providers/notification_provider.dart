@@ -219,7 +219,6 @@ class NotificationsFeedNotifier extends StateNotifier<NotificationsFeedState> {
     if (ids.isEmpty) {
       return items;
     }
-
     try {
       await _service.markVisible(ids);
     } catch (_) {

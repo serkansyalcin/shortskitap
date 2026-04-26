@@ -1,21 +1,24 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:sqflite/sqflite.dart';
+import 'app/providers/notification_provider.dart';
 import 'app/routes/app_router.dart';
 import 'app/theme/app_theme.dart';
 import 'app/providers/settings_provider.dart';
 import 'core/platform/platform_support.dart';
+import 'core/services/push_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // sqflite web desteği — Flutter web'de databaseFactory gerekli
   if (kIsWeb) {
     databaseFactory = databaseFactoryFfiWeb;
   }
@@ -30,33 +33,46 @@ void main() async {
 
   await dotenv.load(fileName: '.env');
 
-  // Initialize Google Mobile Ads SDK
+  // if (PlatformSupport.isMobileNative) {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  // }
+
   if (PlatformSupport.supportsMobileAds) {
     await MobileAds.instance.initialize();
   }
 
-  // Request notification permission on first launch (non-blocking)
-  _requestNotificationPermission();
+  if (PlatformSupport.isMobileNative) {
+    // Ask push permission as part of cold-start flow.
+    await PushNotificationService.instance.initialize();
+  }
 
   runApp(const ProviderScope(child: KitapLigApp()));
 }
 
-Future<void> _requestNotificationPermission() async {
-  if (!PlatformSupport.supportsNotificationPermission) {
-    return;
-  }
-
-  final status = await Permission.notification.status;
-  if (status.isDenied) {
-    await Permission.notification.request();
-  }
-}
-
-class KitapLigApp extends ConsumerWidget {
+class KitapLigApp extends ConsumerStatefulWidget {
   const KitapLigApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<KitapLigApp> createState() => _KitapLigAppState();
+}
+
+class _KitapLigAppState extends ConsumerState<KitapLigApp> {
+  @override
+  void initState() {
+    super.initState();
+
+    if (PlatformSupport.isMobileNative) {
+      unawaited(
+        PushNotificationService.instance.initialize(
+          onMessageReceived: () => refreshNotificationProvidersForWidget(ref),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
     final settings = ref.watch(settingsProvider);
 
