@@ -8,14 +8,14 @@ import '../../../core/widgets/reader_profile_avatar.dart';
 
 class ReaderProfileFormData {
   final String name;
-  final int? birthYear;
+  final int? age;
   final String? avatarUrl;
   final Uint8List? avatarBytes;
   final String? avatarFileName;
 
   const ReaderProfileFormData({
     required this.name,
-    this.birthYear,
+    this.age,
     this.avatarUrl,
     this.avatarBytes,
     this.avatarFileName,
@@ -46,8 +46,8 @@ class ReaderProfileDialogs {
     final nameController = TextEditingController(
       text: initialValue?.name ?? '',
     );
-    final birthYearController = TextEditingController(
-      text: initialValue?.birthYear?.toString() ?? '',
+    final ageController = TextEditingController(
+      text: initialValue?.age?.toString() ?? '',
     );
     String? selectedAvatarUrl =
         initialValue?.avatarUrl ??
@@ -56,7 +56,7 @@ class ReaderProfileDialogs {
     Uint8List? selectedAvatarBytes = initialValue?.avatarBytes;
     String? selectedAvatarFileName = initialValue?.avatarFileName;
     String? nameError;
-    String? birthYearError;
+    String? ageError;
 
     final result = await showModalBottomSheet<ReaderProfileFormData>(
       context: context,
@@ -91,28 +91,29 @@ class ReaderProfileDialogs {
 
             void submit() {
               final name = nameController.text.trim();
-              final birthYearText = birthYearController.text.trim();
-              int? birthYear;
+              final ageText = ageController.text.trim();
+              int? age;
 
               if (name.isEmpty) {
                 setState(() => nameError = 'Lütfen profil adını girin.');
                 return;
               }
 
-              if (birthYearText.isNotEmpty) {
-                birthYear = int.tryParse(birthYearText);
-                if (birthYear == null || birthYear < 1900 || birthYear > 2100) {
-                  setState(
-                    () => birthYearError = 'Geçerli bir doğum yılı girin.',
-                  );
-                  return;
-                }
+              if (ageText.isEmpty) {
+                setState(() => ageError = 'Lütfen yaş bilgisini girin.');
+                return;
+              }
+
+              age = int.tryParse(ageText);
+              if (age == null || age < 1 || age > 18) {
+                setState(() => ageError = 'Geçerli bir yaş girin.');
+                return;
               }
 
               Navigator.of(sheetContext).pop(
                 ReaderProfileFormData(
                   name: name,
-                  birthYear: birthYear,
+                  age: age,
                   avatarUrl: selectedAvatarUrl,
                   avatarBytes: selectedAvatarBytes,
                   avatarFileName: selectedAvatarFileName,
@@ -192,12 +193,12 @@ class ReaderProfileDialogs {
                       ],
                       const SizedBox(height: 18),
                       Text(
-                        'Varsayılan avatarlar',
+                        'Karakter avatarları',
                         style: textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
                       Wrap(
                         spacing: 10,
                         runSpacing: 10,
@@ -215,8 +216,14 @@ class ReaderProfileDialogs {
                                 onTap: () => chooseDefaultAvatar(tokenValue),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 180),
-                                  padding: const EdgeInsets.all(6),
+                                  width: 82,
+                                  padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? colorScheme.primary.withValues(
+                                            alpha: 0.10,
+                                          )
+                                        : colorScheme.surfaceContainerLowest,
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
                                       color: isSelected
@@ -226,6 +233,15 @@ class ReaderProfileDialogs {
                                             ),
                                       width: isSelected ? 1.8 : 1,
                                     ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: colorScheme.shadow.withValues(
+                                          alpha: isSelected ? 0.10 : 0.04,
+                                        ),
+                                        blurRadius: isSelected ? 18 : 10,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
                                   ),
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
@@ -233,7 +249,7 @@ class ReaderProfileDialogs {
                                       ReaderProfileAvatar(
                                         name: preset.label,
                                         avatarRef: tokenValue,
-                                        size: 52,
+                                        size: 56,
                                         borderRadius: BorderRadius.circular(18),
                                       ),
                                       const SizedBox(height: 6),
@@ -241,6 +257,9 @@ class ReaderProfileDialogs {
                                         preset.label,
                                         style: textTheme.bodySmall?.copyWith(
                                           fontWeight: FontWeight.w700,
+                                          color: isSelected
+                                              ? colorScheme.primary
+                                              : colorScheme.onSurface,
                                         ),
                                       ),
                                     ],
@@ -264,18 +283,18 @@ class ReaderProfileDialogs {
                       ),
                       const SizedBox(height: 14),
                       TextField(
-                        controller: birthYearController,
+                        controller: ageController,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(4),
+                          LengthLimitingTextInputFormatter(2),
                         ],
-                        onChanged: (_) => setState(() => birthYearError = null),
+                        onChanged: (_) => setState(() => ageError = null),
                         onSubmitted: (_) => submit(),
                         decoration: InputDecoration(
-                          labelText: 'Doğum yılı',
-                          hintText: 'Opsiyonel',
-                          errorText: birthYearError,
+                          labelText: 'Yaşı',
+                          hintText: 'Yaşı girin',
+                          errorText: ageError,
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -307,7 +326,7 @@ class ReaderProfileDialogs {
     );
 
     nameController.dispose();
-    birthYearController.dispose();
+    ageController.dispose();
     return result;
   }
 
@@ -430,8 +449,8 @@ class ReaderProfileDialogs {
                     ),
                     title: Text(profile.name),
                     subtitle: Text(
-                      profile.birthYear != null
-                          ? 'Çocuk profili • ${profile.birthYear}'
+                      profile.age != null
+                          ? 'Çocuk profili • ${profile.age} yaş'
                           : 'Çocuk profili',
                     ),
                     onTap: () => Navigator.of(context).pop(profile),

@@ -273,7 +273,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<bool> createChildProfile({
     required String name,
-    int? birthYear,
+    int? age,
     String? avatarUrl,
     Uint8List? avatarBytes,
     String? avatarFileName,
@@ -281,7 +281,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final profile = await _service.createChildProfile(
         name: name,
-        birthYear: birthYear,
+        age: age,
         avatarUrl: avatarUrl,
       );
       if (avatarBytes != null) {
@@ -301,7 +301,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> updateReaderProfile({
     required int profileId,
     required String name,
-    int? birthYear,
+    int? age,
     String? avatarUrl,
     Uint8List? avatarBytes,
     String? avatarFileName,
@@ -310,7 +310,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _service.updateReaderProfile(
         profileId: profileId,
         name: name,
-        birthYear: birthYear,
+        age: age,
         avatarUrl: avatarUrl,
       );
       if (avatarBytes != null) {

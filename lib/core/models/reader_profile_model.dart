@@ -5,6 +5,7 @@ class ReaderProfileModel {
   final String type;
   final String contentMode;
   final String? avatarUrl;
+  final int? age;
   final int? birthYear;
   final bool isDefault;
   final bool isActiveForLastSession;
@@ -17,6 +18,7 @@ class ReaderProfileModel {
     required this.type,
     required this.contentMode,
     this.avatarUrl,
+    this.age,
     this.birthYear,
     required this.isDefault,
     required this.isActiveForLastSession,
@@ -24,18 +26,25 @@ class ReaderProfileModel {
   });
 
   factory ReaderProfileModel.fromJson(Map<String, dynamic> json) =>
-      ReaderProfileModel(
-        id: _asInt(json['id']),
-        userId: _asInt(json['user_id']),
-        name: json['name']?.toString() ?? '',
-        type: json['type']?.toString() ?? 'parent',
-        contentMode: json['content_mode']?.toString() ?? 'adult',
-        avatarUrl: json['avatar_url']?.toString(),
-        birthYear: _asNullableInt(json['birth_year']),
-        isDefault: json['is_default'] == true,
-        isActiveForLastSession: json['is_active_for_last_session'] == true,
-        isArchived: json['is_archived'] == true,
-      );
+      ReaderProfileModel._fromJson(json);
+
+  factory ReaderProfileModel._fromJson(Map<String, dynamic> json) {
+    final birthYear = _asNullableInt(json['birth_year']);
+
+    return ReaderProfileModel(
+      id: _asInt(json['id']),
+      userId: _asInt(json['user_id']),
+      name: json['name']?.toString() ?? '',
+      type: json['type']?.toString() ?? 'parent',
+      contentMode: json['content_mode']?.toString() ?? 'adult',
+      avatarUrl: json['avatar_url']?.toString(),
+      age: _asNullableInt(json['age']) ?? _ageFromBirthYear(birthYear),
+      birthYear: birthYear,
+      isDefault: json['is_default'] == true,
+      isActiveForLastSession: json['is_active_for_last_session'] == true,
+      isArchived: json['is_archived'] == true,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -44,6 +53,7 @@ class ReaderProfileModel {
     'type': type,
     'content_mode': contentMode,
     'avatar_url': avatarUrl,
+    'age': age,
     'birth_year': birthYear,
     'is_default': isDefault,
     'is_active_for_last_session': isActiveForLastSession,
@@ -53,6 +63,19 @@ class ReaderProfileModel {
   bool get isChild => type == 'child';
 
   bool get isParent => type == 'parent';
+
+  static int? _ageFromBirthYear(int? birthYear) {
+    if (birthYear == null) {
+      return null;
+    }
+
+    final age = DateTime.now().year - birthYear;
+    if (age < 0 || age > 120) {
+      return null;
+    }
+
+    return age;
+  }
 
   static int _asInt(Object? value) {
     return _asNullableInt(value) ?? 0;

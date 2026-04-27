@@ -111,7 +111,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ? null
           : ReaderProfileFormData(
               name: profile.name,
-              birthYear: profile.birthYear,
+              age: profile.age,
               avatarUrl: _suggestedChildAvatarUrl(auth, profile: profile),
             ),
       suggestedAvatarUrl: _suggestedChildAvatarUrl(auth, profile: profile),
@@ -129,7 +129,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final ok = profile == null
         ? await notifier.createChildProfile(
             name: formResult.name,
-            birthYear: formResult.birthYear,
+            age: formResult.age,
             avatarUrl: formResult.avatarUrl,
             avatarBytes: formResult.avatarBytes,
             avatarFileName: formResult.avatarFileName,
@@ -137,7 +137,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         : await notifier.updateReaderProfile(
             profileId: profile.id,
             name: formResult.name,
-            birthYear: formResult.birthYear,
+            age: formResult.age,
             avatarUrl: formResult.avatarUrl,
             avatarBytes: formResult.avatarBytes,
             avatarFileName: formResult.avatarFileName,
@@ -1863,7 +1863,9 @@ class _FeedbackSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final borderColor = AppColors.primary.withValues(alpha: isDark ? 0.45 : 0.35);
+    final borderColor = AppColors.primary.withValues(
+      alpha: isDark ? 0.45 : 0.35,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1898,7 +1900,9 @@ class _FeedbackSection extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.10),
+                      color: AppColors.primary.withValues(
+                        alpha: isDark ? 0.18 : 0.10,
+                      ),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Icon(
@@ -1932,7 +1936,9 @@ class _FeedbackSection extends StatelessWidget {
                   ),
                   Icon(
                     Icons.chevron_right_rounded,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.6,
+                    ),
                   ),
                 ],
               ),

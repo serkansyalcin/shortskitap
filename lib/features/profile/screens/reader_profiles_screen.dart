@@ -56,7 +56,7 @@ class _ReaderProfilesScreenState extends ConsumerState<ReaderProfilesScreen> {
           ? null
           : ReaderProfileFormData(
               name: profile.name,
-              birthYear: profile.birthYear,
+              age: profile.age,
               avatarUrl: _suggestedAvatarUrl(auth, profile: profile),
             ),
       suggestedAvatarUrl: _suggestedAvatarUrl(auth, profile: profile),
@@ -74,7 +74,7 @@ class _ReaderProfilesScreenState extends ConsumerState<ReaderProfilesScreen> {
     final ok = profile == null
         ? await notifier.createChildProfile(
             name: formResult.name,
-            birthYear: formResult.birthYear,
+            age: formResult.age,
             avatarUrl: formResult.avatarUrl,
             avatarBytes: formResult.avatarBytes,
             avatarFileName: formResult.avatarFileName,
@@ -82,7 +82,7 @@ class _ReaderProfilesScreenState extends ConsumerState<ReaderProfilesScreen> {
         : await notifier.updateReaderProfile(
             profileId: profile.id,
             name: formResult.name,
-            birthYear: formResult.birthYear,
+            age: formResult.age,
             avatarUrl: formResult.avatarUrl,
             avatarBytes: formResult.avatarBytes,
             avatarFileName: formResult.avatarFileName,

@@ -283,14 +283,14 @@ class AuthService {
 
   Future<ReaderProfileModel> createChildProfile({
     required String name,
-    int? birthYear,
+    int? age,
     String? avatarUrl,
   }) async {
     final res = await _client.post(
       '/me/profiles',
       data: {
         'name': name,
-        ...?_optionalField('birth_year', birthYear),
+        ...?_optionalField('age', age),
         ...?_optionalField('avatar_url', avatarUrl),
       },
     );
@@ -301,12 +301,12 @@ class AuthService {
   Future<void> updateReaderProfile({
     required int profileId,
     required String name,
-    int? birthYear,
+    int? age,
     String? avatarUrl,
   }) async {
     await _client.put(
       '/me/profiles/$profileId',
-      data: {'name': name, 'birth_year': birthYear, 'avatar_url': avatarUrl},
+      data: {'name': name, 'age': age, 'avatar_url': avatarUrl},
     );
   }
 

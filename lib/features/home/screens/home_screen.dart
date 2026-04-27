@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +21,6 @@ import '../../../core/models/category_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/widgets/category_visuals.dart';
 import '../../../core/widgets/reader_profile_avatar.dart';
-import '../../../core/services/push_notification_service.dart';
 import '../../../core/services/subscription_service.dart';
 import '../../../core/services/notification_permission_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -599,10 +598,10 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
                                       ),
                                       child: const Center(
                                         child: Icon(
-                                                Icons.menu_book_rounded,
-                                                size: 36,
-                                                color: AppColors.primary,
-                                              ),
+                                          Icons.menu_book_rounded,
+                                          size: 36,
+                                          color: AppColors.primary,
+                                        ),
                                       ),
                                     ),
                             ),
@@ -875,7 +874,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
           .read(authProvider.notifier)
           .createChildProfile(
             name: form.name.trim(),
-            birthYear: form.birthYear,
+            age: form.age,
             avatarUrl: form.avatarUrl,
             avatarBytes: form.avatarBytes,
             avatarFileName: form.avatarFileName,
@@ -2305,4 +2304,3 @@ class _MenuItem extends StatelessWidget {
     );
   }
 }
-
