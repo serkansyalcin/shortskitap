@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:in_app_review/in_app_review.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -35,6 +36,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _notificationLoading = false;
   bool _profileSaving = false;
   String _appVersion = '';
+  String _packageName = 'com.kitaplig.app';
   Uint8List? _avatarBytes;
   String? _avatarFileName;
 
@@ -60,6 +62,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     try {
       final info = await PackageInfo.fromPlatform();
       _appVersion = '${info.version} (${info.buildNumber})';
+      if (info.packageName.isNotEmpty) {
+        _packageName = info.packageName;
+      }
     } catch (_) {
       _appVersion = '1.0.0';
     }
@@ -265,6 +270,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         context,
       ).showSnackBar(const SnackBar(content: Text('Sayfa açılamadı.')));
     }
+  }
+
+  Future<void> _openStoreListing() async {
+    if (!PlatformSupport.isMobileNative) return;
+
+    final inAppReview = InAppReview.instance;
+    try {
+      await inAppReview.openStoreListing();
+      return;
+    } catch (_) {}
+
+    if (PlatformSupport.isAndroid) {
+      final marketUri = Uri.parse('market://details?id=$_packageName');
+      if (await launchUrl(marketUri, mode: LaunchMode.externalApplication)) {
+        return;
+      }
+
+      final webUri = Uri.parse(
+        'https://play.google.com/store/apps/details?id=$_packageName',
+      );
+      if (await launchUrl(webUri, mode: LaunchMode.externalApplication)) {
+        return;
+      }
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Mağaza açılamadı.')));
   }
 
   @override
@@ -593,7 +627,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   _LinkRow(
                     label: 'Uygulamayı Değerlendirin',
                     trailingIcon: Icons.star_rounded,
-                    onTap: () => context.push('/home/feedback'),
+                    onTap: _openStoreListing,
                   ),
               ],
             ),

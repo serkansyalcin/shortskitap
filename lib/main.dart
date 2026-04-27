@@ -33,10 +33,10 @@ void main() async {
 
   await dotenv.load(fileName: '.env');
 
-  // if (PlatformSupport.isMobileNative) {
+  if (PlatformSupport.isMobileNative) {
     await Firebase.initializeApp();
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-  // }
+  }
 
   if (PlatformSupport.supportsMobileAds) {
     await MobileAds.instance.initialize();

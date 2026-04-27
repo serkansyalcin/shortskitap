@@ -767,8 +767,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       )
                     : null,
               ),
-              _LeagueCard(activeLeague: profile.activeLeague),
-              const SizedBox(height: AppUI.sectionGap),
               if (achievements.isNotEmpty)
                 AchievementBadgeGrid(
                   achievements: achievements,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:in_app_review/in_app_review.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/platform/platform_support.dart';
@@ -17,6 +19,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   final _service = FeedbackService();
   final _messageController = TextEditingController();
 
+  String _packageName = 'com.kitaplig.app';
   String _selectedType = 'general';
   int _rating = 0;
   bool _isSubmitting = false;
@@ -30,6 +33,20 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _loadPackageName();
+  }
+
+  Future<void> _loadPackageName() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted || info.packageName.isEmpty) return;
+      setState(() => _packageName = info.packageName);
+    } catch (_) {}
+  }
+
+  @override
   void dispose() {
     _messageController.dispose();
     super.dispose();
@@ -39,13 +56,34 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     if (!PlatformSupport.isMobileNative) return;
     final inAppReview = InAppReview.instance;
     try {
-      if (await inAppReview.isAvailable()) {
-        await inAppReview.requestReview();
-      } else {
-        await inAppReview.openStoreListing();
-      }
+      await inAppReview.openStoreListing();
+      return;
     } catch (_) {
       // Mağaza diyaloğu açılamazsa sessizce devam et
+    }
+  }
+
+  Future<void> _openStoreListingDirect() async {
+    if (!PlatformSupport.isMobileNative) return;
+
+    final inAppReview = InAppReview.instance;
+    try {
+      await inAppReview.openStoreListing();
+      return;
+    } catch (_) {}
+
+    if (PlatformSupport.isAndroid) {
+      final marketUri = Uri.parse('market://details?id=$_packageName');
+      if (await launchUrl(marketUri, mode: LaunchMode.externalApplication)) {
+        return;
+      }
+
+      final webUri = Uri.parse(
+        'https://play.google.com/store/apps/details?id=$_packageName',
+      );
+      if (await launchUrl(webUri, mode: LaunchMode.externalApplication)) {
+        return;
+      }
     }
   }
 
@@ -438,7 +476,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _requestStoreReview,
+              onPressed: _openStoreListingDirect,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: AppColors.primary,
