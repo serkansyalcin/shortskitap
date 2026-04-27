@@ -767,6 +767,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       )
                     : null,
               ),
+              if (_isSelf) ...[
+                const SizedBox(height: AppUI.sectionGap),
+                _KidsModeProfileSection(
+                  accent: _kidsAccent,
+                  onToggleKidsMode: _onKidsModeSwitch,
+                  onOpenParentPin: _onOpenParentPinDialog,
+                  onOpenReaderProfiles: () =>
+                      context.push('/home/reader-profiles'),
+                ),
+                const SizedBox(height: AppUI.sectionGap),
+                const ReadingHeatmapWidget(),
+              ],
+              const SizedBox(height: AppUI.sectionGap),
               if (achievements.isNotEmpty)
                 AchievementBadgeGrid(
                   achievements: achievements,
@@ -781,18 +794,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   title: 'Rozetler',
                   subtitle: 'Henüz gösterilecek bir rozet yok.',
                 ),
-              if (_isSelf) ...[
-                const SizedBox(height: AppUI.sectionGap),
-                const ReadingHeatmapWidget(),
-                const SizedBox(height: AppUI.sectionGap),
-                _KidsModeProfileSection(
-                  accent: _kidsAccent,
-                  onToggleKidsMode: _onKidsModeSwitch,
-                  onOpenParentPin: _onOpenParentPinDialog,
-                  onOpenReaderProfiles: () =>
-                      context.push('/home/reader-profiles'),
-                ),
-              ],
               if (_isSelf) ...[
                 const SizedBox(height: AppUI.sectionGap),
                 _FeedbackSection(
