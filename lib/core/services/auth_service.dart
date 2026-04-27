@@ -267,9 +267,18 @@ class AuthService {
 
   Future<FamilyReadingSummaryModel> getFamilyReadingSummary() async {
     final res = await _client.get('/me/profiles/family-summary');
-    return FamilyReadingSummaryModel.fromJson(
-      res.data['data'] as Map<String, dynamic>? ?? const <String, dynamic>{},
-    );
+    final root = _asJsonMap(res.data);
+    final data = _asJsonMap(root['data']);
+
+    if (data.isNotEmpty) {
+      return FamilyReadingSummaryModel.fromJson(data);
+    }
+
+    if (root.isNotEmpty) {
+      return FamilyReadingSummaryModel.fromJson(root);
+    }
+
+    return FamilyReadingSummaryModel.fromJson(const <String, dynamic>{});
   }
 
   Future<ReaderProfileModel> createChildProfile({
@@ -363,5 +372,15 @@ class AuthService {
     }
 
     return <String, dynamic>{key: value};
+  }
+
+  Map<String, dynamic> _asJsonMap(Object? value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+    if (value is Map) {
+      return value.map((key, item) => MapEntry(key.toString(), item));
+    }
+    return const <String, dynamic>{};
   }
 }

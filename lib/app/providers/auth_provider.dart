@@ -13,6 +13,8 @@ import '../../core/models/reader_profile_model.dart';
 import '../../core/models/user_model.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/cached_user_store.dart';
+import '../../core/services/push_notification_service.dart';
+import '../../core/platform/platform_support.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
@@ -471,6 +473,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }) async {
     await CachedUserStore.save(session);
     await ApiClient.saveActiveReaderProfileId(session.activeProfile?.id);
+    if (PlatformSupport.isMobileNative) {
+      unawaited(PushNotificationService.instance.syncTokenWithBackend());
+    }
     state = _stateFromSession(session, offlineSession: offlineSession);
   }
 

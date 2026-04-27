@@ -37,6 +37,10 @@ final familyReadingSummaryProvider =
         }
 
         throw StateError(message);
+      } on TypeError {
+        throw StateError('Aile özeti verisi şu anda işlenemedi.');
+      } on FormatException {
+        throw StateError('Aile özeti verisi şu anda işlenemedi.');
       } catch (error) {
         throw StateError(error.toString());
       }

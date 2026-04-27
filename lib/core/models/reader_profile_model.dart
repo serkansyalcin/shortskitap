@@ -25,13 +25,13 @@ class ReaderProfileModel {
 
   factory ReaderProfileModel.fromJson(Map<String, dynamic> json) =>
       ReaderProfileModel(
-        id: (json['id'] as num).toInt(),
-        userId: (json['user_id'] as num?)?.toInt() ?? 0,
-        name: json['name'] as String? ?? '',
-        type: json['type'] as String? ?? 'parent',
-        contentMode: json['content_mode'] as String? ?? 'adult',
-        avatarUrl: json['avatar_url'] as String?,
-        birthYear: (json['birth_year'] as num?)?.toInt(),
+        id: _asInt(json['id']),
+        userId: _asInt(json['user_id']),
+        name: json['name']?.toString() ?? '',
+        type: json['type']?.toString() ?? 'parent',
+        contentMode: json['content_mode']?.toString() ?? 'adult',
+        avatarUrl: json['avatar_url']?.toString(),
+        birthYear: _asNullableInt(json['birth_year']),
         isDefault: json['is_default'] == true,
         isActiveForLastSession: json['is_active_for_last_session'] == true,
         isArchived: json['is_archived'] == true,
@@ -53,4 +53,21 @@ class ReaderProfileModel {
   bool get isChild => type == 'child';
 
   bool get isParent => type == 'parent';
+
+  static int _asInt(Object? value) {
+    return _asNullableInt(value) ?? 0;
+  }
+
+  static int? _asNullableInt(Object? value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    if (value is String) {
+      return int.tryParse(value.trim());
+    }
+    return null;
+  }
 }

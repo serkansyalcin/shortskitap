@@ -66,9 +66,25 @@ class _KitapLigAppState extends ConsumerState<KitapLigApp> {
       unawaited(
         PushNotificationService.instance.initialize(
           onMessageReceived: () => refreshNotificationProvidersForWidget(ref),
+          onNotificationTap: _handleNotificationTap,
         ),
       );
     }
+  }
+
+  void _handleNotificationTap(String deepLink) {
+    if (!mounted) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      refreshNotificationProvidersForWidget(ref);
+      ref.read(routerProvider).go(deepLink);
+    });
   }
 
   @override

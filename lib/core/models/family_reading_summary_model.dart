@@ -14,14 +14,11 @@ class FamilyReadingSummaryModel {
   });
 
   factory FamilyReadingSummaryModel.fromJson(Map<String, dynamic> json) {
-    final period = json['period'] is Map<String, dynamic>
-        ? json['period'] as Map<String, dynamic>
-        : const <String, dynamic>{};
-    final totals = json['totals'] is Map<String, dynamic>
-        ? json['totals'] as Map<String, dynamic>
-        : const <String, dynamic>{};
-    final profiles = (json['profiles'] as List<dynamic>? ?? const <dynamic>[])
-        .whereType<Map<String, dynamic>>()
+    final period = _asMap(json['period']);
+    final totals = _asMap(json['totals']);
+    final profiles = _asList(json['profiles'])
+        .map(_asMap)
+        .where((item) => item.isNotEmpty)
         .map(FamilyReadingProfileStatModel.fromJson)
         .toList(growable: false);
 
@@ -58,6 +55,28 @@ class FamilyReadingSummaryModel {
     if (raw == null) return null;
     return DateTime.tryParse(raw.toString());
   }
+
+  static Map<String, dynamic> _asMap(Object? raw) {
+    if (raw is Map<String, dynamic>) {
+      return raw;
+    }
+    if (raw is Map) {
+      return raw.map(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+    }
+    return const <String, dynamic>{};
+  }
+
+  static List<dynamic> _asList(Object? raw) {
+    if (raw is List<dynamic>) {
+      return raw;
+    }
+    if (raw is List) {
+      return List<dynamic>.from(raw);
+    }
+    return const <dynamic>[];
+  }
 }
 
 class FamilyReadingProfileStatModel {
@@ -72,7 +91,7 @@ class FamilyReadingProfileStatModel {
   });
 
   factory FamilyReadingProfileStatModel.fromJson(Map<String, dynamic> json) {
-    final rawHeatmap = json['heatmap'] as Map<String, dynamic>? ?? {};
+    final rawHeatmap = FamilyReadingSummaryModel._asMap(json['heatmap']);
     final heatmap = <String, int>{};
     rawHeatmap.forEach((key, value) {
       heatmap[key] = int.tryParse(value.toString()) ?? 0;
@@ -80,7 +99,7 @@ class FamilyReadingProfileStatModel {
 
     return FamilyReadingProfileStatModel(
       profile: ReaderProfileModel.fromJson(
-        json['profile'] as Map<String, dynamic>? ?? const <String, dynamic>{},
+        FamilyReadingSummaryModel._asMap(json['profile']),
       ),
       totalParagraphs: (json['total_paragraphs'] as num?)?.toInt() ?? 0,
       totalMinutes: (json['total_minutes'] as num?)?.toInt() ?? 0,
