@@ -767,9 +767,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       )
                     : null,
               ),
-              const SizedBox(height: AppUI.sectionGap),
-              _StatsGrid(stats: profile.stats),
-              const SizedBox(height: AppUI.sectionGap),
               _LeagueCard(activeLeague: profile.activeLeague),
               const SizedBox(height: AppUI.sectionGap),
               if (achievements.isNotEmpty)
@@ -798,19 +795,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       context.push('/home/reader-profiles'),
                 ),
               ],
-              const SizedBox(height: AppUI.sectionGap),
-              _HistorySection(
-                history: profile.leagueHistory,
-                onOpenAll: () => context.push(
-                  '/league-history',
-                  extra: <String, dynamic>{
-                    'history': profile.leagueHistory,
-                    'title': _isSelf
-                        ? 'Lig Geçmişi'
-                        : '${profile.profile.name} • Lig Geçmişi',
-                  },
-                ),
-              ),
               if (_isSelf) ...[
                 const SizedBox(height: AppUI.sectionGap),
                 _FeedbackSection(
