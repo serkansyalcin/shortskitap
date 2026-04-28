@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/providers/auth_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/widgets/brand_logo.dart';
-// import '../widgets/social_auth_buttons.dart';
+import '../widgets/social_auth_buttons.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -300,8 +300,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                           : 'Giriş yap',
                                     ),
                             ),
-                            // Social auth buttons are hidden for now.
-                            // SocialAuthButtons(returnTo: returnTo),
+                            SocialAuthButtons(returnTo: returnTo),
                             const SizedBox(height: 14),
                             Center(
                               child: TextButton(

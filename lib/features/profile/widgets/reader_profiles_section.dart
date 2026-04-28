@@ -247,10 +247,10 @@ class _ActiveProfileHeader extends StatelessWidget {
                           'Çocuk profilleri ${profileCapabilities.activeChildProfilesCount}/${profileCapabilities.maxChildProfiles}',
                     ),
                     _InfoPill(
-                      label: activeProfile.birthYear != null
-                          ? 'Doğum yılı ${activeProfile.birthYear}'
+                      label: activeProfile.age != null
+                          ? '${activeProfile.age} yaş'
                           : activeProfile.isChild
-                          ? 'Doğum yılı eklenmedi'
+                          ? 'Yaş eklenmedi'
                           : 'Aile hesabı',
                     ),
                   ],
@@ -515,9 +515,9 @@ class _ChildProfileCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      profile.birthYear != null
-                          ? 'Doğum yılı: ${profile.birthYear}'
-                          : 'Doğum yılı eklenmedi',
+                      profile.age != null
+                          ? '${profile.age} yaşında'
+                          : 'Yaş eklenmedi',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -94,6 +95,7 @@ class AuthService {
   Future<(SessionFetchResult, AuthSessionModel?)> fetchSessionUser() async {
     try {
       final res = await _client.get('/me');
+      log("res /me: ${res.data}");
       final session = AuthSessionModel.fromJson(
         res.data['data'] as Map<String, dynamic>,
       );
@@ -118,6 +120,7 @@ class AuthService {
 
   Future<AuthSessionModel?> getMe() async {
     final (result, session) = await fetchSessionUser();
+    log("fetchSessionUser result: $result, session: ${session?.toJson()}");
     if (result == SessionFetchResult.success) return session;
     return null;
   }
@@ -166,6 +169,7 @@ class AuthService {
           ),
         }),
       );
+      log("res ${res.data}");
       updatedSession = AuthSessionModel.fromJson(
         res.data['data'] as Map<String, dynamic>,
       );
@@ -179,6 +183,7 @@ class AuthService {
     }
 
     final me = await getMe();
+    log("me after update: ${me?.toJson()}");
     if (me == null) {
       throw StateError(
         'Profil güncellemesi sonrası kullanıcı verisi alınamadı.',
@@ -262,21 +267,30 @@ class AuthService {
 
   Future<FamilyReadingSummaryModel> getFamilyReadingSummary() async {
     final res = await _client.get('/me/profiles/family-summary');
-    return FamilyReadingSummaryModel.fromJson(
-      res.data['data'] as Map<String, dynamic>? ?? const <String, dynamic>{},
-    );
+    final root = _asJsonMap(res.data);
+    final data = _asJsonMap(root['data']);
+
+    if (data.isNotEmpty) {
+      return FamilyReadingSummaryModel.fromJson(data);
+    }
+
+    if (root.isNotEmpty) {
+      return FamilyReadingSummaryModel.fromJson(root);
+    }
+
+    return FamilyReadingSummaryModel.fromJson(const <String, dynamic>{});
   }
 
   Future<ReaderProfileModel> createChildProfile({
     required String name,
-    int? birthYear,
+    int? age,
     String? avatarUrl,
   }) async {
     final res = await _client.post(
       '/me/profiles',
       data: {
         'name': name,
-        ...?_optionalField('birth_year', birthYear),
+        ...?_optionalField('age', age),
         ...?_optionalField('avatar_url', avatarUrl),
       },
     );
@@ -287,12 +301,12 @@ class AuthService {
   Future<void> updateReaderProfile({
     required int profileId,
     required String name,
-    int? birthYear,
+    int? age,
     String? avatarUrl,
   }) async {
     await _client.put(
       '/me/profiles/$profileId',
-      data: {'name': name, 'birth_year': birthYear, 'avatar_url': avatarUrl},
+      data: {'name': name, 'age': age, 'avatar_url': avatarUrl},
     );
   }
 
@@ -358,5 +372,15 @@ class AuthService {
     }
 
     return <String, dynamic>{key: value};
+  }
+
+  Map<String, dynamic> _asJsonMap(Object? value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+    if (value is Map) {
+      return value.map((key, item) => MapEntry(key.toString(), item));
+    }
+    return const <String, dynamic>{};
   }
 }

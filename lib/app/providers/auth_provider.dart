@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -12,6 +13,8 @@ import '../../core/models/reader_profile_model.dart';
 import '../../core/models/user_model.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/cached_user_store.dart';
+import '../../core/services/push_notification_service.dart';
+import '../../core/platform/platform_support.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
@@ -62,6 +65,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _checkAuth() async {
     final token = await ApiClient.getToken();
+    log("Auth check, token: $token");
     if (token == null) {
       state = const AuthState.unauthenticated();
       return;
@@ -123,6 +127,39 @@ class AuthNotifier extends StateNotifier<AuthState> {
         password,
         acceptTerms: acceptTerms,
         acceptPrivacyPolicy: acceptPrivacyPolicy,
+      );
+      await _setSession(result.session, offlineSession: false);
+      _syncOnboardingPrefs();
+      return true;
+    } catch (e) {
+      state = AuthState(
+        status: AuthStatus.unauthenticated,
+        error: _parseError(e),
+      );
+      return false;
+    }
+  }
+
+  Future<bool> socialLogin({
+    required String provider,
+    String? idToken,
+    String? accessToken,
+    String? identityToken,
+    String? authorizationCode,
+    String? name,
+    String? email,
+    String? avatarUrl,
+  }) async {
+    try {
+      final result = await _service.socialLogin(
+        provider: provider,
+        idToken: idToken,
+        accessToken: accessToken,
+        identityToken: identityToken,
+        authorizationCode: authorizationCode,
+        name: name,
+        email: email,
+        avatarUrl: avatarUrl,
       );
       await _setSession(result.session, offlineSession: false);
       _syncOnboardingPrefs();
@@ -236,7 +273,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<bool> createChildProfile({
     required String name,
-    int? birthYear,
+    int? age,
     String? avatarUrl,
     Uint8List? avatarBytes,
     String? avatarFileName,
@@ -244,7 +281,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final profile = await _service.createChildProfile(
         name: name,
-        birthYear: birthYear,
+        age: age,
         avatarUrl: avatarUrl,
       );
       if (avatarBytes != null) {
@@ -264,7 +301,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> updateReaderProfile({
     required int profileId,
     required String name,
-    int? birthYear,
+    int? age,
     String? avatarUrl,
     Uint8List? avatarBytes,
     String? avatarFileName,
@@ -273,7 +310,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _service.updateReaderProfile(
         profileId: profileId,
         name: name,
-        birthYear: birthYear,
+        age: age,
         avatarUrl: avatarUrl,
       );
       if (avatarBytes != null) {
@@ -436,6 +473,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }) async {
     await CachedUserStore.save(session);
     await ApiClient.saveActiveReaderProfileId(session.activeProfile?.id);
+    if (PlatformSupport.isMobileNative) {
+      unawaited(PushNotificationService.instance.syncTokenWithBackend());
+    }
     state = _stateFromSession(session, offlineSession: offlineSession);
   }
 

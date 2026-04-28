@@ -1,4 +1,6 @@
-﻿import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -57,6 +59,29 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedIndex = 0;
   String? _discoverCategory;
+  bool _pushTokenSynced = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_syncPushTokenIfAuthenticated());
+    });
+  }
+
+  Future<void> _syncPushTokenIfAuthenticated() async {
+    if (_pushTokenSynced) {
+      return;
+    }
+
+    final authState = ref.read(authProvider);
+    if (!authState.isAuthenticated) {
+      return;
+    }
+
+    _pushTokenSynced = true;
+    // await PushNotificationService.instance.registerPushTokenIfAvailable();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +109,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ref.read(authProvider.notifier).refreshMe();
         }
       });
+    });
+
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (!next.isAuthenticated) {
+        _pushTokenSynced = false;
+        return;
+      }
+      if (!_pushTokenSynced) {
+        unawaited(_syncPushTokenIfAuthenticated());
+      }
     });
 
     return Scaffold(
@@ -563,10 +598,10 @@ class _DiscoverTabState extends ConsumerState<_DiscoverTab> {
                                       ),
                                       child: const Center(
                                         child: Icon(
-                                                Icons.menu_book_rounded,
-                                                size: 36,
-                                                color: AppColors.primary,
-                                              ),
+                                          Icons.menu_book_rounded,
+                                          size: 36,
+                                          color: AppColors.primary,
+                                        ),
                                       ),
                                     ),
                             ),
@@ -839,7 +874,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
           .read(authProvider.notifier)
           .createChildProfile(
             name: form.name.trim(),
-            birthYear: form.birthYear,
+            age: form.age,
             avatarUrl: form.avatarUrl,
             avatarBytes: form.avatarBytes,
             avatarFileName: form.avatarFileName,
@@ -2269,4 +2304,3 @@ class _MenuItem extends StatelessWidget {
     );
   }
 }
-

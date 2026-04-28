@@ -10,6 +10,7 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
 val localProperties = Properties().apply {
@@ -45,6 +46,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
 
 kotlin {
@@ -88,6 +90,9 @@ kotlin {
 }
 
 dependencies {
+    // Core library desugaring for flutter_local_notifications and Java 8+ features
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    
     // Flutter embedding deferred components (Play Store split install)
     implementation("com.google.android.play:review:2.0.1")
     implementation("com.google.android.play:app-update:2.1.0")
