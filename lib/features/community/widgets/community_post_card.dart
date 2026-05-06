@@ -7,7 +7,7 @@ import '../../../core/widgets/app_image_viewer.dart';
 import '../../../core/widgets/reader_profile_avatar.dart';
 import '../models/community_models.dart';
 
-class CommunityPostCard extends StatelessWidget {
+class CommunityPostCard extends StatefulWidget {
   const CommunityPostCard({
     super.key,
     required this.post,
@@ -30,234 +30,243 @@ class CommunityPostCard extends StatelessWidget {
   final bool compact;
 
   @override
+  State<CommunityPostCard> createState() => _CommunityPostCardState();
+}
+
+class _CommunityPostCardState extends State<CommunityPostCard> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final textMuted = scheme.onSurfaceVariant;
+    final isDark = theme.brightness == Brightness.dark;
 
-    return Container(
-      margin: EdgeInsets.only(bottom: compact ? 12 : 14),
-      padding: EdgeInsets.all(compact ? 14 : 16),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outline.withValues(alpha: 0.12)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(
-              alpha: theme.brightness == Brightness.dark ? 0.18 : 0.05,
-            ),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Container(
+        margin: EdgeInsets.only(bottom: widget.compact ? 12 : 14),
+        padding: EdgeInsets.all(widget.compact ? 14 : 16),
+        decoration: BoxDecoration(
+          color: _isHovered 
+            ? (isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02))
+            : theme.cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: _isHovered 
+              ? scheme.primary.withValues(alpha: 0.15)
+              : scheme.outline.withValues(alpha: 0.12),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              GestureDetector(
-                onTap: post.author.username.isEmpty
-                    ? null
-                    : () => context.push('/profil/${post.author.username}'),
-                child: ReaderProfileAvatar(
-                  name: post.author.name,
-                  avatarRef: post.author.avatarUrl,
-                  size: 42,
-                  borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: widget.post.author.username.isEmpty
+                      ? null
+                      : () => context.push('/profil/${widget.post.author.username}'),
+                  child: ReaderProfileAvatar(
+                    name: widget.post.author.name,
+                    avatarRef: widget.post.author.avatarUrl,
+                    size: 42,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              widget.post.author.name.isEmpty
+                                  ? 'KitapLig kullanıcısı'
+                                  : widget.post.author.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: scheme.onSurface,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          if (widget.post.author.isPremium) ...[
+                            const SizedBox(width: 5),
+                            const Icon(
+                              Icons.verified_rounded,
+                              size: 15,
+                              color: AppColors.primary,
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        [
+                          if (widget.post.author.username.isNotEmpty)
+                            '@${widget.post.author.username}',
+                          _relativeTime(widget.post.createdAt),
+                        ].where((part) => part.isNotEmpty).join(' · '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: textMuted, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                _PostMenu(
+                  canDelete: widget.post.viewerState.canDelete,
+                  canReport: widget.post.viewerState.canReport && !widget.isReadOnly,
+                  onDelete: widget.onDelete,
+                  onReport: widget.onReport,
+                ),
+              ],
+            ),
+            if (widget.post.body?.trim().isNotEmpty == true) ...[
+              const SizedBox(height: 12),
+              Text(
+                widget.post.body!.trim(),
+                style: TextStyle(
+                  color: scheme.onSurface,
+                  fontSize: 14.5,
+                  height: 1.45,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            post.author.name.isEmpty
-                                ? 'KitapLig kullanıcısı'
-                                : post.author.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: scheme.onSurface,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 14,
+            ],
+            if (widget.post.quoteText?.trim().isNotEmpty == true) ...[
+              const SizedBox(height: 12),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => Scaffold(
+                          backgroundColor: Colors.black,
+                          appBar: AppBar(
+                            backgroundColor: Colors.transparent,
+                            elevation: 0,
+                            leading: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: CircleAvatar(
+                                backgroundColor: Colors.black.withValues(alpha: 0.4),
+                                child: IconButton(
+                                  icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                              ),
+                            ),
+                          ),
+                          body: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24.0),
+                              child: Text(
+                                widget.post.quoteText!.trim(),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                        if (post.author.isPremium) ...[
-                          const SizedBox(width: 5),
-                          const Icon(
-                            Icons.verified_rounded,
-                            size: 15,
-                            color: AppColors.primary,
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border(
+                        left: BorderSide(color: AppColors.primary, width: 4),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.post.quoteText!.trim(),
+                          style: TextStyle(
+                            color: scheme.onSurface,
+                            fontSize: 15,
+                            height: 1.45,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (widget.post.quoteSource?.trim().isNotEmpty == true) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            widget.post.quoteSource!.trim(),
+                            style: TextStyle(
+                              color: textMuted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ],
                       ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      [
-                        if (post.author.username.isNotEmpty)
-                          '@${post.author.username}',
-                        _relativeTime(post.createdAt),
-                      ].where((part) => part.isNotEmpty).join(' · '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: textMuted, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              _PostMenu(
-                canDelete: post.viewerState.canDelete,
-                canReport: post.viewerState.canReport && !isReadOnly,
-                onDelete: onDelete,
-                onReport: onReport,
-              ),
-            ],
-          ),
-          if (post.body?.trim().isNotEmpty == true) ...[
-            const SizedBox(height: 12),
-            Text(
-              post.body!.trim(),
-              style: TextStyle(
-                color: scheme.onSurface,
-                fontSize: 14.5,
-                height: 1.45,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-          if (post.quoteText?.trim().isNotEmpty == true) ...[
-            const SizedBox(height: 12),
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => Scaffold(
-                        backgroundColor: Colors.black,
-                        appBar: AppBar(
-                          backgroundColor: Colors.transparent,
-                          elevation: 0,
-                          leading: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: CircleAvatar(
-                              backgroundColor: Colors.black.withValues(alpha: 0.4),
-                              child: IconButton(
-                                icon: const Icon(Icons.close, color: Colors.white, size: 20),
-                                onPressed: () => Navigator.pop(context),
-                              ),
-                            ),
-                          ),
-                        ),
-                        body: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24.0),
-                            child: Text(
-                              post.quoteText!.trim(),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(14),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border(
-                      left: BorderSide(color: AppColors.primary, width: 4),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        post.quoteText!.trim(),
-                        style: TextStyle(
-                          color: scheme.onSurface,
-                          fontSize: 15,
-                          height: 1.45,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (post.quoteSource?.trim().isNotEmpty == true) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          post.quoteSource!.trim(),
-                          style: TextStyle(
-                            color: textMuted,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ],
                   ),
                 ),
               ),
-            ),
-          ],
-          if (post.images.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _ImageGrid(
-              postId: post.id,
-              images: post.images,
-            ),
-          ],
-          if (post.book != null) ...[
-            const SizedBox(height: 12),
-            _BookPreview(book: post.book!),
-          ],
-          if (post.status != 'published' || post.hiddenReason != null) ...[
-            const SizedBox(height: 10),
-            _StatusPill(post: post),
-          ],
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _ActionButton(
-                icon: post.viewerState.isLiked
-                    ? Icons.favorite_rounded
-                    : Icons.favorite_border_rounded,
-                label: _countLabel(post.counts.likes),
-                selected: post.viewerState.isLiked,
-                onTap: isReadOnly ? null : onLike,
-              ),
-              _ActionButton(
-                icon: Icons.mode_comment_outlined,
-                label: _countLabel(post.counts.comments),
-                onTap: onComments,
-              ),
-              _ActionButton(
-                icon: post.viewerState.isSaved
-                    ? Icons.bookmark_rounded
-                    : Icons.bookmark_border_rounded,
-                label: _countLabel(post.counts.saves),
-                selected: post.viewerState.isSaved,
-                onTap: isReadOnly ? null : onSave,
+            ],
+            if (widget.post.images.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _ImageGrid(
+                postId: widget.post.id,
+                images: widget.post.images,
               ),
             ],
-          ),
-        ],
+            if (widget.post.book != null) ...[
+              const SizedBox(height: 12),
+              _BookPreview(book: widget.post.book!),
+            ],
+            if (widget.post.status != 'published' || widget.post.hiddenReason != null) ...[
+              const SizedBox(height: 10),
+              _StatusPill(post: widget.post),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _ActionButton(
+                  icon: widget.post.viewerState.isLiked
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  label: _countLabel(widget.post.counts.likes),
+                  selected: widget.post.viewerState.isLiked,
+                  onTap: widget.isReadOnly ? null : widget.onLike,
+                ),
+                _ActionButton(
+                  icon: Icons.mode_comment_outlined,
+                  label: _countLabel(widget.post.counts.comments),
+                  onTap: widget.onComments,
+                ),
+                _ActionButton(
+                  icon: widget.post.viewerState.isSaved
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_border_rounded,
+                  label: _countLabel(widget.post.counts.saves),
+                  selected: widget.post.viewerState.isSaved,
+                  onTap: widget.isReadOnly ? null : widget.onSave,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -511,6 +520,9 @@ class _ActionButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
+        hoverColor: AppColors.primary.withValues(alpha: 0.08),
+        splashColor: AppColors.primary.withValues(alpha: 0.1),
+        highlightColor: Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(

@@ -84,7 +84,9 @@ class _CommunityComposeSheetState extends ConsumerState<CommunityComposeSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.fromLTRB(
@@ -123,29 +125,45 @@ class _CommunityComposeSheetState extends ConsumerState<CommunityComposeSheet> {
                 ],
               ),
               const SizedBox(height: 12),
-              SegmentedButton<CommunityComposeMode>(
-                segments: const [
-                  ButtonSegment(
-                    value: CommunityComposeMode.text,
-                    icon: Icon(Icons.notes_rounded),
-                  ),
-                  ButtonSegment(
-                    value: CommunityComposeMode.quote,
-                    icon: Icon(Icons.format_quote_rounded),
-                  ),
-                  ButtonSegment(
-                    value: CommunityComposeMode.image,
-                    icon: Icon(Icons.image_rounded),
-                  ),
-                  ButtonSegment(
-                    value: CommunityComposeMode.book,
-                    icon: Icon(Icons.menu_book_rounded),
-                  ),
-                ],
-                selected: {_mode},
-                onSelectionChanged: _busy
-                    ? null
-                    : (value) => setState(() => _mode = value.first),
+              Container(
+                height: 54,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.all(4),
+                child: Row(
+                  children: [
+                    _ModeItem(
+                      mode: CommunityComposeMode.text,
+                      icon: Icons.text_fields_rounded,
+                      label: 'Metin',
+                      selected: _mode == CommunityComposeMode.text,
+                      onTap: () => setState(() => _mode = CommunityComposeMode.text),
+                    ),
+                    _ModeItem(
+                      mode: CommunityComposeMode.quote,
+                      icon: Icons.format_quote_rounded,
+                      label: 'Alıntı',
+                      selected: _mode == CommunityComposeMode.quote,
+                      onTap: () => setState(() => _mode = CommunityComposeMode.quote),
+                    ),
+                    _ModeItem(
+                      mode: CommunityComposeMode.image,
+                      icon: Icons.image_rounded,
+                      label: 'Görsel',
+                      selected: _mode == CommunityComposeMode.image,
+                      onTap: () => setState(() => _mode = CommunityComposeMode.image),
+                    ),
+                    _ModeItem(
+                      mode: CommunityComposeMode.book,
+                      icon: Icons.menu_book_rounded,
+                      label: 'Kitap',
+                      selected: _mode == CommunityComposeMode.book,
+                      onTap: () => setState(() => _mode = CommunityComposeMode.book),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 14),
               Expanded(
@@ -154,11 +172,20 @@ class _CommunityComposeSheetState extends ConsumerState<CommunityComposeSheet> {
                     if (_mode == CommunityComposeMode.text)
                       TextField(
                         controller: _bodyController,
-                        minLines: 6,
-                        maxLines: 10,
+                        minLines: 8,
+                        maxLines: 12,
                         maxLength: 5000,
-                        decoration: const InputDecoration(
+                        style: const TextStyle(fontSize: 16, height: 1.5),
+                        decoration: InputDecoration(
                           hintText: 'Ne paylaşmak istersin?',
+                          filled: true,
+                          fillColor: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.all(16),
+                          counterText: '',
                         ),
                         onChanged: (_) => setState(() {}),
                       ),
@@ -273,12 +300,46 @@ class _CommunityComposeSheetState extends ConsumerState<CommunityComposeSheet> {
                         ),
                       ),
                     ],
+                    const SizedBox(height: 12),
+                    _EmojiBar(
+                      onEmojiSelected: (emoji) {
+                        final controller = _mode == CommunityComposeMode.quote ? _quoteController : _bodyController;
+                        final text = controller.text;
+                        final selection = controller.selection;
+                        final newText = text.replaceRange(
+                          selection.start == -1 ? text.length : selection.start,
+                          selection.end == -1 ? text.length : selection.end,
+                          emoji,
+                        );
+                        controller.value = TextEditingValue(
+                          text: newText,
+                          selection: TextSelection.collapsed(
+                            offset: (selection.start == -1 ? text.length : selection.start) + emoji.length,
+                          ),
+                        );
+                        setState(() {});
+                      },
+                    ),
                   ],
                 ),
               ),
-              Text(
-                'En az bir metin, alıntı, görsel veya kitap seçimi gerekli.',
-                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${_mode == CommunityComposeMode.quote ? _quoteController.text.length : _bodyController.text.length} / ${_mode == CommunityComposeMode.quote ? 2000 : 5000}',
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    'En az bir öğe gerekli.',
+                    style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11),
+                  ),
+                ],
               ),
             ],
           ),
@@ -354,6 +415,106 @@ class _BookSearchResults extends ConsumerWidget {
               ),
               onTap: () => onSelected(book),
             ),
+        ],
+      ),
+    );
+  }
+}
+class _ModeItem extends StatelessWidget {
+  const _ModeItem({
+    required this.mode,
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final CommunityComposeMode mode;
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    )
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: selected
+                    ? Colors.white
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmojiBar extends StatelessWidget {
+  const _EmojiBar({required this.onEmojiSelected});
+
+  final ValueChanged<String> onEmojiSelected;
+
+  static const _emojis = ['😊', '📚', '✨', '💡', '🔥', '❤️', '👏', '🧐', '💭', '🚀'];
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          const Icon(Icons.emoji_emotions_outlined, size: 20, color: Colors.grey),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _emojis.map((emoji) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: InkWell(
+                      onTap: () => onEmojiSelected(emoji),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(emoji, style: const TextStyle(fontSize: 18)),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
         ],
       ),
     );

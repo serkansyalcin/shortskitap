@@ -17,7 +17,7 @@ class CommunityService {
       '/community/feed',
       page: page,
       perPage: perPage,
-      params: {if (filter != null) 'filter': filter},
+      params: {'filter': ?filter},
     );
   }
 

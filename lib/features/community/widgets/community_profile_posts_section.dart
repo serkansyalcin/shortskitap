@@ -70,7 +70,7 @@ class _CommunityProfilePostsSectionState extends ConsumerState<CommunityProfileP
         onSubmit: (reason, details) => ref.read(communityServiceProvider).reportPost(post.id, reason: reason, details: details),
       ),
     );
-    if (ok == true && mounted) _message(context, 'Şikayetin alındı.');
+    if (ok == true && context.mounted) _message(context, 'Şikayetin alındı.');
   }
 
   @override
@@ -148,14 +148,14 @@ class _CommunityProfilePostsSectionState extends ConsumerState<CommunityProfileP
             try {
               await controller.toggleLike(post);
             } catch (error) {
-              if (mounted) _message(context, userFacingErrorMessage(error));
+              if (context.mounted) _message(context, userFacingErrorMessage(error));
             }
           },
           onSave: () async {
             try {
               await controller.toggleSave(post);
             } catch (error) {
-              if (mounted) _message(context, userFacingErrorMessage(error));
+              if (context.mounted) _message(context, userFacingErrorMessage(error));
             }
           },
           onComments: () => _comments(context, post, isReadOnly),
@@ -165,7 +165,7 @@ class _CommunityProfilePostsSectionState extends ConsumerState<CommunityProfileP
                   try {
                     await controller.deletePost(post);
                   } catch (error) {
-                    if (mounted) {
+                    if (context.mounted) {
                       _message(context, userFacingErrorMessage(error));
                     }
                   }

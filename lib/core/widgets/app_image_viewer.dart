@@ -104,10 +104,10 @@ class _AppImageViewerState extends State<AppImageViewer> {
                   child: CachedNetworkImage(
                     imageUrl: url,
                     fit: BoxFit.contain,
-                    placeholder: (_, __) => const Center(
+                    placeholder: (_, _) => const Center(
                       child: CircularProgressIndicator(color: Colors.white),
                     ),
-                    errorWidget: (_, __, ___) => const Icon(
+                    errorWidget: (_, _, _) => const Icon(
                       Icons.error_outline,
                       color: Colors.white,
                       size: 48,

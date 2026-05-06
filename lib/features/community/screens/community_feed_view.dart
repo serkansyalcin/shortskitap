@@ -312,6 +312,11 @@ class _FilterChip extends StatelessWidget {
       selected: selected,
       onSelected: onSelected,
       showCheckmark: false,
+      elevation: 0,
+      pressElevation: 0,
+      surfaceTintColor: Colors.transparent,
+      selectedShadowColor: Colors.transparent,
+      shadowColor: Colors.transparent,
       labelStyle: TextStyle(
         fontSize: 12.5,
         fontWeight: selected ? FontWeight.bold : FontWeight.normal,
@@ -337,40 +342,68 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-class _ComposerEntry extends StatelessWidget {
+class _ComposerEntry extends StatefulWidget {
   const _ComposerEntry({required this.onTap});
 
   final VoidCallback onTap;
 
   @override
+  State<_ComposerEntry> createState() => _ComposerEntryState();
+}
+
+class _ComposerEntryState extends State<_ComposerEntry> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: scheme.outline.withValues(alpha: 0.12)),
-        ),
-        child: Row(
-          children: [
-            const CircleAvatar(
-              backgroundColor: AppColors.primary,
-              child: Icon(Icons.edit_rounded, color: Colors.white),
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: _isHovered
+                ? (isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.black.withValues(alpha: 0.06))
+                : theme.cardColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _isHovered
+                  ? scheme.primary.withValues(alpha: 0.2)
+                  : scheme.outline.withValues(alpha: 0.12),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Bugün ne okudun?',
-                style: TextStyle(color: scheme.onSurfaceVariant),
+          ),
+          child: Row(
+            children: [
+              const CircleAvatar(
+                backgroundColor: AppColors.primary,
+                child: Icon(Icons.edit_rounded, color: Colors.white),
               ),
-            ),
-            const Icon(Icons.add_circle_outline_rounded),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Bugün ne okudun?',
+                  style: TextStyle(
+                    color: _isHovered ? scheme.onSurface : scheme.onSurfaceVariant,
+                    fontWeight: _isHovered ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.add_circle_outline_rounded,
+                color: _isHovered ? scheme.primary : scheme.onSurfaceVariant,
+              ),
+            ],
+          ),
         ),
       ),
     );
