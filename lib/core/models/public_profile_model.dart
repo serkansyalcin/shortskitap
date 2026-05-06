@@ -82,13 +82,22 @@ class ProfileIdentityModel {
 class ProfileCountsModel {
   final int followers;
   final int following;
+  final int posts;
 
-  const ProfileCountsModel({required this.followers, required this.following});
+  const ProfileCountsModel({
+    required this.followers,
+    required this.following,
+    required this.posts,
+  });
 
   factory ProfileCountsModel.fromJson(Map<String, dynamic> json) {
     return ProfileCountsModel(
       followers: (json['followers'] as num?)?.toInt() ?? 0,
       following: (json['following'] as num?)?.toInt() ?? 0,
+      posts:
+          (json['posts'] as num?)?.toInt() ??
+          (json['community_posts'] as num?)?.toInt() ??
+          0,
     );
   }
 }

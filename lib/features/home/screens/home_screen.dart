@@ -25,6 +25,7 @@ import '../../../core/services/subscription_service.dart';
 import '../../../core/services/notification_permission_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../ai_story/providers/ai_story_provider.dart';
+import '../../community/screens/community_feed_view.dart';
 import '../../league/screens/league_screen.dart';
 import '../../library/widgets/library_view.dart';
 import '../../profile/screens/profile_screen.dart';
@@ -140,6 +141,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     setState(() => _discoverCategory = category);
                   },
                 ),
+                const CommunityFeedView(),
                 const _LeagueTab(),
                 const _LibraryTab(),
                 const ProfileScreen(),
@@ -187,6 +189,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   label: 'Keşfet',
                 ),
                 NavigationDestination(
+                  icon: Icon(Icons.forum_outlined),
+                  selectedIcon: Icon(Icons.forum_rounded),
+                  label: 'Topluluk',
+                ),
+                NavigationDestination(
                   icon: Icon(Icons.emoji_events_outlined),
                   selectedIcon: Icon(Icons.emoji_events),
                   label: 'Lig',
@@ -223,6 +230,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 }
+
+
 
 class _DiscoverTab extends ConsumerStatefulWidget {
   const _DiscoverTab({

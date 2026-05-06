@@ -30,11 +30,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _nameController = TextEditingController();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _currentPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   NotificationPermissionState _notificationStatus =
       NotificationPermissionState.denied;
   bool _notificationLoading = false;
   bool _profileSaving = false;
+  bool _passwordSaving = false;
   String _appVersion = '';
   String _packageName = 'com.kitaplig.app';
   Uint8List? _avatarBytes;
@@ -51,6 +55,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _nameController.dispose();
     _usernameController.dispose();
     _emailController.dispose();
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -153,6 +160,56 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
   }
+
+  Future<void> _updatePassword() async {
+    final current = _currentPasswordController.text.trim();
+    final password = _newPasswordController.text.trim();
+    final confirm = _confirmPasswordController.text.trim();
+
+    if (current.isEmpty || password.isEmpty || confirm.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lütfen tüm şifre alanlarını doldurun.')),
+      );
+      return;
+    }
+
+    if (password != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Yeni şifreler eşleşmiyor.')),
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Yeni şifre en az 6 karakter olmalıdır.')),
+      );
+      return;
+    }
+
+    setState(() => _passwordSaving = true);
+    final ok = await ref
+        .read(authProvider.notifier)
+        .changePassword(current, password);
+    
+    if (!mounted) return;
+    setState(() => _passwordSaving = false);
+
+    if (ok) {
+      _currentPasswordController.clear();
+      _newPasswordController.clear();
+      _confirmPasswordController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Şifreniz başarıyla güncellendi.')),
+      );
+    } else {
+      final error = ref.read(authProvider).error ?? 'Şifre güncellenemedi.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: Colors.red),
+      );
+    }
+  }
+
 
   Future<void> _pickAvatarFromGallery() =>
       _pickAvatar(() => _avatarPicker.pickFromGallery());
@@ -484,6 +541,63 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
           const SizedBox(height: 16),
+          if (!isChildProfileActive)
+            _Card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Şifre Güncelleme',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _currentPasswordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Mevcut Şifre',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _newPasswordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Yeni Şifre',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _confirmPasswordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Yeni Şifre (Tekrar)',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _passwordSaving ? null : _updatePassword,
+                      child: _passwordSaving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Şifreyi Güncelle'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           _Card(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

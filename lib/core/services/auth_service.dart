@@ -197,6 +197,20 @@ class AuthService {
     await ApiClient.clearToken();
   }
 
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _client.put(
+      '/me/password',
+      data: {
+        'current_password': currentPassword,
+        'password': newPassword,
+        'password_confirmation': newPassword,
+      },
+    );
+  }
+
   Future<void> requestPasswordReset(String email) async {
     await _client.post('/auth/forgot-password', data: {'email': email});
   }

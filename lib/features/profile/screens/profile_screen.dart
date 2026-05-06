@@ -24,6 +24,7 @@ import '../widgets/reader_profile_dialogs.dart';
 import '../widgets/reading_heatmap_widget.dart';
 import '../../home/widgets/kids_mode_exit_dialog.dart';
 import '../../home/widgets/kids_mode_pin_set_dialog.dart';
+import '../../community/widgets/community_profile_posts_section.dart';
 import '../../subscription/widgets/premium_badge.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -719,90 +720,131 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ? earnedAsync!.valueOrNull!
               : profile.achievements.where((item) => item.isEarned).toList();
 
-          return ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(
-              AppUI.screenHorizontalPadding,
-              AppUI.screenTopPadding,
-              AppUI.screenHorizontalPadding,
-              28,
-            ),
-            children: [
-              _HeroCard(
-                profile: profile,
-                isSelf: _isSelf,
-                isPremium: isPremium,
-                premiumPlanLabel: isPremium
-                    ? _planLabel(subscriptionStatus)
-                    : null,
-                followBusy: _followBusy,
-                onFollow: () => _toggleFollow(profile),
-                onFollowers: () => _openPeople(
-                  'Takipçiler',
-                  () => ref
-                      .read(profileServiceProvider)
-                      .getFollowers(profile.profile.username, limit: 50),
+          return DefaultTabController(
+            length: 2,
+            child: NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppUI.screenHorizontalPadding,
+                      AppUI.screenTopPadding,
+                      AppUI.screenHorizontalPadding,
+                      AppUI.sectionGap,
+                    ),
+                    child: _HeroCard(
+                      profile: profile,
+                      isSelf: _isSelf,
+                      isPremium: isPremium,
+                      premiumPlanLabel: isPremium
+                          ? _planLabel(subscriptionStatus)
+                          : null,
+                      followBusy: _followBusy,
+                      onFollow: () => _toggleFollow(profile),
+                      onFollowers: () => _openPeople(
+                        'Takipçiler',
+                        () => ref
+                            .read(profileServiceProvider)
+                            .getFollowers(profile.profile.username, limit: 50),
+                      ),
+                      onFollowing: () => _openPeople(
+                        'Takip edilenler',
+                        () => ref
+                            .read(profileServiceProvider)
+                            .getFollowing(profile.profile.username, limit: 50),
+                      ),
+                      onSettings: _isSelf
+                          ? () => context.push('/home/settings')
+                          : null,
+                      onHighlights: _isSelf
+                          ? () => context.push('/home/highlights')
+                          : null,
+                      onLogout: _isSelf ? _logout : null,
+                      onPremiumTap: _isSelf && !isPremium
+                          ? () => context.push('/premium')
+                          : null,
+                      onPremiumDetailsTap: _isSelf && isPremium
+                          ? () => _showPremiumDetailsModal(
+                              context,
+                              currentUser,
+                              subscriptionStatus,
+                            )
+                          : null,
+                    ),
+                  ),
                 ),
-                onFollowing: () => _openPeople(
-                  'Takip edilenler',
-                  () => ref
-                      .read(profileServiceProvider)
-                      .getFollowing(profile.profile.username, limit: 50),
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _SliverAppBarDelegate(
+                    TabBar(
+                      labelColor: AppColors.primary,
+                      unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                      indicatorColor: AppColors.primary,
+                      indicatorSize: TabBarIndicatorSize.label,
+                      dividerColor: Colors.transparent,
+                      labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                      tabs: [
+                        const Tab(text: 'Genel Bakış'),
+                        Tab(text: 'Gönderiler (${profile.counts.posts})'),
+                      ],
+                    ),
+                  ),
                 ),
-                onSettings: _isSelf
-                    ? () => context.push('/home/settings')
-                    : null,
-                onHighlights: _isSelf
-                    ? () => context.push('/home/highlights')
-                    : null,
-                onLogout: _isSelf ? _logout : null,
-                onPremiumTap: _isSelf && !isPremium
-                    ? () => context.push('/premium')
-                    : null,
-                onPremiumDetailsTap: _isSelf && isPremium
-                    ? () => _showPremiumDetailsModal(
-                        context,
-                        currentUser,
-                        subscriptionStatus,
-                      )
-                    : null,
+              ],
+              body: TabBarView(
+                children: [
+                  // Tab 1: Genel Bakış
+                  ListView(
+                    padding: const EdgeInsets.all(AppUI.screenHorizontalPadding),
+                    children: [
+                      if (_isSelf) ...[
+                        _KidsModeProfileSection(
+                          accent: _kidsAccent,
+                          onToggleKidsMode: _onKidsModeSwitch,
+                          onOpenParentPin: _onOpenParentPinDialog,
+                          onOpenReaderProfiles: () =>
+                              context.push('/home/reader-profiles'),
+                        ),
+                        const SizedBox(height: AppUI.sectionGap),
+                        const ReadingHeatmapWidget(),
+                        const SizedBox(height: AppUI.sectionGap),
+                      ],
+                      if (achievements.isNotEmpty) ...[
+                        AchievementBadgeGrid(
+                          achievements: achievements,
+                          earnedCount: achievements
+                              .where((item) => item.isEarned)
+                              .length,
+                          compact: true,
+                          limit: _isSelf ? 6 : null,
+                        ),
+                        const SizedBox(height: AppUI.sectionGap),
+                      ] else ...[
+                        const _SectionCard(
+                          title: 'Rozetler',
+                          subtitle: 'Henüz gösterilecek bir rozet yok.',
+                        ),
+                        const SizedBox(height: AppUI.sectionGap),
+                      ],
+                      if (_isSelf) ...[
+                        _FeedbackSection(
+                          onFeedback: () => context.push('/home/feedback'),
+                        ),
+                        const SizedBox(height: AppUI.sectionGap),
+                        _DeleteAccountSection(onTap: _showDeleteAccountDialog),
+                        const SizedBox(height: 80),
+                      ],
+                    ],
+                  ),
+                  // Tab 2: Gönderiler
+                  CommunityProfilePostsSection(
+                    username: profile.profile.username,
+                    isSelf: _isSelf,
+                    postsCount: profile.counts.posts,
+                  ),
+                ],
               ),
-              if (_isSelf) ...[
-                const SizedBox(height: AppUI.sectionGap),
-                _KidsModeProfileSection(
-                  accent: _kidsAccent,
-                  onToggleKidsMode: _onKidsModeSwitch,
-                  onOpenParentPin: _onOpenParentPinDialog,
-                  onOpenReaderProfiles: () =>
-                      context.push('/home/reader-profiles'),
-                ),
-                const SizedBox(height: AppUI.sectionGap),
-                const ReadingHeatmapWidget(),
-              ],
-              const SizedBox(height: AppUI.sectionGap),
-              if (achievements.isNotEmpty)
-                AchievementBadgeGrid(
-                  achievements: achievements,
-                  earnedCount: achievements
-                      .where((item) => item.isEarned)
-                      .length,
-                  compact: true,
-                  limit: _isSelf ? 6 : null,
-                )
-              else
-                const _SectionCard(
-                  title: 'Rozetler',
-                  subtitle: 'Henüz gösterilecek bir rozet yok.',
-                ),
-              if (_isSelf) ...[
-                const SizedBox(height: AppUI.sectionGap),
-                _FeedbackSection(
-                  onFeedback: () => context.push('/home/feedback'),
-                ),
-                const SizedBox(height: AppUI.sectionGap),
-                _DeleteAccountSection(onTap: _showDeleteAccountDialog),
-              ],
-            ],
+            ),
           );
         },
       ),
@@ -1330,6 +1372,7 @@ class _MembershipDetailRow extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _StatsGrid extends StatelessWidget {
   const _StatsGrid({required this.stats});
 
@@ -1370,6 +1413,7 @@ class _StatsGrid extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _LeagueCard extends StatelessWidget {
   const _LeagueCard({required this.activeLeague});
 
@@ -2038,6 +2082,7 @@ class _DeleteAccountSection extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _HistorySection extends StatelessWidget {
   const _HistorySection({required this.history, required this.onOpenAll});
 
@@ -2441,4 +2486,32 @@ class _MiniPill extends StatelessWidget {
     ),
     child: Text('$label: $value'),
   );
+}
+
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverAppBarDelegate(this._tabBar);
+
+  final TabBar _tabBar;
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: _tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return false;
+  }
 }

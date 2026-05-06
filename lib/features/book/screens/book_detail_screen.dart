@@ -12,6 +12,7 @@ import '../../../app/providers/progress_provider.dart';
 import '../../../app/providers/series_provider.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/widgets/app_image_viewer.dart';
 import '../../../core/models/book_model.dart';
 import '../../../core/utils/user_friendly_error.dart';
 import '../../../core/models/progress_model.dart';
@@ -486,6 +487,7 @@ class _BookHeroCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _BookCover(
+                      bookId: book.id,
                       imageUrl: book.coverImageUrl,
                       title: book.title,
                       accentColor: accentColor,
@@ -746,41 +748,66 @@ void _showDescriptionModal(
 }
 
 class _BookCover extends StatelessWidget {
+  final int bookId;
   final String? imageUrl;
   final String title;
   final Color accentColor;
 
   const _BookCover({
+    required this.bookId,
     required this.imageUrl,
     required this.title,
     required this.accentColor,
   });
 
+  void _openViewer(BuildContext context) {
+    if (imageUrl == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AppImageViewer(
+          urls: [imageUrl!],
+          initialIndex: 0,
+          heroTagBase: 'book_${bookId}_cover',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 108,
-      height: 148,
-      decoration: BoxDecoration(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: imageUrl != null ? () => _openViewer(context) : null,
         borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.28),
-            blurRadius: 20,
-            offset: const Offset(0, 12),
+        child: Hero(
+          tag: 'book_${bookId}_cover_0',
+          child: Container(
+            width: 108,
+            height: 148,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.28),
+                  blurRadius: 20,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(22),
+              child: imageUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: imageUrl!,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, error, stackTrace) =>
+                          _FallbackCover(title: title, accentColor: accentColor),
+                    )
+                  : _FallbackCover(title: title, accentColor: accentColor),
+            ),
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: imageUrl != null
-            ? CachedNetworkImage(
-                imageUrl: imageUrl!,
-                fit: BoxFit.cover,
-                errorWidget: (_, error, stackTrace) =>
-                    _FallbackCover(title: title, accentColor: accentColor),
-              )
-            : _FallbackCover(title: title, accentColor: accentColor),
+        ),
       ),
     );
   }

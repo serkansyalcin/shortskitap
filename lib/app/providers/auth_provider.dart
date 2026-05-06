@@ -190,6 +190,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<bool> changePassword(String currentPassword, String newPassword) async {
+    try {
+      await _service.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      return true;
+    } catch (e) {
+      _setAuthenticatedError(_parseError(e));
+      return false;
+    }
+  }
+
   Future<bool> updateProfile({
     String? name,
     String? username,
