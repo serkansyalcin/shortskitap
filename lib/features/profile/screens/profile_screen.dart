@@ -1059,18 +1059,69 @@ class _HeroCard extends StatelessWidget {
               ],
             )
           else
-            SizedBox(
-              width: double.infinity,
-              child: _ActionButton(
-                followBusy
-                    ? 'İşleniyor...'
-                    : profile.relationship.isFollowing
-                    ? 'Takibi Bırak'
-                    : 'Takip Et',
-                followBusy ? null : onFollow,
-                filled: true,
-                dark: isDark,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: _ActionButton(
+                    followBusy
+                        ? 'İşleniyor...'
+                        : profile.relationship.isFollowing
+                        ? 'Takibi Bırak'
+                        : 'Takip Et',
+                    followBusy ? null : onFollow,
+                    filled: true,
+                    dark: isDark,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Opacity(
+                        opacity: 0.6,
+                        child: _ActionButton(
+                          'Mesaj Gönder',
+                          null,
+                          dark: isDark,
+                        ),
+                      ),
+                      Positioned(
+                        top: -6,
+                        right: -2,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFACC15),
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Text(
+                            'PEK YAKINDA',
+                            style: TextStyle(
+                              fontSize: 8,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.black,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
         ],
       ),
