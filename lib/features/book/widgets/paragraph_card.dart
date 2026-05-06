@@ -664,7 +664,15 @@ class _ParagraphCardState extends State<ParagraphCard>
 
         await Share.shareXFiles(
           [xFile],
-          text: '— ${widget.bookTitle ?? 'KitapLig'}\n\nkitaplig.com',
+          text: [
+            if ((widget.authorName ?? '').trim().isNotEmpty)
+              '${widget.bookTitle ?? 'KitapLig'} - ${widget.authorName!.trim()}'
+            else
+              widget.bookTitle ?? 'KitapLig',
+            '',
+            'KitapLig\'de keşfettiğim bu alıntıya göz at:',
+            'kitaplig.com',
+          ].join('\n'),
           sharePositionOrigin: box.localToGlobal(Offset.zero) & box.size,
         );
       }

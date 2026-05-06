@@ -1423,7 +1423,10 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
     final shareText = StringBuffer()
       ..writeln('${widget.book.title}${author != null ? ' - $author' : ''}')
       ..writeln()
-      ..write('Kitaplig uygulamasında bu kitaba göz at: ${widget.book.title}');
+      ..writeln('KitapLig\'de keşfettiğim bu kitaba göz at:')
+      ..writeln(widget.book.title)
+      ..writeln()
+      ..write('kitaplig.com');
 
     Share.share(shareText.toString(), subject: widget.book.title);
   }

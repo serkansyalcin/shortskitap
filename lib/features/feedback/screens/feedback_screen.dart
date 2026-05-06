@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:in_app_review/in_app_review.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/platform/platform_support.dart';
 import '../../../core/services/feedback_service.dart';
+import '../../../core/services/store_listing_service.dart';
+import '../../../core/utils/user_friendly_error.dart';
 import '../widgets/star_rating_widget.dart';
 
 class FeedbackScreen extends StatefulWidget {
@@ -52,39 +52,22 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     super.dispose();
   }
 
-  Future<void> _requestStoreReview() async {
-    if (!PlatformSupport.isMobileNative) return;
-    final inAppReview = InAppReview.instance;
-    try {
-      await inAppReview.openStoreListing();
-      return;
-    } catch (_) {
-      // Mağaza diyaloğu açılamazsa sessizce devam et
-    }
-  }
-
   Future<void> _openStoreListingDirect() async {
     if (!PlatformSupport.isMobileNative) return;
 
-    final inAppReview = InAppReview.instance;
-    try {
-      await inAppReview.openStoreListing();
-      return;
-    } catch (_) {}
+    final opened = await StoreListingService.open(
+      packageName: _packageName,
+      writeReview: true,
+    );
+    if (opened || !mounted) return;
 
-    if (PlatformSupport.isAndroid) {
-      final marketUri = Uri.parse('market://details?id=$_packageName');
-      if (await launchUrl(marketUri, mode: LaunchMode.externalApplication)) {
-        return;
-      }
-
-      final webUri = Uri.parse(
-        'https://play.google.com/store/apps/details?id=$_packageName',
-      );
-      if (await launchUrl(webUri, mode: LaunchMode.externalApplication)) {
-        return;
-      }
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Mağaza sayfası açılamadı. Lütfen daha sonra tekrar deneyin.',
+        ),
+      ),
+    );
   }
 
   Future<void> _submit() async {
@@ -114,7 +97,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Gönderim sırasında bir hata oluştu. Lütfen tekrar deneyin.';
+          _errorMessage = apiFormErrorMessage(
+            e,
+            fallback:
+                'Gönderim sırasında bir hata oluştu. Lütfen tekrar deneyin.',
+          );
           _isSubmitting = false;
         });
       }
@@ -125,10 +112,16 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final bgColor = isDark ? AppColors.darkBackground : AppColors.lightBackground;
-    final surfaceColor = isDark ? AppColors.darkSurface : const Color(0xFFF8FAF7);
+    final bgColor = isDark
+        ? AppColors.darkBackground
+        : AppColors.lightBackground;
+    final surfaceColor = isDark
+        ? AppColors.darkSurface
+        : const Color(0xFFF8FAF7);
     final textColor = isDark ? AppColors.darkText : AppColors.lightText;
-    final secondaryText = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final secondaryText = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
     final outlineColor = isDark ? AppColors.outline : AppColors.lightOutline;
 
     return Scaffold(
@@ -137,7 +130,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         backgroundColor: bgColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: textColor,
+            size: 20,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -149,13 +146,15 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           ),
         ),
       ),
-      body: _submitted ? _buildSuccess(textColor, secondaryText) : _buildForm(
-        surfaceColor: surfaceColor,
-        textColor: textColor,
-        secondaryText: secondaryText,
-        outlineColor: outlineColor,
-        isDark: isDark,
-      ),
+      body: _submitted
+          ? _buildSuccess(textColor, secondaryText)
+          : _buildForm(
+              surfaceColor: surfaceColor,
+              textColor: textColor,
+              secondaryText: secondaryText,
+              outlineColor: outlineColor,
+              isDark: isDark,
+            ),
     );
   }
 
@@ -233,7 +232,12 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         children: [
           // Mağaza değerlendirme kartı
           if (PlatformSupport.isMobileNative) ...[
-            _buildStoreRatingCard(surfaceColor, textColor, secondaryText, outlineColor),
+            _buildStoreRatingCard(
+              surfaceColor,
+              textColor,
+              secondaryText,
+              outlineColor,
+            ),
             const SizedBox(height: 20),
             Row(
               children: [
@@ -270,7 +274,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   onTap: () => setState(() => _selectedType = value),
                   child: Container(
                     margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: selected
                           ? AppColors.primary.withValues(alpha: 0.12)
@@ -359,7 +366,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               maxLength: 2000,
               style: TextStyle(color: textColor, fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'Görüşlerinizi, önerilerinizi veya karşılaştığınız sorunu buraya yazın...',
+                hintText:
+                    'Görüşlerinizi, önerilerinizi veya karşılaştığınız sorunu buraya yazın...',
                 hintStyle: TextStyle(color: secondaryText, fontSize: 13),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.all(16),
@@ -390,7 +398,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
-                disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+                disabledBackgroundColor: AppColors.primary.withValues(
+                  alpha: 0.5,
+                ),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -407,7 +417,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                     )
                   : const Text(
                       'Gönder',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
                     ),
             ),
           ),
@@ -444,7 +457,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.star_rounded, color: Colors.white, size: 22),
+                child: const Icon(
+                  Icons.star_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -462,10 +479,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                     SizedBox(height: 2),
                     Text(
                       'App Store veya Google Play\'de puan verin',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],
                 ),

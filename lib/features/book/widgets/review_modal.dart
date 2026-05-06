@@ -63,7 +63,7 @@ class _ReviewModalState extends ConsumerState<ReviewModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            userFacingErrorMessage(
+            apiFormErrorMessage(
               e,
               fallback:
                   'Değerlendirme kaydedilemedi. Giriş yaptığını kontrol edip tekrar dene.',

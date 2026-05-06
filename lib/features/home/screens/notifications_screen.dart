@@ -15,6 +15,7 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   late final ScrollController _scrollController;
+  bool _isMarkingAllRead = false;
 
   @override
   void initState() {
@@ -52,12 +53,43 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     context.push(notification.deeplink!);
   }
 
+  Future<void> _markAllAsRead() async {
+    if (_isMarkingAllRead) {
+      return;
+    }
+
+    setState(() => _isMarkingAllRead = true);
+    try {
+      await ref.read(notificationsFeedProvider.notifier).markAllAsRead();
+    } finally {
+      if (mounted) {
+        setState(() => _isMarkingAllRead = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(notificationsFeedProvider);
+    final hasUnread = state.items.any((item) => !item.isRead);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Bildirimler')),
+      appBar: AppBar(
+        title: const Text('Bildirimler'),
+        actions: [
+          if (hasUnread)
+            TextButton(
+              onPressed: _isMarkingAllRead ? null : _markAllAsRead,
+              child: _isMarkingAllRead
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Tümünü Okundu Yap'),
+            ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           refreshNotificationProvidersForWidget(ref);

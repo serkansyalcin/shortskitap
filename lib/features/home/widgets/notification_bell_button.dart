@@ -82,6 +82,14 @@ class _NotificationBellButtonState
         return;
       }
 
+      if (selected == 'mark_all') {
+        try {
+          await ref.read(notificationCenterServiceProvider).markAllRead();
+        } catch (_) {}
+        refreshNotificationProvidersForWidget(ref);
+        return;
+      }
+
       if (selected.startsWith('notification:')) {
         final id = int.tryParse(selected.split(':').last);
         if (id == null) {
@@ -128,23 +136,69 @@ class _NotificationBellButtonState
     BuildContext context,
   ) {
     final theme = Theme.of(context);
+    final hasUnread = previewItems.any((item) => !item.isRead);
     final entries = <PopupMenuEntry<String>>[
       PopupMenuItem<String>(
         enabled: false,
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
         child: SizedBox(
           width: 320,
-          child: Text(
-            'Son Bildirimler',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: theme.colorScheme.onSurface,
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Son Bildirimler',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+              ),
+              if (hasUnread)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'Okundu yap',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
     ];
+
+    if (hasUnread) {
+      entries.add(
+        PopupMenuItem<String>(
+          value: 'mark_all',
+          padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
+          child: SizedBox(
+            width: 320,
+            child: Text(
+              'Tüm bildirimleri okundu olarak işaretle',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     if (previewItems.isEmpty) {
       entries.add(

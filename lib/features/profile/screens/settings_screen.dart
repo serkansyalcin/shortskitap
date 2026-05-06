@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:in_app_review/in_app_review.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -16,6 +15,7 @@ import '../../../core/platform/platform_support.dart';
 import '../../../core/services/avatar_picker_service.dart';
 import '../../../core/services/avatar_picker_types.dart';
 import '../../../core/services/notification_permission_service.dart';
+import '../../../core/services/store_listing_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -275,25 +275,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _openStoreListing() async {
     if (!PlatformSupport.isMobileNative) return;
 
-    final inAppReview = InAppReview.instance;
-    try {
-      await inAppReview.openStoreListing();
-      return;
-    } catch (_) {}
-
-    if (PlatformSupport.isAndroid) {
-      final marketUri = Uri.parse('market://details?id=$_packageName');
-      if (await launchUrl(marketUri, mode: LaunchMode.externalApplication)) {
-        return;
-      }
-
-      final webUri = Uri.parse(
-        'https://play.google.com/store/apps/details?id=$_packageName',
-      );
-      if (await launchUrl(webUri, mode: LaunchMode.externalApplication)) {
-        return;
-      }
-    }
+    final opened = await StoreListingService.open(packageName: _packageName);
+    if (opened) return;
 
     if (!mounted) return;
     ScaffoldMessenger.of(

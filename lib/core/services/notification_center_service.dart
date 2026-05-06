@@ -49,6 +49,12 @@ class NotificationCenterService {
     return (data?['unread_count'] as num?)?.toInt() ?? 0;
   }
 
+  Future<int> markAllRead() async {
+    final response = await _api.post('/notifications/read-all');
+    final data = response.data['data'] as Map<String, dynamic>?;
+    return (data?['unread_count'] as num?)?.toInt() ?? 0;
+  }
+
   Future<AppNotificationModel?> markRead(int notificationId) async {
     final response = await _api.post('/notifications/$notificationId/read');
     final data = response.data['data'] as Map<String, dynamic>?;

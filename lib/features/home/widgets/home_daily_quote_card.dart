@@ -5,13 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:screenshot/screenshot.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../app/providers/daily_quote_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/daily_quote_model.dart';
 import '../../../core/platform/browser_file_download.dart';
+import '../../../core/services/daily_quote_share_service.dart';
 import '../../../core/utils/user_friendly_error.dart';
-import '../../../core/widgets/shareable_quote_overlay.dart';
 import 'home_async_inline_retry.dart';
 
 class DailyQuoteCardSection extends ConsumerStatefulWidget {
@@ -23,11 +23,16 @@ class DailyQuoteCardSection extends ConsumerStatefulWidget {
 }
 
 class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
-  final ScreenshotController _screenshotController = ScreenshotController();
   bool _isSharing = false;
+  bool _isSaving = false;
 
   Future<bool> _ensureGallerySavePermission() async {
     if (kIsWeb || !Platform.isIOS) {
+      return true;
+    }
+
+    final currentStatus = await Permission.photosAddOnly.status;
+    if (currentStatus.isGranted || currentStatus.isLimited) {
       return true;
     }
 
@@ -48,6 +53,7 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
                   onPressed: () => openAppSettings(),
                 )
               : null,
+          backgroundColor: Colors.black87,
         ),
       );
     }
@@ -55,59 +61,85 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
     return false;
   }
 
-  bool _useLegacyGalleryPermissionFlow() => false;
-
   Future<void> _shareQuote(DailyQuoteModel quote) async {
     if (_isSharing) return;
 
     final messenger = ScaffoldMessenger.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final box = context.findRenderObject() as RenderBox?;
 
     setState(() => _isSharing = true);
 
     try {
-      if (_useLegacyGalleryPermissionFlow()) {
-        if (Platform.isAndroid) {
-          final status = await Permission.photosAddOnly.request();
-          if (!status.isGranted && !status.isLimited) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Galeriye kaydetmek için izin vermelisiniz.'),
-                ),
-              );
-            }
-            return;
-          }
-        }
-      } else if (_useLegacyGalleryPermissionFlow()) {
-        final status = await Permission.photosAddOnly.request();
+      final image = await DailyQuoteShareService.renderQuoteImage(
+        quote: quote,
+        isDark: isDark,
+      );
+      final shareText = DailyQuoteShareService.shareText(quote);
 
-        if (!status.isGranted && !status.isLimited) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text(
-                  'Galeriye kaydetmek için izin vermelisiniz.',
-                ),
-                action: status.isPermanentlyDenied
-                    ? SnackBarAction(
-                        label: 'Ayarlar',
-                        onPressed: () => openAppSettings(),
-                      )
-                    : null,
-              ),
-            );
-          }
-          return;
+      if (kIsWeb) {
+        await downloadBytes(
+          bytes: image,
+          mimeType: 'image/png',
+          filename: 'kitaplig_quote_${quote.id}.png',
+        );
+        if (mounted) {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Alıntı görseli indirildi! ✨'),
+              backgroundColor: AppColors.primary,
+            ),
+          );
         }
+      } else {
+        final xFile = XFile.fromData(
+          image,
+          mimeType: 'image/png',
+          name: 'kitaplig_quote_${quote.id}.png',
+        );
+
+        await Share.shareXFiles(
+          [xFile],
+          text: shareText,
+          subject: quote.book.title,
+          sharePositionOrigin: box == null
+              ? null
+              : box.localToGlobal(Offset.zero) & box.size,
+        );
       }
+    } catch (e) {
+      debugPrint('Quote share error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userFacingErrorMessage(
+                e,
+                fallback: 'Alıntı paylaşılırken bir sorun oluştu. Tekrar dene.',
+              ),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSharing = false);
+      }
+    }
+  }
 
-      final image = await _screenshotController.captureFromWidget(
-        Material(
-          child: ShareableQuoteOverlay(quote: quote, isDark: isDark),
-        ),
-        delay: const Duration(milliseconds: 100),
+  Future<void> _saveQuote(DailyQuoteModel quote) async {
+    if (_isSaving) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final image = await DailyQuoteShareService.renderQuoteImage(
+        quote: quote,
+        isDark: isDark,
       );
 
       if (kIsWeb) {
@@ -119,47 +151,46 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
         if (mounted) {
           messenger.showSnackBar(
             const SnackBar(
-              content: Text('Alıntı indirildi! ✨'),
+              content: Text('Alıntı görseli indirildi! ✨'),
               backgroundColor: AppColors.primary,
             ),
           );
         }
-      } else {
-        final canSave = await _ensureGallerySavePermission();
-        if (!canSave) {
-          return;
-        }
-
-        final result = await ImageGallerySaverPlus.saveImage(
-          image,
-          quality: 100,
-          name: 'kitaplig_quote_${quote.id}',
-        );
-        if (mounted) {
-          if (result['isSuccess'] == true) {
-            messenger.showSnackBar(
-              const SnackBar(
-                content: Text('Alıntı galeriye kaydedildi! ✨'),
-                backgroundColor: AppColors.primary,
-              ),
-            );
-          } else {
-            messenger.showSnackBar(
-              const SnackBar(content: Text('Kaydedilirken bir hata oluştu.')),
-            );
-          }
-        }
+        return;
       }
+
+      final canSave = await _ensureGallerySavePermission();
+      if (!canSave) {
+        return;
+      }
+
+      final result = await ImageGallerySaverPlus.saveImage(
+        image,
+        quality: 100,
+        name: 'kitaplig_quote_${quote.id}',
+      );
+      final isSuccess = result is Map && result['isSuccess'] == true;
+
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            isSuccess
+                ? 'Alıntı galeriye kaydedildi! ✨'
+                : 'Alıntı kaydedilemedi. Lütfen tekrar dene.',
+          ),
+          backgroundColor: isSuccess ? AppColors.primary : null,
+        ),
+      );
     } catch (e) {
-      debugPrint('Share error: $e');
+      debugPrint('Quote save error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text(
               userFacingErrorMessage(
                 e,
-                fallback:
-                    'Paylaşım veya kayıt sırasında bir sorun oluştu. Tekrar dene.',
+                fallback: 'Alıntı kaydedilirken bir sorun oluştu. Tekrar dene.',
               ),
             ),
           ),
@@ -167,7 +198,7 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isSharing = false);
+        setState(() => _isSaving = false);
       }
     }
   }
@@ -246,24 +277,50 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
                           ),
                         ),
                         const Spacer(),
-                        _isSharing
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.primary,
-                                ),
-                              )
-                            : IconButton(
-                                visualDensity: VisualDensity.compact,
-                                onPressed: () => _shareQuote(quote),
-                                icon: Icon(
-                                  Icons.ios_share_rounded,
-                                  size: 18,
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              ),
+                        if (_isSaving)
+                          const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.primary,
+                            ),
+                          )
+                        else
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            tooltip: kIsWeb
+                                ? 'Alıntı görselini indir'
+                                : 'Alıntıyı kaydet',
+                            onPressed: () => _saveQuote(quote),
+                            icon: Icon(
+                              kIsWeb
+                                  ? Icons.download_rounded
+                                  : Icons.download_for_offline_rounded,
+                              size: 18,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        if (_isSharing)
+                          const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.primary,
+                            ),
+                          )
+                        else
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            tooltip: 'Alıntıyı paylaş',
+                            onPressed: () => _shareQuote(quote),
+                            icon: Icon(
+                              Icons.ios_share_rounded,
+                              size: 18,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 14),

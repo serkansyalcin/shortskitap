@@ -212,6 +212,17 @@ class NotificationsFeedNotifier extends StateNotifier<NotificationsFeedState> {
     }
   }
 
+  Future<void> markAllAsRead() async {
+    try {
+      await _service.markAllRead();
+    } catch (_) {
+      // Keep local state responsive even if the backend request fails.
+    } finally {
+      _setAllItemsAsRead();
+      refreshNotificationProviders(_ref);
+    }
+  }
+
   Future<List<AppNotificationModel>> _markVisible(
     List<AppNotificationModel> items,
   ) async {
@@ -243,6 +254,16 @@ class NotificationsFeedNotifier extends StateNotifier<NotificationsFeedState> {
             item.copyWith(readAt: readAt, isRead: true)
           else
             item,
+      ],
+    );
+  }
+
+  void _setAllItemsAsRead() {
+    final readAt = DateTime.now();
+    state = state.copyWith(
+      items: [
+        for (final item in state.items)
+          item.isRead ? item : item.copyWith(readAt: readAt, isRead: true),
       ],
     );
   }
