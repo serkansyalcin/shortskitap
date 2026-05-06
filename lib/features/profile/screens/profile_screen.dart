@@ -24,6 +24,7 @@ import '../widgets/reader_profile_dialogs.dart';
 import '../widgets/reading_heatmap_widget.dart';
 import '../../home/widgets/kids_mode_exit_dialog.dart';
 import '../../home/widgets/kids_mode_pin_set_dialog.dart';
+import '../../../core/widgets/app_image_viewer.dart';
 import '../../community/widgets/community_profile_posts_section.dart';
 import '../../subscription/widgets/premium_badge.dart';
 
@@ -674,6 +675,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final authState = ref.watch(authProvider);
     final currentUser = _isSelf ? authState.user : null;
     final subscriptionStatus = _isSelf
@@ -778,11 +780,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   delegate: _SliverAppBarDelegate(
                     TabBar(
                       labelColor: AppColors.primary,
-                      unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                      unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
                       indicatorColor: AppColors.primary,
                       indicatorSize: TabBarIndicatorSize.label,
+                      indicatorWeight: 3,
                       dividerColor: Colors.transparent,
-                      labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                      overlayColor: WidgetStateProperty.all(Colors.transparent),
+                      labelStyle: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                        letterSpacing: -0.2,
+                      ),
+                      unselectedLabelStyle: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
                       tabs: [
                         const Tab(text: 'Genel Bakış'),
                         Tab(text: 'Gönderiler (${profile.counts.posts})'),
@@ -1532,15 +1544,37 @@ class _KidsModeProfileSection extends ConsumerWidget {
                       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                       child: Row(
                         children: [
-                          ReaderProfileAvatar(
-                            name: activeProfile.name,
-                            avatarRef:
-                                activeProfile.avatarUrl ??
-                                ((userAvatarUrl ?? '').trim().isNotEmpty
-                                    ? userAvatarUrl
-                                    : null),
-                            size: 56,
+                          InkWell(
+                            onTap: () {
+                              final url = activeProfile.avatarUrl ??
+                                  ((userAvatarUrl ?? '').trim().isNotEmpty
+                                      ? userAvatarUrl
+                                      : null);
+                              if (url == null || url.trim().isEmpty) return;
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => AppImageViewer(
+                                    urls: [url],
+                                    initialIndex: 0,
+                                    heroTagBase: 'profile_avatar_${url.hashCode}',
+                                  ),
+                                ),
+                              );
+                            },
                             borderRadius: BorderRadius.circular(20),
+                            child: Hero(
+                              tag: 'profile_avatar_${(activeProfile.avatarUrl ?? ((userAvatarUrl ?? "").trim().isNotEmpty ? userAvatarUrl : "")).hashCode}_0',
+                              child: ReaderProfileAvatar(
+                                name: activeProfile.name,
+                                avatarRef:
+                                    activeProfile.avatarUrl ??
+                                    ((userAvatarUrl ?? '').trim().isNotEmpty
+                                        ? userAvatarUrl
+                                        : null),
+                                size: 56,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -2307,13 +2341,43 @@ class _Avatar extends StatelessWidget {
   final String name;
   final String? url;
   final double size;
+
+  void _openViewer(BuildContext context) {
+    if (url == null || url!.trim().isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AppImageViewer(
+          urls: [url!],
+          initialIndex: 0,
+          heroTagBase: 'profile_avatar_${url.hashCode}',
+        ),
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) => ReaderProfileAvatar(
-    name: name,
-    avatarRef: url,
-    size: size,
-    borderRadius: BorderRadius.circular(size * 0.3),
-  );
+  Widget build(BuildContext context) {
+    final avatar = Hero(
+      tag: 'profile_avatar_${url.hashCode}_0',
+      child: ReaderProfileAvatar(
+        name: name,
+        avatarRef: url,
+        size: size,
+        borderRadius: BorderRadius.circular(size * 0.3),
+      ),
+    );
+
+    if (url == null || url!.trim().isEmpty) return avatar;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _openViewer(context),
+        borderRadius: BorderRadius.circular(size * 0.3),
+        child: avatar,
+      ),
+    );
+  }
 }
 
 class _CountChip extends StatelessWidget {
@@ -2505,7 +2569,7 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     bool overlapsContent,
   ) {
     return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: Colors.transparent,
       child: _tabBar,
     );
   }

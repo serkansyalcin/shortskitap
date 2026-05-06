@@ -188,78 +188,63 @@ class LeagueHeader extends StatelessWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? panelColor.withValues(alpha: 0.94)
-                  : Colors.white.withValues(alpha: 0.92),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: isDark
-                    ? AppColors.primary.withValues(alpha: 0.12)
-                    : AppColors.lightOutline.withValues(alpha: 0.95),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _HeaderMetric(
+                  icon: Icons.flash_on_rounded,
+                  label: 'Bu hafta',
+                  value: '${membership.weeklyLp} ${isKidsMode ? 'Puan' : 'LP'}',
+                  accent: AppColors.primary,
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _HeaderMetric(
+                  icon: Icons.military_tech_rounded,
+                  label: 'Sıralama',
+                  value: '#${membership.rank}',
+                  accent: AppColors.accent,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _HeaderMetric(
+                  icon: Icons.trending_up_rounded,
+                  label: membership.lpToPromotion != null &&
+                          membership.lpToPromotion! > 0
+                      ? 'Terfiye kaldı'
+                      : 'Durum',
+                  value: membership.lpToPromotion != null &&
+                          membership.lpToPromotion! > 0
+                      ? '${membership.lpToPromotion} LP'
+                      : 'Hazır',
+                  accent: AppColors.lpGreen700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Column(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _HeaderMetric(
-                        icon: Icons.flash_on_rounded,
-                        label: 'Bu hafta',
-                        value:
-                            '${membership.weeklyLp} ${isKidsMode ? 'Puan' : 'LP'}',
-                        accent: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _HeaderMetric(
-                        icon: Icons.military_tech_rounded,
-                        label: 'Sıralama',
-                        value: '#${membership.rank}',
-                        accent: AppColors.accent,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _HeaderMetric(
-                        icon: Icons.trending_up_rounded,
-                        label:
-                            membership.lpToPromotion != null &&
-                                membership.lpToPromotion! > 0
-                            ? 'Terfiye kaldı'
-                            : 'Durum',
-                        value:
-                            membership.lpToPromotion != null &&
-                                membership.lpToPromotion! > 0
-                            ? '${membership.lpToPromotion} LP'
-                            : 'Hazır',
-                        accent: AppColors.lpGreen700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
                       child: Text(
                         membership.isInPromotionZone
                             ? (isKidsMode
-                                  ? 'Ödül bölgesindesin'
-                                  : 'Terfi bölgesindesin')
+                                ? 'Ödül bölgesindesin'
+                                : 'Terfi bölgesindesin')
                             : membership.isInDemotionZone
-                            ? (isKidsMode
-                                  ? 'Daha fazla oku'
-                                  : 'Düşme hattından çık')
-                            : 'Biraz daha yüksel',
+                                ? (isKidsMode ? 'Daha fazla oku' : 'Düşme hattından çık')
+                                : 'Biraz daha yüksel',
                         style: TextStyle(
                           color: theme.colorScheme.onSurface,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
                         ),
                       ),
                     ),
@@ -267,14 +252,14 @@ class LeagueHeader extends StatelessWidget {
                       membership.isInPromotionZone
                           ? (isKidsMode ? 'Süpersin!' : 'Güçlü gidiyorsun')
                           : membership.isInDemotionZone
-                          ? (isKidsMode ? 'Daha fazla oku' : 'Riskli alan')
-                          : 'Hedefe yaklaş',
+                              ? (isKidsMode ? 'Daha fazla oku' : 'Riskli alan')
+                              : 'Hedefe yaklaş',
                       style: TextStyle(
                         color: membership.isInPromotionZone
                             ? promotionColor
                             : membership.isInDemotionZone
-                            ? _dangerColor
-                            : neutralColor,
+                                ? _dangerColor
+                                : neutralColor,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
@@ -286,10 +271,10 @@ class LeagueHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
                     value: progressToPromotion,
-                    minHeight: 8,
+                    minHeight: 10,
                     backgroundColor: isDark
                         ? Colors.white.withValues(alpha: 0.08)
-                        : theme.colorScheme.outline.withValues(alpha: 0.28),
+                        : theme.colorScheme.outline.withValues(alpha: 0.15),
                     color: membership.isInDemotionZone
                         ? _dangerColor
                         : promotionColor,
@@ -322,42 +307,35 @@ class _HeaderMetric extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.darkSurfaceMuted.withValues(alpha: 0.74)
-            : AppColors.lightSurface.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isDark
-              ? AppColors.primary.withValues(alpha: 0.08)
-              : theme.colorScheme.outline.withValues(alpha: 0.45),
-        ),
+        color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: accent),
-          const SizedBox(height: 10),
+          Icon(icon, size: 16, color: accent),
+          const SizedBox(height: 8),
           Text(
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: theme.colorScheme.onSurface,
-              fontWeight: FontWeight.w800,
-              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              fontSize: 17,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: theme.colorScheme.onSurfaceVariant,
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w600,
+              letterSpacing: -0.2,
             ),
           ),
         ],

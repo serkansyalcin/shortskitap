@@ -195,54 +195,34 @@ class _LeagueContent extends StatelessWidget {
                     AppUI.screenHorizontalPadding,
                     0,
                     AppUI.screenHorizontalPadding,
-                    AppUI.sectionGap,
+                    AppUI.screenBottomContentPadding,
                   ),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: theme.cardColor,
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(
-                        color: theme.colorScheme.outline.withValues(
-                          alpha: 0.75,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 260),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeOutCubic,
+                    transitionBuilder: (child, animation) {
+                      final slide = Tween<Offset>(
+                        begin: const Offset(0.03, 0),
+                        end: Offset.zero,
+                      ).animate(animation);
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: slide,
+                          child: child,
                         ),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (isDark ? Colors.black : AppColors.accent)
-                              .withValues(alpha: isDark ? 0.2 : 0.06),
-                          blurRadius: 26,
-                          offset: const Offset(0, 16),
-                        ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 260),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeOutCubic,
-                        transitionBuilder: (child, animation) {
-                          final slide = Tween<Offset>(
-                            begin: const Offset(0.03, 0),
-                            end: Offset.zero,
-                          ).animate(animation);
-                          return FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: slide,
-                              child: child,
+                      );
+                    },
+                    child: tab == _LeagueTab.leaderboard
+                        ? KeyedSubtree(
+                            key: const ValueKey('leaderboard'),
+                            child: LeaderboardList(
+                              membership: status.membership,
+                              isKidsMode: isKidsMode,
                             ),
-                          );
-                        },
-                        child: tab == _LeagueTab.leaderboard
-                            ? KeyedSubtree(
-                                key: const ValueKey('leaderboard'),
-                                child: LeaderboardList(
-                                  membership: status.membership,
-                                  isKidsMode: isKidsMode,
-                                ),
-                              )
-                            : tab == _LeagueTab.duels
+                          )
+                        : tab == _LeagueTab.duels
                             ? const KeyedSubtree(
                                 key: ValueKey('duels'),
                                 child: _DuelTabContent(),
@@ -251,8 +231,6 @@ class _LeagueContent extends StatelessWidget {
                                 key: ValueKey('history'),
                                 child: LeagueHistory(),
                               ),
-                      ),
-                    ),
                   ),
                 ),
               ),

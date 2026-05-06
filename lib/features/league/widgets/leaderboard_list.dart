@@ -102,10 +102,7 @@ class LeaderboardList extends ConsumerWidget {
   }
 
   List<Widget> _buildRows(List<LeaderboardEntry> entries) {
-    final rows = <Widget>[
-      _LeagueSummaryCard(membership: membership, isKidsMode: isKidsMode),
-      const SizedBox(height: 14),
-    ];
+    final rows = <Widget>[];
 
     for (final entry in entries) {
       if (entry.rank == membership.promotionZone + 1) {
@@ -228,28 +225,18 @@ class _LeaderboardTile extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final borderColor = entry.isMe
-        ? AppColors.accent
-        : isPromotionZone
-        ? AppColors.primary
-        : isDemotionZone
-        ? _dangerColor
-        : theme.colorScheme.outline.withValues(alpha: isDark ? 0.8 : 0.7);
-
     final background = entry.isMe
-        ? (isDark ? AppColors.darkSurfaceMuted : AppColors.lpGreen50)
-        : isPromotionZone
-        ? (isDark ? const Color(0xFF102014) : const Color(0xFFF1F8EC))
-        : isDemotionZone
-        ? (isDark ? const Color(0xFF231212) : const Color(0xFFFFF2F2))
-        : (isDark ? AppColors.darkSurface : theme.cardColor);
+        ? (isDark ? AppColors.primary.withValues(alpha: 0.1) : AppColors.primary.withValues(alpha: 0.06))
+        : Colors.transparent;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(16),
+        border: entry.isMe 
+          ? Border.all(color: AppColors.primary.withValues(alpha: 0.2)) 
+          : null,
       ),
       child: Column(
         children: [
@@ -330,20 +317,19 @@ class _LeaderboardTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    isKidsMode ? 'Haftalık puan' : 'Haftalık LP',
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
                     '${entry.weeklyLp}',
                     style: TextStyle(
-                      color: theme.colorScheme.onSurface,
-                      fontSize: 24,
+                      color: isPromotionZone ? AppColors.primary : (isDemotionZone ? _dangerColor : theme.colorScheme.onSurface),
+                      fontSize: 22,
                       fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    isKidsMode ? 'Puan' : 'LP',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
