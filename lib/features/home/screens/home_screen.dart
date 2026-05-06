@@ -122,6 +122,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     });
 
+    final isKids = ref.watch(kidsModeProvider);
+
+    ref.listen<bool>(kidsModeProvider, (previous, next) {
+      if (previous != next) {
+        setState(() => _selectedIndex = 0);
+      }
+    });
+
     return Scaffold(
       body: IndexedStack(
         index: isAuthenticated ? _selectedIndex : guestSelectedIndex,
@@ -141,7 +149,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     setState(() => _discoverCategory = category);
                   },
                 ),
-                const CommunityFeedView(),
+                if (!isKids) const CommunityFeedView(),
                 const _LeagueTab(),
                 const _LibraryTab(),
                 const ProfileScreen(),
@@ -177,33 +185,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           setState(() => _selectedIndex = i);
         },
         destinations: isAuthenticated
-            ? const [
-                NavigationDestination(
+            ? [
+                const NavigationDestination(
                   icon: Icon(Icons.home_outlined),
                   selectedIcon: Icon(Icons.home),
                   label: 'Ana Sayfa',
                 ),
-                NavigationDestination(
+                const NavigationDestination(
                   icon: Icon(Icons.explore_outlined),
                   selectedIcon: Icon(Icons.explore),
                   label: 'Keşfet',
                 ),
-                NavigationDestination(
-                  icon: Icon(Icons.forum_outlined),
-                  selectedIcon: Icon(Icons.forum_rounded),
-                  label: 'Topluluk',
-                ),
-                NavigationDestination(
+                if (!isKids)
+                  const NavigationDestination(
+                    icon: Icon(Icons.forum_outlined),
+                    selectedIcon: Icon(Icons.forum_rounded),
+                    label: 'Topluluk',
+                  ),
+                const NavigationDestination(
                   icon: Icon(Icons.emoji_events_outlined),
                   selectedIcon: Icon(Icons.emoji_events),
                   label: 'Lig',
                 ),
-                NavigationDestination(
+                const NavigationDestination(
                   icon: Icon(Icons.library_books_outlined),
                   selectedIcon: Icon(Icons.library_books),
                   label: 'Kütüphane',
                 ),
-                NavigationDestination(
+                const NavigationDestination(
                   icon: Icon(Icons.person_outline),
                   selectedIcon: Icon(Icons.person),
                   label: 'Profil',
