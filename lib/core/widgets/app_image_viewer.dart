@@ -7,12 +7,12 @@ class AppImageViewer extends StatefulWidget {
     super.key,
     required this.urls,
     this.initialIndex = 0,
-    required this.heroTagBase,
+    this.heroTagBase,
   });
 
   final List<String> urls;
   final int initialIndex;
-  final String heroTagBase;
+  final String? heroTagBase;
 
   @override
   State<AppImageViewer> createState() => _AppImageViewerState();
@@ -95,27 +95,29 @@ class _AppImageViewerState extends State<AppImageViewer> {
           },
           itemBuilder: (context, index) {
             final url = widget.urls[index];
-            return Hero(
-              tag: '${widget.heroTagBase}_$index',
-              child: InteractiveViewer(
-                minScale: 0.5,
-                maxScale: 4.0,
-                child: Center(
-                  child: CachedNetworkImage(
-                    imageUrl: url,
-                    fit: BoxFit.contain,
-                    placeholder: (_, _) => const Center(
-                      child: CircularProgressIndicator(color: Colors.white),
-                    ),
-                    errorWidget: (_, _, _) => const Icon(
-                      Icons.error_outline,
-                      color: Colors.white,
-                      size: 48,
-                    ),
+            final tag = widget.heroTagBase;
+            final viewer = InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Center(
+                child: CachedNetworkImage(
+                  imageUrl: url,
+                  fit: BoxFit.contain,
+                  placeholder: (_, _) => const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  ),
+                  errorWidget: (_, _, _) => const Icon(
+                    Icons.error_outline,
+                    color: Colors.white,
+                    size: 48,
                   ),
                 ),
               ),
             );
+            if (tag != null) {
+              return Hero(tag: '${tag}_$index', child: viewer);
+            }
+            return viewer;
           },
         ),
       ),

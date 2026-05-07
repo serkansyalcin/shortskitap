@@ -33,12 +33,12 @@ class AppColors {
   static const accent = lpDGreen400;
   static const accentSoft = lpGreen100;
 
-  // Shared neutrals
-  static const spotifyBlack = Color(0xFF050505);
-  static const spotifyGraphite = Color(0xFF0D0E0D);
-  static const spotifyPanel = Color(0xFF161816);
-  static const spotifyPanelHigh = Color(0xFF222522);
-  static const outline = Color(0xFF303630);
+  // Shared neutrals — clear elevation hierarchy, no green tint.
+  static const spotifyBlack = Color(0xFF111111);
+  static const spotifyGraphite = Color(0xFF1C1C1C);
+  static const spotifyPanel = Color(0xFF252525);
+  static const spotifyPanelHigh = Color(0xFF2E2E2E);
+  static const outline = Color(0xFF2C2C2C);
 
   // Light theme
   static const lightBackground = Color(0xFFFFFFFF);
@@ -49,13 +49,13 @@ class AppColors {
   static const lightTextSecondary = lpDGreen300;
   static const lightOutline = Color(0xFFDCE4DB);
 
-  // Dark theme: premium black base with green brand accents.
+  // Dark theme: premium neutral base, green reserved for brand CTAs only.
   static const darkBackground = spotifyBlack;
   static const darkSurface = spotifyGraphite;
   static const darkSurfaceHigh = spotifyPanel;
   static const darkSurfaceMuted = spotifyPanelHigh;
-  static const darkText = Color(0xFFF4F6F3);
-  static const darkTextSecondary = Color(0xFFB5BBB4);
+  static const darkText = Color(0xFFEEEFF0);
+  static const darkTextSecondary = Color(0xFF8C8C8C);
 
   static const brandGradient = LinearGradient(
     colors: [primaryLight, primary, lpGreen700],

@@ -42,19 +42,20 @@ class LeagueMiniCard extends ConsumerWidget {
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isDark
-                    ? AppColors.primary.withValues(alpha: 0.18)
-                    : AppColors.lpGreen700.withValues(alpha: 0.18),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: (isDark ? AppColors.primary : AppColors.accent)
-                      .withValues(alpha: isDark ? 0.16 : 0.2),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              border: isDark
+                  ? null
+                  : Border.all(
+                      color: AppColors.lpGreen700.withValues(alpha: 0.18),
+                    ),
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: AppColors.accent.withValues(alpha: 0.2),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
             ),
             child: Row(
               children: [

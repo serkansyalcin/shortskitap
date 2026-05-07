@@ -249,6 +249,7 @@ class HomeQuickCategoriesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return categoriesAsync.when(
       data: (categories) {
@@ -297,13 +298,15 @@ class HomeQuickCategoriesSection extends StatelessWidget {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
+                        color: colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: colorScheme.outline.withValues(alpha: 0.55),
-                        ),
+                        border: isDark
+                            ? null
+                            : Border.all(
+                                color: colorScheme.outline.withValues(
+                                  alpha: 0.55,
+                                ),
+                              ),
                       ),
                       child: Text(
                         category.name,
@@ -477,6 +480,7 @@ class HomeHeaderIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Tooltip(
       message: tooltip,
@@ -489,13 +493,13 @@ class HomeHeaderIconButton extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withValues(
-                alpha: 0.72,
-              ),
+              color: colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: colorScheme.outline.withValues(alpha: 0.5),
-              ),
+              border: isDark
+                  ? null
+                  : Border.all(
+                      color: colorScheme.outline.withValues(alpha: 0.5),
+                    ),
             ),
             child: Icon(icon, size: 22, color: colorScheme.onSurfaceVariant),
           ),
@@ -524,15 +528,10 @@ class CompactPremiumCta extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF2E2E2E) : const Color(0xFF3B3B3B),
+            color: isDark
+                ? Theme.of(context).colorScheme.surfaceContainerHigh
+                : const Color(0xFF3B3B3B),
             borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.08),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
           ),
           child: Row(
             children: [

@@ -217,26 +217,22 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
           width: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: colorScheme.outline.withValues(alpha: 0.35),
-            ),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDark
-                  ? [
-                      colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.6,
-                      ),
-                      colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.3,
-                      ),
-                    ]
-                  : [
+            border: isDark
+                ? null
+                : Border.all(
+                    color: colorScheme.outline.withValues(alpha: 0.35),
+                  ),
+            color: isDark ? colorScheme.surfaceContainerHigh : null,
+            gradient: isDark
+                ? null
+                : LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
                       AppColors.primary.withValues(alpha: 0.08),
                       AppColors.accent.withValues(alpha: 0.05),
                     ],
-            ),
+                  ),
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
@@ -247,7 +243,9 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
                 child: Icon(
                   Icons.format_quote_rounded,
                   size: 100,
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: isDark
+                      ? colorScheme.onSurfaceVariant.withValues(alpha: 0.08)
+                      : AppColors.primary.withValues(alpha: 0.1),
                 ),
               ),
               Padding(
@@ -263,16 +261,20 @@ class _DailyQuoteCardSectionState extends ConsumerState<DailyQuoteCardSection> {
                             vertical: 5,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.15),
+                            color: isDark
+                                ? colorScheme.surfaceContainerHighest
+                                : AppColors.primary.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
                             'Günün Alıntısı',
                             style: TextStyle(
                               fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.primary,
-                              letterSpacing: 1.2,
+                              fontWeight: FontWeight.w700,
+                              color: isDark
+                                  ? colorScheme.onSurfaceVariant
+                                  : AppColors.primary,
+                              letterSpacing: 1.0,
                             ),
                           ),
                         ),

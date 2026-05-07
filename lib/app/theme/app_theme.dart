@@ -155,10 +155,10 @@ class AppTheme {
       ),
       iconTheme: IconThemeData(color: text),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: surface,
+        backgroundColor: surfaceHigh,
         surfaceTintColor: Colors.transparent,
         height: 72,
-        indicatorColor: AppColors.primary.withValues(alpha: 0.18),
+        indicatorColor: AppColors.primary.withValues(alpha: isDark ? 0.22 : 0.18),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return textTheme.bodySmall?.copyWith(

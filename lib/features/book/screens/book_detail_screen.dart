@@ -763,12 +763,23 @@ class _BookCover extends StatelessWidget {
   void _openViewer(BuildContext context) {
     if (imageUrl == null) return;
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AppImageViewer(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black,
+        transitionDuration: const Duration(milliseconds: 280),
+        reverseTransitionDuration: const Duration(milliseconds: 220),
+        pageBuilder: (_, _, _) => AppImageViewer(
           urls: [imageUrl!],
           initialIndex: 0,
-          heroTagBase: 'book_${bookId}_cover',
         ),
+        transitionsBuilder: (_, animation, _, child) {
+          final fade = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOut,
+            reverseCurve: Curves.easeIn,
+          );
+          return FadeTransition(opacity: fade, child: child);
+        },
       ),
     );
   }
@@ -780,32 +791,29 @@ class _BookCover extends StatelessWidget {
       child: InkWell(
         onTap: imageUrl != null ? () => _openViewer(context) : null,
         borderRadius: BorderRadius.circular(22),
-        child: Hero(
-          tag: 'book_${bookId}_cover_0',
-          child: Container(
-            width: 108,
-            height: 148,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.28),
-                  blurRadius: 20,
-                  offset: const Offset(0, 12),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(22),
-              child: imageUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: imageUrl!,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, error, stackTrace) =>
-                          _FallbackCover(title: title, accentColor: accentColor),
-                    )
-                  : _FallbackCover(title: title, accentColor: accentColor),
-            ),
+        child: Container(
+          width: 108,
+          height: 148,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.28),
+                blurRadius: 20,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: imageUrl != null
+                ? CachedNetworkImage(
+                    imageUrl: imageUrl!,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, error, stackTrace) =>
+                        _FallbackCover(title: title, accentColor: accentColor),
+                  )
+                : _FallbackCover(title: title, accentColor: accentColor),
           ),
         ),
       ),

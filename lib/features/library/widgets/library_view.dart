@@ -166,19 +166,20 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
             ),
             const SizedBox(height: 16),
             AnimatedSwitcher(
-              duration: const Duration(milliseconds: 260),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeOutCubic,
-              transitionBuilder: (child, animation) {
-                final slide = Tween<Offset>(
-                  begin: const Offset(0.03, 0),
-                  end: Offset.zero,
-                ).animate(animation);
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(position: slide, child: child),
-                );
-              },
+              duration: const Duration(milliseconds: 200),
+              switchInCurve: Curves.easeIn,
+              switchOutCurve: Curves.easeOut,
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: child,
+              ),
+              layoutBuilder: (currentChild, previousChildren) => Stack(
+                alignment: Alignment.topCenter,
+                children: [
+                  ...previousChildren,
+                  ?currentChild,
+                ],
+              ),
               child: KeyedSubtree(
                 key: ValueKey(_mode),
                 child: _LibraryModeContent(

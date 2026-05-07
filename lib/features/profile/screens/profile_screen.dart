@@ -1603,28 +1603,37 @@ class _KidsModeProfileSection extends ConsumerWidget {
                                       : null);
                               if (url == null || url.trim().isEmpty) return;
                               Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => AppImageViewer(
+                                PageRouteBuilder(
+                                  opaque: false,
+                                  barrierColor: Colors.black,
+                                  transitionDuration: const Duration(milliseconds: 280),
+                                  reverseTransitionDuration: const Duration(milliseconds: 220),
+                                  pageBuilder: (_, _, _) => AppImageViewer(
                                     urls: [url],
                                     initialIndex: 0,
-                                    heroTagBase: 'profile_avatar_${url.hashCode}',
+                                  ),
+                                  transitionsBuilder: (_, animation, _, child) =>
+                                      FadeTransition(
+                                    opacity: CurvedAnimation(
+                                      parent: animation,
+                                      curve: Curves.easeOut,
+                                      reverseCurve: Curves.easeIn,
+                                    ),
+                                    child: child,
                                   ),
                                 ),
                               );
                             },
                             borderRadius: BorderRadius.circular(20),
-                            child: Hero(
-                              tag: 'profile_avatar_${(activeProfile.avatarUrl ?? ((userAvatarUrl ?? "").trim().isNotEmpty ? userAvatarUrl : "")).hashCode}_0',
-                              child: ReaderProfileAvatar(
-                                name: activeProfile.name,
-                                avatarRef:
-                                    activeProfile.avatarUrl ??
-                                    ((userAvatarUrl ?? '').trim().isNotEmpty
-                                        ? userAvatarUrl
-                                        : null),
-                                size: 56,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
+                            child: ReaderProfileAvatar(
+                              name: activeProfile.name,
+                              avatarRef:
+                                  activeProfile.avatarUrl ??
+                                  ((userAvatarUrl ?? '').trim().isNotEmpty
+                                      ? userAvatarUrl
+                                      : null),
+                              size: 56,
+                              borderRadius: BorderRadius.circular(20),
                             ),
                           ),
                           const SizedBox(width: 14),
@@ -2396,11 +2405,22 @@ class _Avatar extends StatelessWidget {
   void _openViewer(BuildContext context) {
     if (url == null || url!.trim().isEmpty) return;
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AppImageViewer(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black,
+        transitionDuration: const Duration(milliseconds: 280),
+        reverseTransitionDuration: const Duration(milliseconds: 220),
+        pageBuilder: (_, _, _) => AppImageViewer(
           urls: [url!],
           initialIndex: 0,
-          heroTagBase: 'profile_avatar_${url.hashCode}',
+        ),
+        transitionsBuilder: (_, animation, _, child) => FadeTransition(
+          opacity: CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOut,
+            reverseCurve: Curves.easeIn,
+          ),
+          child: child,
         ),
       ),
     );
@@ -2408,14 +2428,11 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avatar = Hero(
-      tag: 'profile_avatar_${url.hashCode}_0',
-      child: ReaderProfileAvatar(
-        name: name,
-        avatarRef: url,
-        size: size,
-        borderRadius: BorderRadius.circular(size * 0.3),
-      ),
+    final avatar = ReaderProfileAvatar(
+      name: name,
+      avatarRef: url,
+      size: size,
+      borderRadius: BorderRadius.circular(size * 0.3),
     );
 
     if (url == null || url!.trim().isEmpty) return avatar;
