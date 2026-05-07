@@ -6,8 +6,10 @@ import '../platform/platform_support.dart';
 class StoreListingService {
   const StoreListingService._();
 
-  // Configure with --dart-define=APP_STORE_ID=1234567890 for reliable iOS fallback.
-  static const String _iosAppStoreId = String.fromEnvironment('APP_STORE_ID');
+  static const String _iosAppStoreId = String.fromEnvironment(
+    'APP_STORE_ID',
+    defaultValue: '6760918392',
+  );
 
   static Future<bool> open({
     required String packageName,

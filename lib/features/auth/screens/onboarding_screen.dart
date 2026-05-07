@@ -69,6 +69,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     }
   }
 
+  Future<void> _skip() async {
+    final isAuthenticated = ref.read(authProvider).isAuthenticated;
+    await _finish(
+      navigateToRegister: !isAuthenticated,
+      isAuthenticated: isAuthenticated,
+    );
+  }
+
   Future<void> _finish({
     required bool navigateToRegister,
     required bool isAuthenticated,
@@ -185,7 +193,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                     children: [
                       _FeaturePage(
                         icon: Icons.auto_awesome_rounded,
-                        title: 'Kısa ve Akıcı\nOkuma',
+                        title: 'Kısa ve Akıcı Okuma',
                         description:
                             'Yorucu sayfalar yerine kısa paragraflarla ritmini kaybetmeden oku ve odağını koru.',
                         accentColor: AppColors.primary,
@@ -193,7 +201,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                       ),
                       _FeaturePage(
                         icon: Icons.headphones_rounded,
-                        title: 'Dinle ve\nÇevrim Dışı Devam Et',
+                        title: 'Dinle ve Çevrim Dışı Devam Et',
                         description:
                             'Sesli kitap ve indirme özellikleriyle hikâyene ister yolda ister internetsizken kaldığın yerden devam et.',
                         accentColor: Colors.blueAccent,
@@ -205,7 +213,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                       ),
                       _FeaturePage(
                         icon: Icons.emoji_events_rounded,
-                        title: 'Ligler ve\nDüellolar',
+                        title: 'Ligler ve Düellolar',
                         description:
                             'Okudukça puan topla, liglerde yüksel ve düellolarda diğer okurlarla yarış. Çocuk ve yetişkin profilleri kendi alanlarında ayrı ilerler.',
                         accentColor: Colors.amber.shade600,
@@ -218,7 +226,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                       ),
                       _FeaturePage(
                         icon: Icons.family_restroom_rounded,
-                        title: 'Çocuk\nModu',
+                        title: 'Çocuk Modu',
                         description:
                             'Çocuklara uygun içerikleri güvenli bir alanda sun. Ayrı profil oluştur, yetişkin alanına dönüşü şifreyle koru ve çocuk deneyimini ayrı tut.',
                         accentColor: Colors.pinkAccent,
@@ -231,7 +239,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                       ),
                       _FeaturePage(
                         icon: Icons.auto_stories_rounded,
-                        title: 'AI ile\nKendi Hikâyeni Yaz',
+                        title: 'AI ile Kendi Hikâyeni Yaz',
                         description:
                             'Başlığını ve temanı yaz, AI senin için özgün bir hikâye oluştursun. İstersen özel tut, istersen paylaş.',
                         accentColor: AppColors.accent,
@@ -380,13 +388,33 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               ],
             ),
           ),
+          if (_currentPage < _pageCount - 1)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 16,
+              right: 16,
+              child: TextButton(
+                onPressed: _isSubmitting ? null : _skip,
+                style: TextButton.styleFrom(
+                  foregroundColor:
+                      isDark ? Colors.white54 : const Color(0xFF94A3B8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                ),
+                child: const Text(
+                  'Atla',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 }
 
-class _FeaturePage extends StatelessWidget {
+class _FeaturePage extends StatefulWidget {
   final IconData icon;
   final String title;
   final String description;
@@ -404,63 +432,97 @@ class _FeaturePage extends StatelessWidget {
   });
 
   @override
+  State<_FeaturePage> createState() => _FeaturePageState();
+}
+
+class _FeaturePageState extends State<_FeaturePage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _floatController;
+  late final Animation<double> _floatAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _floatController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2800),
+    )..repeat(reverse: true);
+    _floatAnim = Tween<double>(begin: -8.0, end: 8.0).animate(
+      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _floatController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 160,
-            height: 160,
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.05)
-                  : Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: isDark
-                  ? []
-                  : [
-                      BoxShadow(
-                        color: accentColor.withValues(alpha: 0.15),
-                        blurRadius: 40,
-                        offset: const Offset(0, 15),
-                      ),
-                    ],
-              border: Border.all(
-                color: accentColor.withValues(alpha: isDark ? 0.3 : 0.1),
-                width: 2,
-              ),
+          AnimatedBuilder(
+            animation: _floatAnim,
+            builder: (context, child) => Transform.translate(
+              offset: Offset(0, _floatAnim.value),
+              child: child,
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Positioned(
-                  child: Container(
+            child: Container(
+              width: 160,
+              height: 160,
+              decoration: BoxDecoration(
+                color: widget.isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: widget.isDark
+                    ? []
+                    : [
+                        BoxShadow(
+                          color: widget.accentColor.withValues(alpha: 0.18),
+                          blurRadius: 48,
+                          offset: const Offset(0, 16),
+                        ),
+                      ],
+                border: Border.all(
+                  color: widget.accentColor.withValues(
+                    alpha: widget.isDark ? 0.3 : 0.12,
+                  ),
+                  width: 2,
+                ),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
                         colors: [
-                          accentColor.withValues(alpha: 0.4),
-                          accentColor,
+                          widget.accentColor.withValues(alpha: 0.4),
+                          widget.accentColor,
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                     ),
                   ),
-                ),
-                Icon(icon, size: 52, color: Colors.white),
-              ],
+                  Icon(widget.icon, size: 52, color: Colors.white),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 64),
+          const SizedBox(height: 48),
           Text(
-            title,
+            widget.title,
             style: TextStyle(
-              color: isDark ? Colors.white : const Color(0xFF1E293B),
+              color: widget.isDark ? Colors.white : const Color(0xFF1E293B),
               fontSize: 32,
               fontWeight: FontWeight.w900,
               height: 1.1,
@@ -468,60 +530,63 @@ class _FeaturePage extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           Text(
-            description,
+            widget.description,
             style: TextStyle(
-              color: isDark ? Colors.white70 : const Color(0xFF64748B),
-              fontSize: 16,
+              color: widget.isDark
+                  ? Colors.white70
+                  : const Color(0xFF64748B),
+              fontSize: 15,
               height: 1.6,
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
           ),
-          if (highlights.isNotEmpty) ...[
-            const SizedBox(height: 28),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 10,
-              runSpacing: 10,
-              children: highlights.map((item) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.06)
-                        : Colors.white.withValues(alpha: 0.92),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: accentColor.withValues(alpha: isDark ? 0.34 : 0.18),
+          if (widget.highlights.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            for (final item in widget.highlights)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: widget.isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : Colors.white.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: widget.accentColor.withValues(
+                      alpha: widget.isDark ? 0.28 : 0.15,
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.check_circle_rounded,
-                        size: 16,
-                        color: accentColor,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle_rounded,
+                      size: 18,
+                      color: widget.accentColor,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
                         item,
                         style: TextStyle(
-                          color: isDark ? Colors.white70 : const Color(0xFF334155),
+                          color: widget.isDark
+                              ? Colors.white70
+                              : const Color(0xFF334155),
                           fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ],
       ),
