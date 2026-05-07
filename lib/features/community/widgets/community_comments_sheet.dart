@@ -190,7 +190,7 @@ class _CommunityCommentsSheetState
   }
 }
 
-class _CommentTile extends StatelessWidget {
+class _CommentTile extends ConsumerStatefulWidget {
   const _CommentTile({required this.comment, this.onDelete, this.onReport});
 
   final CommunityCommentModel comment;
@@ -198,76 +198,167 @@ class _CommentTile extends StatelessWidget {
   final VoidCallback? onReport;
 
   @override
+  ConsumerState<_CommentTile> createState() => _CommentTileState();
+}
+
+class _CommentTileState extends ConsumerState<_CommentTile> {
+  late bool _isLiked;
+  late int _likeCount;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isLiked = widget.comment.viewerState.isLiked;
+    _likeCount = widget.comment.counts.likes;
+  }
+
+  Future<void> _toggleLike() async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _isLiked = !_isLiked;
+      _likeCount += _isLiked ? 1 : -1;
+    });
+    try {
+      final svc = ref.read(communityServiceProvider);
+      if (_isLiked) {
+        await svc.likeComment(widget.comment.id);
+      } else {
+        await svc.unlikeComment(widget.comment.id);
+      }
+    } catch (_) {
+      // rollback
+      if (mounted) {
+        setState(() {
+          _isLiked = !_isLiked;
+          _likeCount += _isLiked ? 1 : -1;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ReaderProfileAvatar(
-          name: comment.author.name,
-          avatarRef: comment.author.avatarUrl,
+          name: widget.comment.author.name,
+          avatarRef: widget.comment.author.avatarUrl,
           size: 36,
           borderRadius: BorderRadius.circular(12),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        comment.author.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: scheme.onSurface,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.comment.author.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: scheme.onSurface,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
+                          ),
                         ),
+                        if (widget.onDelete != null || widget.onReport != null)
+                          PopupMenuButton<String>(
+                            padding: EdgeInsets.zero,
+                            iconSize: 18,
+                            onSelected: (value) {
+                              if (value == 'delete') widget.onDelete?.call();
+                              if (value == 'report') widget.onReport?.call();
+                            },
+                            itemBuilder: (_) => [
+                              if (widget.onReport != null)
+                                const PopupMenuItem(
+                                  value: 'report',
+                                  child: Text('Şikayet et'),
+                                ),
+                              if (widget.onDelete != null)
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Text('Sil'),
+                                ),
+                            ],
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.comment.body,
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontSize: 13.5,
+                        height: 1.4,
                       ),
                     ),
-                    if (onDelete != null || onReport != null)
-                      PopupMenuButton<String>(
-                        padding: EdgeInsets.zero,
-                        iconSize: 18,
-                        onSelected: (value) {
-                          if (value == 'delete') onDelete?.call();
-                          if (value == 'report') onReport?.call();
-                        },
-                        itemBuilder: (_) => [
-                          if (onReport != null)
-                            const PopupMenuItem(
-                              value: 'report',
-                              child: Text('Şikayet et'),
-                            ),
-                          if (onDelete != null)
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Text('Sil'),
-                            ),
-                        ],
-                      ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  comment.body,
-                  style: TextStyle(
-                    color: scheme.onSurface,
-                    fontSize: 13.5,
-                    height: 1.4,
+              ),
+              // Like row below bubble
+              Padding(
+                padding: const EdgeInsets.only(left: 4, top: 4),
+                child: GestureDetector(
+                  onTap: _toggleLike,
+                  behavior: HitTestBehavior.opaque,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(
+                          _isLiked
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
+                          key: ValueKey(_isLiked),
+                          size: 15,
+                          color: _isLiked
+                              ? const Color(0xFFE53935)
+                              : isDark
+                                  ? const Color(0xFF8C8C8C)
+                                  : scheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (_likeCount > 0) ...[
+                        const SizedBox(width: 3),
+                        Text(
+                          '$_likeCount',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: _isLiked
+                                ? const Color(0xFFE53935)
+                                : scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ],

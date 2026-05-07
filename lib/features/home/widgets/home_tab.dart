@@ -17,6 +17,8 @@ import '../../ai_story/widgets/ai_story_home_entry_card.dart';
 import '../../league/widgets/league_mini_card.dart';
 import 'home_daily_quote_card.dart';
 import 'home_tab_sections.dart';
+import 'friend_activity_section.dart';
+import 'weekly_challenges_section.dart';
 
 ProgressModel? _findContinueReadingProgress(
   List<ProgressModel> progress, {
@@ -187,6 +189,12 @@ class _HomeTabSectionState extends ConsumerState<HomeTabSection>
                 featuredAsync: featuredAsync,
                 onOpenDiscover: widget.onOpenDiscover,
               ),
+              if (isAuthenticated && !kidsModeEnabled) ...[
+                const SizedBox(height: AppUI.sectionGap),
+                const FriendActivitySection(),
+                const SizedBox(height: AppUI.sectionGap),
+                const WeeklyChallengesSection(),
+              ],
             ],
           ),
         ),

@@ -291,12 +291,25 @@ class CommunityPostModel {
   }
 }
 
+class CommunityCommentCountsModel {
+  final int likes;
+
+  const CommunityCommentCountsModel({this.likes = 0});
+
+  factory CommunityCommentCountsModel.fromJson(Map<String, dynamic> json) =>
+      CommunityCommentCountsModel(likes: _asInt(json['likes']));
+
+  CommunityCommentCountsModel copyWith({int? likes}) =>
+      CommunityCommentCountsModel(likes: likes ?? this.likes);
+}
+
 class CommunityCommentModel {
   final int id;
   final String body;
   final String status;
   final DateTime? createdAt;
   final CommunityAuthorModel author;
+  final CommunityCommentCountsModel counts;
   final CommunityViewerStateModel viewerState;
 
   const CommunityCommentModel({
@@ -305,6 +318,7 @@ class CommunityCommentModel {
     required this.status,
     this.createdAt,
     required this.author,
+    this.counts = const CommunityCommentCountsModel(),
     required this.viewerState,
   });
 
@@ -317,9 +331,27 @@ class CommunityCommentModel {
       author: CommunityAuthorModel.fromJson(
         json['author'] as Map<String, dynamic>? ?? const {},
       ),
+      counts: CommunityCommentCountsModel.fromJson(
+        json['counts'] as Map<String, dynamic>? ?? const {},
+      ),
       viewerState: CommunityViewerStateModel.fromJson(
         json['viewer_state'] as Map<String, dynamic>? ?? const {},
       ),
+    );
+  }
+
+  CommunityCommentModel copyWith({
+    CommunityCommentCountsModel? counts,
+    CommunityViewerStateModel? viewerState,
+  }) {
+    return CommunityCommentModel(
+      id: id,
+      body: body,
+      status: status,
+      createdAt: createdAt,
+      author: author,
+      counts: counts ?? this.counts,
+      viewerState: viewerState ?? this.viewerState,
     );
   }
 }

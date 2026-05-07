@@ -23,6 +23,7 @@ import '../../interactive_elements/widgets/interactive_elements_section.dart';
 import '../widgets/book_review_tile.dart';
 import '../widgets/character_card_widget.dart';
 import '../widgets/podcast_player_widget.dart';
+import '../widgets/reading_list_sheet.dart';
 import '../widgets/series_info_widget.dart';
 
 class BookDetailScreen extends ConsumerWidget {
@@ -1206,6 +1207,16 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
               const SizedBox(width: 10),
               Expanded(
                 child: _ActionButton(
+                  icon: Icons.bookmark_add_outlined,
+                  label: 'Listeye ekle',
+                  accentColor: widget.accentColor,
+                  emphasized: false,
+                  onTap: () => ReadingListSheet.show(context, widget.book.id),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ActionButton(
                   icon: Icons.share_outlined,
                   label: 'Paylaş',
                   accentColor: widget.accentColor,
@@ -1453,17 +1464,24 @@ class _BookActionStripState extends ConsumerState<_BookActionStrip> {
     }
   }
 
-  void _shareBook() {
+  Future<void> _shareBook() async {
     final author = widget.book.author?.name;
     final shareText = StringBuffer()
       ..writeln('${widget.book.title}${author != null ? ' - $author' : ''}')
       ..writeln()
-      ..writeln('KitapLig\'de keşfettiğim bu kitaba göz at:')
+      ..writeln("KitapLig'de keşfettiğim bu kitaba göz at:")
       ..writeln(widget.book.title)
       ..writeln()
       ..write('kitaplig.com');
 
-    Share.share(shareText.toString(), subject: widget.book.title);
+    final box = context.findRenderObject() as RenderBox?;
+    await Share.share(
+      shareText.toString(),
+      subject: widget.book.title,
+      sharePositionOrigin: box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : null,
+    );
   }
 }
 

@@ -144,6 +144,12 @@ class CommunityService {
   Future<void> deleteComment(int commentId) =>
       _client.delete('/community/comments/$commentId');
 
+  Future<void> likeComment(int commentId) =>
+      _client.post('/community/comments/$commentId/like');
+
+  Future<void> unlikeComment(int commentId) =>
+      _client.delete('/community/comments/$commentId/like');
+
   Future<void> reportComment(
     int commentId, {
     required String reason,

@@ -89,6 +89,18 @@ class AppTheme {
         fontWeight: FontWeight.w700,
         letterSpacing: -1.0,
       ),
+      headlineMedium: GoogleFonts.spaceGrotesk(
+        color: text,
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.6,
+      ),
+      headlineSmall: GoogleFonts.spaceGrotesk(
+        color: text,
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.3,
+      ),
       headlineLarge: GoogleFonts.spaceGrotesk(
         color: text,
         fontSize: 28,
@@ -303,6 +315,23 @@ class AppTheme {
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 18,
           vertical: 18,
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: surfaceHigh,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        titleTextStyle: GoogleFonts.spaceGrotesk(
+          color: text,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.3,
+        ),
+        contentTextStyle: GoogleFonts.dmSans(
+          color: textSecondary,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          height: 1.5,
         ),
       ),
       bottomSheetTheme: BottomSheetThemeData(
