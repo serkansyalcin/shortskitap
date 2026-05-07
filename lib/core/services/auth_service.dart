@@ -192,8 +192,11 @@ class AuthService {
     return me;
   }
 
-  Future<void> deleteAccount(String password) async {
-    await _client.delete('/me', data: {'password': password});
+  Future<void> deleteAccount(String password, {String? reason}) async {
+    await _client.delete('/me', data: {
+      'password': password,
+      'reason': reason,
+    });
     await ApiClient.clearToken();
   }
 

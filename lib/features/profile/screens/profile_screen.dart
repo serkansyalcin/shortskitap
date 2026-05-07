@@ -321,13 +321,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _showDeleteAccountDialog() async {
-    final password = await showDialog<String>(
+    final result = await showDialog<DeleteAccountResult>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => const DeleteAccountDialog(),
     );
-    if (password != null && password.isNotEmpty && mounted) {
-      final ok = await ref.read(authProvider.notifier).deleteAccount(password);
+    if (result != null && result.password.isNotEmpty && mounted) {
+      final ok = await ref
+          .read(authProvider.notifier)
+          .deleteAccount(result.password, reason: result.reason);
       if (ok && mounted) {
         context.go('/login');
       } else if (mounted) {
@@ -844,7 +846,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                         const SizedBox(height: AppUI.sectionGap),
                         _DeleteAccountSection(onTap: _showDeleteAccountDialog),
-                        const SizedBox(height: 80),
                       ],
                     ],
                   ),

@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 
-/// Şifre onayı ile hesap silme — [Navigator.pop] ile girilen şifreyi döner.
+/// Şifre + silme nedeni ile hesap silme onayı — [Navigator.pop] ile [DeleteAccountResult] döner.
+class DeleteAccountResult {
+  const DeleteAccountResult({required this.password, required this.reason});
+  final String password;
+  final String? reason;
+}
+
 class DeleteAccountDialog extends StatefulWidget {
   const DeleteAccountDialog({super.key});
 
@@ -8,8 +14,17 @@ class DeleteAccountDialog extends StatefulWidget {
   State<DeleteAccountDialog> createState() => _DeleteAccountDialogState();
 }
 
+const _kReasons = [
+  'Artık uygulamayı kullanmıyorum',
+  'Yeni bir hesap açmak istiyorum',
+  'Gizlilik veya veri endişelerim var',
+  'Teknik bir sorun yaşıyorum',
+  'Diğer',
+];
+
 class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
   final _controller = TextEditingController();
+  String? _reason;
   bool _canDelete = false;
   bool _loading = false;
 
@@ -117,7 +132,56 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
+              Text(
+                'Silme Nedeni',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _reason,
+                    hint: Text(
+                      'Neden silmek istiyorsunuz?',
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant
+                            .withValues(alpha: 0.5),
+                        fontSize: 14,
+                      ),
+                    ),
+                    isExpanded: true,
+                    dropdownColor:
+                        isDark ? const Color(0xFF1E211E) : theme.cardColor,
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    icon: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    items: _kReasons
+                        .map(
+                          (r) => DropdownMenuItem(value: r, child: Text(r)),
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() => _reason = v),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
               Text(
                 'Kullanıcı Şifreniz',
                 style: TextStyle(
@@ -211,7 +275,13 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
                       onPressed: (_canDelete && !_loading)
                           ? () {
                               setState(() => _loading = true);
-                              Navigator.pop(context, _controller.text);
+                              Navigator.pop(
+                                context,
+                                DeleteAccountResult(
+                                  password: _controller.text,
+                                  reason: _reason,
+                                ),
+                              );
                             }
                           : null,
                       child: _loading

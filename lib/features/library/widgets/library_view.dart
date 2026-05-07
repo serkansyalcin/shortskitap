@@ -18,6 +18,7 @@ import '../../../core/widgets/animated_segmented_control.dart';
 import '../../ai_story/ai_story_strings.dart';
 import '../../ai_story/providers/ai_story_provider.dart';
 import '../../ai_story/widgets/ai_story_preview_card.dart';
+import '../../../app/providers/home_shell_provider.dart';
 
 enum _LibraryMode {
   overview,
@@ -192,6 +193,8 @@ class _LibraryViewState extends ConsumerState<LibraryView> {
                   ),
                   onOpenHighlightsTab: () =>
                       setState(() => _mode = _LibraryMode.highlights),
+                  onGoToDiscover: () =>
+                      ref.read(homeTabRequestProvider.notifier).state = 1,
                   onAiStoryFilterChanged: (value) {
                     setState(() => _aiStoryVisibilityFilter = value);
                   },
@@ -235,6 +238,7 @@ class _LibraryModeContent extends StatelessWidget {
   final VoidCallback onRetryHighlights;
   final VoidCallback onRetryAiStories;
   final VoidCallback onOpenHighlightsTab;
+  final VoidCallback onGoToDiscover;
   final ValueChanged<String?> onAiStoryFilterChanged;
   final Future<void> Function() onLoadMoreHighlights;
   final AsyncValue<List<ProgressModel>> progressAsync;
@@ -258,6 +262,7 @@ class _LibraryModeContent extends StatelessWidget {
     required this.onRetryHighlights,
     required this.onRetryAiStories,
     required this.onOpenHighlightsTab,
+    required this.onGoToDiscover,
     required this.onAiStoryFilterChanged,
     required this.onLoadMoreHighlights,
     required this.progressAsync,
@@ -343,7 +348,7 @@ class _LibraryModeContent extends StatelessWidget {
                       ? 'Bir kitabı bitirdiğinde burada ayrı bir raf olarak göreceksin.'
                       : 'İlk kitabını seçtiğinde okuma ilerlemen, favorilerin ve notların bu alanda toplanacak.',
                   actionLabel: 'Keşfet ekranına git',
-                  onTap: () => context.go('/home'),
+                  onTap: onGoToDiscover,
                 );
               }
 
