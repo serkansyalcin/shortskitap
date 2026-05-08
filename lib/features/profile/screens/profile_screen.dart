@@ -27,6 +27,7 @@ import '../../home/widgets/kids_mode_pin_set_dialog.dart';
 import '../../../core/widgets/app_image_viewer.dart';
 import '../../community/widgets/community_profile_posts_section.dart';
 import '../../subscription/widgets/premium_badge.dart';
+import '../../../app/providers/duel_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key, this.username, this.standalone = false});
@@ -244,6 +245,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         return null;
       },
     );
+  }
+
+  Future<void> _sendDuelChallenge(PublicProfileModel profile) async {
+    final duelNotifier = ref.read(duelStateProvider.notifier);
+    final result = await duelNotifier.challenge(profile.profile.id);
+    if (mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(result.message)));
+    }
   }
 
   Future<void> _toggleFollow(PublicProfileModel profile) async {
@@ -774,6 +785,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               subscriptionStatus,
                             )
                           : null,
+                      onDuelChallenge: !_isSelf
+                          ? () => _sendDuelChallenge(profile)
+                          : null,
                     ),
                   ),
                 ),
@@ -821,6 +835,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                         const SizedBox(height: AppUI.sectionGap),
                         const ReadingHeatmapWidget(),
+                        const SizedBox(height: AppUI.sectionGap),
+                      ] else ...[
+                        _ReadingBooksCard(stats: profile.stats),
                         const SizedBox(height: AppUI.sectionGap),
                       ],
                       if (achievements.isNotEmpty) ...[
@@ -889,6 +906,7 @@ class _HeroCard extends StatelessWidget {
     this.onLogout,
     this.onPremiumTap,
     this.onPremiumDetailsTap,
+    this.onDuelChallenge,
   });
 
   final PublicProfileModel profile;
@@ -904,6 +922,7 @@ class _HeroCard extends StatelessWidget {
   final VoidCallback? onLogout;
   final VoidCallback? onPremiumTap;
   final VoidCallback? onPremiumDetailsTap;
+  final VoidCallback? onDuelChallenge;
 
   @override
   Widget build(BuildContext context) {
@@ -1063,7 +1082,6 @@ class _HeroCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  flex: 3,
                   child: _ActionButton(
                     followBusy
                         ? 'İşleniyor...'
@@ -1077,49 +1095,10 @@ class _HeroCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  flex: 2,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Opacity(
-                        opacity: 0.6,
-                        child: _ActionButton(
-                          'Mesaj Gönder',
-                          null,
-                          dark: isDark,
-                        ),
-                      ),
-                      Positioned(
-                        top: -6,
-                        right: -2,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFACC15),
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.15),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Text(
-                            'PEK YAKINDA',
-                            style: TextStyle(
-                              fontSize: 8,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.black,
-                              letterSpacing: 0.4,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: _ActionButton(
+                    'Düello',
+                    onDuelChallenge,
+                    dark: isDark,
                   ),
                 ),
               ],
@@ -1473,6 +1452,235 @@ class _StatsGrid extends StatelessWidget {
           Icons.local_fire_department_rounded,
         ),
       ],
+    );
+  }
+}
+
+class _ProfileMetricData {
+  const _ProfileMetricData({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color color;
+}
+
+class _ProfileMetricStrip extends StatelessWidget {
+  const _ProfileMetricStrip({required this.items});
+
+  final List<_ProfileMetricData> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : theme.colorScheme.outline.withValues(alpha: 0.45);
+    final backgroundColor = isDark
+        ? Colors.white.withValues(alpha: 0.035)
+        : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.42);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        children: [
+          for (var index = 0; index < items.length; index++) ...[
+            Expanded(child: _ProfileMetricItem(data: items[index])),
+            if (index != items.length - 1)
+              Container(
+                width: 1,
+                height: 44,
+                color: borderColor,
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileMetricItem extends StatelessWidget {
+  const _ProfileMetricItem({required this.data});
+
+  final _ProfileMetricData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: data.color.withValues(alpha: isDark ? 0.18 : 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(data.icon, color: data.color, size: 17),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  data.value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: theme.colorScheme.onSurface,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  data.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReadingBooksCard extends StatelessWidget {
+  const _ReadingBooksCard({required this.stats});
+
+  final ProfileStatsModel stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final completed = stats.completedBooks;
+    final inProgress = stats.startedBooks - stats.completedBooks > 0
+        ? stats.startedBooks - stats.completedBooks
+        : 0;
+    final paragraphText = stats.totalParagraphsRead > 0
+        ? '${stats.totalParagraphsRead} paragraf okudu'
+        : 'Henüz paragraf kaydı yok';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF1A2420)
+            : const Color(0xFFF0F8EE),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : AppColors.primary.withValues(alpha: 0.16),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(
+                    alpha: isDark ? 0.18 : 0.12,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.menu_book_rounded,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Okuduğu Kitaplar',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      paragraphText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _ProfileMetricStrip(
+            items: [
+              _ProfileMetricData(
+                label: 'Tamamladı',
+                value: '$completed',
+                icon: Icons.check_circle_rounded,
+                color: AppColors.primary,
+              ),
+              _ProfileMetricData(
+                label: 'Okumakta',
+                value: '$inProgress',
+                icon: Icons.auto_stories_rounded,
+                color: const Color(0xFF3B82F6),
+              ),
+              _ProfileMetricData(
+                label: 'Seri',
+                value: '${stats.currentStreak}g',
+                icon: Icons.local_fire_department_rounded,
+                color: const Color(0xFFF59E0B),
+              ),
+            ],
+          ),
+          if (completed == 0 && stats.startedBooks == 0) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Henüz okuma kaydı yok.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -2456,45 +2664,67 @@ class _CountChip extends StatelessWidget {
   final VoidCallback onTap;
   final bool dark;
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(16),
-    child: Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: dark
-            ? Colors.white.withValues(alpha: 0.06)
-            : Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: dark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final foreground = dark ? Colors.white : theme.colorScheme.onSurface;
+    final muted = dark
+        ? Colors.white.withValues(alpha: 0.68)
+        : theme.colorScheme.onSurfaceVariant;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: dark
+                ? Colors.white.withValues(alpha: 0.045)
+                : theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.34,
+                  ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: dark
+                  ? Colors.white.withValues(alpha: 0.07)
+                  : theme.colorScheme.outline.withValues(alpha: 0.12),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '$value',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                  color: foreground,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: muted,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    height: 1.1,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      child: Column(
-        children: [
-          Text(
-            '$value',
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 18,
-              color: dark ? Colors.white : null,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: dark ? Colors.white.withValues(alpha: 0.78) : null,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
+    );
+  }
 }
 
 class _ActionButton extends StatelessWidget {
