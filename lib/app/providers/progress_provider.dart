@@ -3,6 +3,7 @@ import '../../app/providers/auth_provider.dart';
 import '../../core/models/progress_model.dart';
 import '../../core/services/progress_service.dart' as svc;
 import 'achievements_provider.dart';
+import 'challenge_provider.dart';
 import 'duel_provider.dart';
 import 'notification_provider.dart';
 
@@ -85,6 +86,7 @@ class ProgressSyncNotifier extends StateNotifier<ProgressSyncState> {
       ref.invalidate(bookProgressProvider(bookId));
       ref.invalidate(earnedAchievementsProvider);
       ref.invalidate(duelStateProvider);
+      ref.invalidate(challengesProvider);
       refreshNotificationProviders(ref);
     } catch (_) {
       state = const ProgressSyncState(isSyncing: false);
